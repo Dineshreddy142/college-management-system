@@ -1,0 +1,19 @@
+{
+  "include": [
+    ".",
+    "face_service"
+  ],
+  "exclude": [
+    "**/__pyrefly_virtual__/**",
+    "**/inmemory/**"
+  ],
+  "extraPaths": [
+    ".",
+    "face_service"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "."
+    }
+  ]
+}

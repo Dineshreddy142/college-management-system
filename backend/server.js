@@ -1,0 +1,207 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import pool from './db.js';
+import facultyRouter from './faculty.js';
+import studentRouter from './student.js';
+import parentRouter from './parent.js';
+import mentorRouter from './mentor.js';
+import academicRouter from './academic.js';
+import timetableRouter from './timetable.js';
+import dashboardRouter from './dashboard.js';
+import notificationsRouter from './notifications.js';
+import searchRouter from './search.js';
+import profileRouter from './profile.js';
+import authRouter from './auth.js';
+import { authenticateToken, authorizeRole } from './middleware.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+
+// V1 API Routers
+import departmentRoutes from './routes/departmentRoutes.js';
+import courseRoutes from './routes/courseRoutes.js';
+import semesterRoutes from './routes/semesterRoutes.js';
+import indoorMapRoutes from './routes/indoorMapRoutes.js';
+import emailRoutes from './routes/emailRoutes.js';
+
+dotenv.config();
+
+const app = express();
+
+const allowedOrigins = [
+  'http://localhost:5171', 'http://localhost:5172', 'http://localhost:5173',
+  'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177',
+  'http://127.0.0.1:5171', 'http://127.0.0.1:5172', 'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', 'http://127.0.0.1:5177'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
+app.use(express.json());
+
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+
+// --- AUTHENTICATION ROUTES ---
+app.use('/api', authRouter);
+app.use('/api/auth', authRouter);
+
+// --- EMAIL NOTIFICATION & DIAGNOSTIC ROUTES ---
+app.use('/api/email', emailRoutes);
+app.use('/api/admin/email', emailRoutes);
+
+
+// --- V1 ENTERPRISE ROUTES ---
+app.use('/api/v1/academic/departments', departmentRoutes);
+app.use('/api/v1/academic/courses', courseRoutes);
+app.use('/api/v1/academic/semesters', semesterRoutes);
+
+// --- FACULTY ROUTES ---
+app.use('/api/faculty', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), facultyRouter);
+
+// --- STUDENT PORTAL ROUTES ---
+app.use('/api/student', authenticateToken, authorizeRole(['Admin', 'Student']), studentRouter);
+
+// --- PARENT PORTAL ROUTES ---
+app.use('/api/parent', authenticateToken, authorizeRole(['Admin', 'Parent']), parentRouter);
+
+// --- MENTOR ROUTES ---
+app.use('/api/mentor', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), mentorRouter);
+
+// --- ACADEMIC ROUTES ---
+app.use('/api/academic', authenticateToken, authorizeRole(['Admin', 'HOD']), academicRouter);
+
+// --- TIMETABLE ROUTES ---
+app.use('/api/timetable', authenticateToken, timetableRouter);
+
+// --- DASHBOARD ROUTES ---
+app.use('/api/dashboard', authenticateToken, dashboardRouter);
+
+// --- NOTIFICATIONS ROUTES ---
+app.use('/api/notifications', authenticateToken, notificationsRouter);
+
+// --- SEARCH ROUTES ---
+app.use('/api/search', authenticateToken, searchRouter);
+
+// --- PROFILE ROUTES ---
+app.use('/api/profile', authenticateToken, profileRouter);
+
+// --- INDOOR MAP ROUTES ---
+app.use('/api/indoor-map', authenticateToken, indoorMapRoutes);
+
+// --- SETTINGS ROUTES ---
+app.get('/api/settings', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM system_settings');
+    const settings = {};
+    rows.forEach(row => settings[row.setting_key] = row.setting_value);
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.put('/api/settings', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+  try {
+    const { settings } = req.body;
+    for (const [key, value] of Object.entries(settings)) {
+      await pool.execute(
+        'INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
+        [key, String(value), String(value)]
+      );
+    }
+    res.json({ message: 'Settings updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// --- STUDENT MANAGEMENT ROUTES ---
+app.get('/api/students', authenticateToken, authorizeRole(['Admin', 'HOD', 'Faculty']), async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT s.*, u.email, u.status FROM students s JOIN users u ON s.user_id = u.id');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/students', authenticateToken, authorizeRole(['Admin', 'HOD']), async (req, res) => {
+  // simplified create logic for MVP
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const { first_name, last_name, email, admission_number, password } = req.body;
+    
+    // Create user first
+    const [roleRows] = await conn.execute('SELECT id FROM roles WHERE name = "Student"');
+    const roleId = roleRows[0].id;
+    
+    const [userRes] = await conn.execute(
+      'INSERT INTO users (username, password, email, role_id) VALUES (?, ?, ?, ?)',
+      [admission_number, password || 'Student@123', email, roleId]
+    );
+    
+    const userId = userRes.insertId;
+    
+    // Create student
+    const [studentRes] = await conn.execute(
+      'INSERT INTO students (user_id, admission_number, first_name, last_name) VALUES (?, ?, ?, ?)',
+      [userId, admission_number, first_name, last_name]
+    );
+    
+    await conn.commit();
+    res.status(201).json({ id: studentRes.insertId, message: 'Student created' });
+  } catch (error) {
+    await conn.rollback();
+    res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
+  }
+});
+
+app.delete('/api/students/:id', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    // get user_id to delete user (cascade will handle student if FK is set up, but let's delete user)
+    const [students] = await pool.execute('SELECT user_id FROM students WHERE id = ?', [studentId]);
+    if (students.length > 0) {
+      await pool.execute('DELETE FROM users WHERE id = ?', [students[0].user_id]);
+    }
+    res.json({ message: 'Student deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- DASHBOARD ANALYTICS ---
+app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+  try {
+    const [studentCount] = await pool.execute('SELECT COUNT(*) as count FROM students');
+    const [facultyCount] = await pool.execute('SELECT COUNT(*) as count FROM faculties');
+    // Mocking some stats for now
+    res.json({
+      totalStudents: studentCount[0].count,
+      totalFaculty: facultyCount[0].count,
+      activeCourses: 12,
+      pendingFees: '₹12.5L'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Global Error Handler
+app.use(errorHandler);
+
+const server = app.listen(PORT, () => {
+  console.log(`Backend server running on http://localhost:${PORT}`);
+});

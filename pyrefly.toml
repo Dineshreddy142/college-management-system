@@ -1,0 +1,13 @@
+[project]
+root = "."
+source_roots = [".", "face_service"]
+search_path = [".", "face_service"]
+extra_paths = [".", "face_service"]
+exclude = ["**/__pyrefly_virtual__/**", "**/inmemory/**"]
+
+[analysis]
+auto_search_paths = true
+search_path = [".", "face_service"]
+extra_paths = [".", "face_service"]
+exclude = ["**/__pyrefly_virtual__/**", "**/inmemory/**"]
+ignore = ["**/__pyrefly_virtual__/**", "**/inmemory/**"]
