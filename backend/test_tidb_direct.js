@@ -1,21 +1,19 @@
 import mysql from 'mysql2/promise';
 
 async function testTiDB() {
-  console.log('Connecting with correct username 2ZhWtaNceZkmRfJ.root ...');
+  console.log('Connecting with new TiDB password gaWJ6glCNKr7D9oW ...');
   const conn = await mysql.createConnection({
     host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
     port: 4000,
     user: '2ZhWtaNceZkmRfJ.root',
-    password: 'YhzZ1AEefV0ql8kK',
+    password: 'gaWJ6glCNKr7D9oW',
     database: 'test',
     ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true }
   });
 
-  console.log('Connected successfully!');
-  const [tables] = await conn.query('SHOW TABLES;');
-  console.log('Tables in "test":', tables);
+  console.log('CONNECTED TO TIDB CLOUD SUCCESSFULLY!');
 
-  console.log('Creating roles table...');
+  // 1. Roles
   await conn.query(`
     CREATE TABLE IF NOT EXISTS roles (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -23,7 +21,7 @@ async function testTiDB() {
     );
   `);
 
-  console.log('Creating users table...');
+  // 2. Users
   await conn.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -38,7 +36,7 @@ async function testTiDB() {
     );
   `);
 
-  console.log('Creating failed_login_attempts table...');
+  // 3. Failed login attempts
   await conn.query(`
     CREATE TABLE IF NOT EXISTS failed_login_attempts (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,7 +47,7 @@ async function testTiDB() {
     );
   `);
 
-  console.log('Creating activity_logs table...');
+  // 4. Activity logs
   await conn.query(`
     CREATE TABLE IF NOT EXISTS activity_logs (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -61,20 +59,66 @@ async function testTiDB() {
     );
   `);
 
-  console.log('Inserting default roles...');
+  // 5. Students
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS students (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT,
+      roll_number VARCHAR(50) UNIQUE,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) UNIQUE,
+      phone VARCHAR(20),
+      department_id INT,
+      semester INT DEFAULT 1,
+      section VARCHAR(10) DEFAULT 'A',
+      cgpa DECIMAL(3,2) DEFAULT 0.00,
+      status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 6. Faculty
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS faculty (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT,
+      employee_id VARCHAR(50) UNIQUE,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) UNIQUE,
+      phone VARCHAR(20),
+      department_id INT,
+      designation VARCHAR(100) DEFAULT 'Assistant Professor',
+      status ENUM('Active', 'On Leave', 'Inactive') DEFAULT 'Active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 7. Departments
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS departments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      code VARCHAR(20) NOT NULL UNIQUE
+    );
+  `);
+
+  console.log('Seeding default roles...');
   const roles = ['Admin', 'Student', 'Faculty', 'Parent', 'Principal', 'HOD', 'Accountant', 'Librarian', 'Placement Officer', 'Office Staff'];
   for (const r of roles) {
     await conn.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
   }
 
-  console.log('Inserting default demo accounts...');
+  console.log('Seeding default users...');
   const defaultUsers = [
     { username: 'admin', password: 'Admin@123', email: 'admin@collegeerp.com', role: 'Admin' },
     { username: 'student', password: 'Student@123', email: 'student@collegeerp.com', role: 'Student' },
     { username: 'faculty', password: 'Faculty@123', email: 'faculty@collegeerp.com', role: 'Faculty' },
     { username: 'parent', password: 'Parent@123', email: 'parent@collegeerp.com', role: 'Parent' },
     { username: 'principal', password: 'Principal@123', email: 'principal@collegeerp.com', role: 'Principal' },
-    { username: 'hod', password: 'Hod@123', email: 'hod@collegeerp.com', role: 'HOD' }
+    { username: 'hod', password: 'Hod@123', email: 'hod@collegeerp.com', role: 'HOD' },
+    { username: 'accounts', password: 'Accounts@123', email: 'accounts@collegeerp.com', role: 'Accountant' },
+    { username: 'librarian', password: 'Library@123', email: 'librarian@collegeerp.com', role: 'Librarian' },
+    { username: 'placement', password: 'Placement@123', email: 'placement@collegeerp.com', role: 'Placement Officer' }
   ];
 
   for (const u of defaultUsers) {
@@ -87,12 +131,12 @@ async function testTiDB() {
     );
   }
 
-  console.log('Verifying users:');
+  console.log('Current users in TiDB:');
   const [users] = await conn.query('SELECT u.id, u.username, u.email, u.password, r.name as role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id;');
   console.table(users);
 
   await conn.end();
-  console.log('ALL TABLES AND USERS SEEDED IN TIDB CLOUD SUCCESSFULLY!');
+  console.log('SUCCESS: All tables & users successfully initialized in TiDB Cloud!');
 }
 
 testTiDB().catch(console.error);
