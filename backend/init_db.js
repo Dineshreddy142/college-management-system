@@ -117,24 +117,6 @@ export async function initializeDatabase() {
       await pool.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
     }
 
-    // --- SEED ESSENTIAL ROLES ---
-    const roles = [
-      'Admin',
-      'Student',
-      'Faculty',
-      'Parent',
-      'Principal',
-      'HOD',
-      'Accountant',
-      'Librarian',
-      'Placement Officer',
-      'Office Staff'
-    ];
-
-    for (const r of roles) {
-      await pool.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
-    }
-
     console.log('[DATABASE INIT] Schema and essential roles verified successfully.');
     return { success: true, message: 'Database schema and roles ready' };
   } catch (err) {
