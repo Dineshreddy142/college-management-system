@@ -5,7 +5,7 @@ const getBaseUrl = () => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://college-management-system-xgea.onrender.com/api';
+    return 'https://college-management-system-xqea.onrender.com/api';
   }
   return 'http://localhost:5000/api';
 };
