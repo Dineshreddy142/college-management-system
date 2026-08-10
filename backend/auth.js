@@ -119,7 +119,7 @@ router.post('/login', async (req, res) => {
                     attempts: 3
                 });
             } else {
-                return errorResponse(res, 'Invalid credentials or unauthorized portal access.', [], 401, { attempts: newFailedCount });
+                return errorResponse(res, 'Incorrect password. Please verify and try again.', [], 401, { attempts: newFailedCount });
             }
         }
 
@@ -132,7 +132,7 @@ router.post('/login', async (req, res) => {
                 success: false,
                 code: 'ROLE_MISMATCH',
                 error: 'UNAUTHORIZED_PORTAL_ACCESS',
-                message: 'Invalid credentials or unauthorized portal access.'
+                message: `This account is registered as '${user.role_name}'. Please log in through the ${user.role_name} Portal.`
             });
         }
 

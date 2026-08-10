@@ -2039,7 +2039,23 @@ function AppContent() {
     };
   }, [logout, navigate]);
 
-  const activePortal = ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
+  const getSubdomainPortal = () => {
+    if (typeof window === 'undefined') return '';
+    const host = window.location.hostname.toLowerCase();
+    const parts = host.split('.');
+    // Match subdomain if more than standard domain parts (e.g. student.yourcollege.com or student.localhost)
+    if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
+      const sub = parts[0];
+      const validRoles = ['admin', 'student', 'faculty', 'hod', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+      if (validRoles.includes(sub)) {
+        return sub;
+      }
+    }
+    return '';
+  };
+
+  const detectedSubdomainRole = getSubdomainPortal();
+  const activePortal = detectedSubdomainRole || ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
   const defaultLoginRedirect = activePortal ? `/${activePortal}/login` : '/admin/login';
 
   return (
