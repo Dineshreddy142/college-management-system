@@ -29,23 +29,14 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:5171', 'http://localhost:5172', 'http://localhost:5173',
-  'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177',
-  'http://127.0.0.1:5171', 'http://127.0.0.1:5172', 'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176', 'http://127.0.0.1:5177'
-];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+app.options('*', cors());
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
