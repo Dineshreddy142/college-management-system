@@ -1,7 +1,7 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "college-management-system",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "start": "node run_all.js",
@@ -20,11 +20,6 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@emotion/react": "11.14.0",
-    "@emotion/styled": "11.14.1",
-    "@mui/icons-material": "7.3.5",
-    "@mui/material": "7.3.5",
-    "@popperjs/core": "2.11.8",
     "@radix-ui/react-accordion": "1.2.3",
     "@radix-ui/react-alert-dialog": "1.1.6",
     "@radix-ui/react-aspect-ratio": "1.1.2",
@@ -53,11 +48,9 @@
     "@radix-ui/react-tooltip": "1.1.8",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
-    "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
-    "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "html2canvas": "^1.4.1",
     "input-otp": "1.4.2",
@@ -66,15 +59,9 @@
     "motion": "12.23.24",
     "next-themes": "0.4.6",
     "react-day-picker": "8.10.1",
-    "react-dnd": "16.0.1",
-    "react-dnd-html5-backend": "16.0.1",
     "react-hook-form": "7.55.0",
-    "react-hot-toast": "^2.6.0",
-    "react-popper": "2.3.0",
     "react-resizable-panels": "2.1.7",
-    "react-responsive-masonry": "2.7.1",
     "react-router": "7.13.0",
-    "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
@@ -84,8 +71,12 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "4.7.0",
     "concurrently": "^10.0.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },
@@ -99,11 +90,6 @@
     },
     "react-dom": {
       "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
     }
   }
 }

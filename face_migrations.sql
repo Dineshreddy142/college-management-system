@@ -1,9 +1,11 @@
 -- Secure Face Biometric Authentication Database Schema
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS face_registered TINYINT(1) DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS face_embeddings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL UNIQUE,
-    encrypted_embedding VARBINARY(1024) NOT NULL,
+    encrypted_embedding MEDIUMBLOB NOT NULL,
     encryption_iv VARBINARY(16) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

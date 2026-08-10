@@ -9,8 +9,8 @@ import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
-import { IndoorMapModule } from "./admin/indoor-map/IndoorMapModule";
 import { ProfileModule } from "./shared/ProfileModule";
+import { IndoorMapModule } from "./admin/indoor-map/IndoorMapModule";
 import client from "../api/client";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, DollarSign,
@@ -22,7 +22,7 @@ import {
   Shield, Globe, MessageSquare, LogOut, User,
   Home, Send, Building, AlertTriangle, Info,
   Zap, Lock, Key, Smartphone, AlertCircle,
-  BookMarked, UserPlus, CalendarDays, Trophy, Map
+  BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -238,7 +238,7 @@ const SIDEBAR_ITEMS = [
   { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: BookOpen, badge: null },
   { id: "placement", label: "Placement", icon: Briefcase, badge: "New" },
-  { id: "indoor-map", label: "Indoor Block Map", icon: Map, badge: "New" },
+  { id: "indoor-map", label: "Indoor Floor Map", icon: Map, badge: "CAD" },
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
   { id: "settings", label: "Settings", icon: Settings, badge: null },
 ];
@@ -252,10 +252,10 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav }: {
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     if (user?.role === 'Admin') return true;
-    if (user?.role === 'HOD') return ['dashboard', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'campus', 'indoor-map'].includes(item.id);
-    if (user?.role === 'Accountant') return ['dashboard', 'fees', 'reports', 'settings', 'campus'].includes(item.id);
-    if (user?.role === 'Librarian') return ['dashboard', 'library', 'settings', 'campus'].includes(item.id);
-    if (user?.role === 'Placement') return ['dashboard', 'placement', 'students', 'reports', 'settings', 'campus'].includes(item.id);
+    if (user?.role === 'HOD') return ['dashboard', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
+    if (user?.role === 'Accountant') return ['dashboard', 'fees', 'reports', 'settings'].includes(item.id);
+    if (user?.role === 'Librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
+    if (user?.role === 'Placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
     return true; // Default to all if unknown
   });
   return (
@@ -1407,7 +1407,6 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
     switch (mod) {
       case "dashboard": return <DashboardHome />;
       case "profile": return <ProfileModule />;
-      case "indoor-map": return <IndoorMapModule />;
       case "students": return <StudentManagement />;
       case "faculty": return <FacultyManagement />;
       case "mentors": return <AdminMentorManagement />;
@@ -1417,6 +1416,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
+      case "indoor-map": return <IndoorMapModule />;
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
       default: return <DashboardHome />;

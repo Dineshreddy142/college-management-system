@@ -1,72 +1,100 @@
-import { useState } from "react";
-import { LayoutDashboard, Layers, Box, Map, Info, Compass } from "lucide-react";
-import { cn } from "../../App";
-
-// Mock sub-components until implemented
-import BlockDashboard from "./BlockDashboard";
-import FloorManagement from "./FloorManagement";
-import IndoorEditor from "./IndoorEditor";
-import Navigation from "./IndoorNavigation";
-import RoomManagement from "./RoomManagement";
-import ObjectLibrary from "./ObjectLibrary";
+import React, { useState } from "react";
+import {
+  Map,
+  Compass,
+  Layers,
+  Flame,
+  ShieldCheck,
+  Building2,
+  Share2,
+  FolderTree,
+  MapPin,
+  Search,
+  Eye,
+  Lock
+} from "lucide-react";
+import { BuildingFloorTools } from "./BuildingFloorTools";
+import { FloorViewer } from "./FloorViewer";
+import { CADEditor } from "./CADEditor";
+import { CampusSearchHub } from "./CampusSearchHub";
+import { LocationTools } from "./LocationTools";
+import { MapDisplayTools } from "./MapDisplayTools";
+import { AStarNavigator } from "./AStarNavigator";
+import { OccupancyHeatmap } from "./OccupancyHeatmap";
+import { MapValidator } from "./MapValidator";
+import { AdminPermissionTools } from "./AdminPermissionTools";
 
 export function IndoorMapModule() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<"hierarchy" | "viewer" | "editor" | "display" | "search" | "location" | "navigator" | "heatmap" | "validator" | "permissions">("hierarchy");
 
   const tabs = [
-    { id: "dashboard", label: "Block Dashboard", icon: LayoutDashboard },
-    { id: "floors", label: "Floor Management", icon: Layers },
-    { id: "editor", label: "Indoor Editor", icon: Map },
-    { id: "navigation", label: "Navigation", icon: Compass },
-    { id: "rooms", label: "Room Management", icon: Info },
-    { id: "objects", label: "Object Library", icon: Box },
+    { id: "hierarchy", label: "Building & Floor Tools", icon: FolderTree },
+    { id: "viewer", label: "Floor Map Viewer", icon: Map },
+    { id: "editor", label: "CAD Map Editor", icon: Layers },
+    { id: "display", label: "Map Display Tools", icon: Eye },
+    { id: "search", label: "Search Tools", icon: Search },
+    { id: "location", label: "Location Tools", icon: MapPin },
+    { id: "navigator", label: "A* Wayfinding", icon: Compass },
+    { id: "heatmap", label: "Live Occupancy Heatmap", icon: Flame },
+    { id: "permissions", label: "Admin Permissions", icon: Lock },
+    { id: "validator", label: "Map Quality Validator", icon: ShieldCheck }
   ];
 
-  const renderTab = () => {
-    switch (activeTab) {
-      case "dashboard": return <BlockDashboard />;
-      case "floors": return <FloorManagement />;
-      case "editor": return <IndoorEditor />;
-      case "navigation": return <Navigation />;
-      case "rooms": return <RoomManagement />;
-      case "objects": return <ObjectLibrary />;
-      default: return <BlockDashboard />;
-    }
-  };
-
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900/50">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-          <Map className="text-indigo-600 dark:text-indigo-400" size={24} />
+    <div className="flex flex-col h-[calc(100vh-100px)] space-y-4">
+      
+      {/* Top Header & Tab Navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <Building2 size={22} />
+          </div>
+          <div>
+            <h2 className="text-base md:text-lg font-black text-white flex items-center gap-2">
+              <span>Indoor Floor Map & CAD System</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Building • Block • Floor Hierarchy
+              </span>
+            </h2>
+            <p className="text-xs text-slate-400">
+              Complete Building Hierarchy, CAD vector editor, permissions matrix, search & heatmaps
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Indoor Block Map</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Design and manage interactive campus floor plans.</p>
+
+        {/* Tab Buttons */}
+        <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <tab.icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 mb-6 pb-2 overflow-x-auto scrollbar-none">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
-              activeTab === tab.id 
-                ? "bg-indigo-600 text-white shadow-sm" 
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
+      {/* Main Tab Content */}
       <div className="flex-1 overflow-hidden">
-        {renderTab()}
+        {activeTab === "hierarchy" && <BuildingFloorTools onSelectFloorForCAD={() => setActiveTab("editor")} />}
+        {activeTab === "viewer" && <FloorViewer onNavigateTo={() => setActiveTab("navigator")} />}
+        {activeTab === "editor" && <CADEditor />}
+        {activeTab === "display" && <MapDisplayTools onNavigateTo={() => setActiveTab("navigator")} />}
+        {activeTab === "search" && <CampusSearchHub onNavigateTo={() => setActiveTab("navigator")} />}
+        {activeTab === "location" && <LocationTools />}
+        {activeTab === "navigator" && <AStarNavigator />}
+        {activeTab === "heatmap" && <OccupancyHeatmap />}
+        {activeTab === "permissions" && <AdminPermissionTools />}
+        {activeTab === "validator" && <MapValidator />}
       </div>
+
     </div>
   );
 }

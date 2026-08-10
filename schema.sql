@@ -31,6 +31,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     role_id INT,
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+    face_registered TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL

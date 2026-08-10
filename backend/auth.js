@@ -366,9 +366,16 @@ router.post('/auth/face-register', authenticateToken, upload.any(), async (req, 
             return errorResponse(res, data.message || '3D face registration failed', [], response.status || 400);
         }
 
+        try {
+            await pool.execute('UPDATE users SET face_registered = 1 WHERE id = ?', [req.user.id]);
+        } catch (e) {
+            console.error('Note updating face_registered flag:', e.message);
+        }
+
         await logActivity(req.user.id, 'FACE_REGISTERED_3D', 'User successfully registered 3D multi-pose face biometrics');
         return successResponse(res, '3D Multi-Angle Face registered successfully', data.data);
     } catch (error) {
+        console.error('Face register proxy error:', error);
         return errorResponse(res, 'Face biometric service unavailable. Ensure Python microservice is running.', [error.message], 500);
     }
 });

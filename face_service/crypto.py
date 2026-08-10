@@ -13,16 +13,11 @@ ENCRYPTION_KEY = SECRET_KEY_STR.encode("utf-8").ljust(32, b'\0')[:32]
 
 def encrypt_embedding(embedding_array):
     """
-    Encrypts a 128-d / N-d floating point numpy array of embedding values using AES-256-CBC.
+    Encrypts a floating point numpy array of embedding values using AES-256-CBC with binary packing.
     Returns: (encrypted_bytes, iv_bytes)
     """
-    if isinstance(embedding_array, np.ndarray):
-        vec_list = embedding_array.tolist()
-    else:
-        vec_list = list(embedding_array)
-
-    json_str = json.dumps(vec_list)
-    raw_bytes = json_str.encode('utf-8')
+    arr = np.asarray(embedding_array, dtype=np.float32).flatten()
+    raw_bytes = arr.tobytes()
 
     # Generate 16-byte random Initialization Vector (IV)
     iv = os.urandom(16)
@@ -40,17 +35,24 @@ def encrypt_embedding(embedding_array):
 
 def decrypt_embedding(ciphertext, iv):
     """
-    Decrypts AES-256-CBC ciphertext and returns numpy float array of embedding values.
+    Decrypts AES-256-CBC ciphertext and returns numpy float32 array of embedding values.
+    Supports both binary packed format and legacy JSON strings.
     """
     cipher = Cipher(algorithms.AES(ENCRYPTION_KEY), modes.CBC(iv), backend=default_backend())
     decryptor = cipher.decryptor()
-    padded_data = decryptor.update(ciphertext) + decryptor.finalize()
+    padded_data = decryptor.update(bytes(ciphertext)) + decryptor.finalize()
 
     # Unpad data
     unpadder = padding.PKCS7(128).unpadder()
     raw_bytes = unpadder.update(padded_data) + unpadder.finalize()
 
-    json_str = raw_bytes.decode('utf-8')
-    vec_list = json.loads(json_str)
+    try:
+        # Check if legacy JSON string format
+        if raw_bytes.startswith(b'[') or raw_bytes.startswith(b'{'):
+            json_str = raw_bytes.decode('utf-8')
+            vec_list = json.loads(json_str)
+            return np.array(vec_list, dtype=np.float32)
+    except Exception:
+        pass
 
-    return np.array(vec_list, dtype=np.float32)
+    return np.frombuffer(raw_bytes, dtype=np.float32)

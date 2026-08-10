@@ -21,8 +21,8 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
-import indoorMapRoutes from './routes/indoorMapRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
+import indoorMapRoutes from './routes/indoorMapRoutes.js';
 
 dotenv.config();
 
@@ -91,11 +91,9 @@ app.use('/api/notifications', authenticateToken, notificationsRouter);
 // --- SEARCH ROUTES ---
 app.use('/api/search', authenticateToken, searchRouter);
 
-// --- PROFILE ROUTES ---
+// --- PROFILE & INDOOR MAP ROUTES ---
 app.use('/api/profile', authenticateToken, profileRouter);
-
-// --- INDOOR MAP ROUTES ---
-app.use('/api/indoor-map', authenticateToken, indoorMapRoutes);
+app.use('/api/indoor-map', indoorMapRoutes);
 
 // --- SETTINGS ROUTES ---
 app.get('/api/settings', async (req, res) => {

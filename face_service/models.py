@@ -31,8 +31,12 @@ def save_face_embedding(user_id, encrypted_bytes, iv_bytes):
         """
         cursor.execute(sql, (user_id, encrypted_bytes, iv_bytes))
 
-        # Set face_registered flag in users table
-        cursor.execute("UPDATE users SET face_registered = 1 WHERE id = %s", (user_id,))
+        # Set face_registered flag in users table if column exists
+        try:
+            cursor.execute("UPDATE users SET face_registered = 1 WHERE id = %s", (user_id,))
+        except Exception as e:
+            print(f"[FACE_SERVICE] Note updating users.face_registered: {e}")
+
         conn.commit()
     finally:
         cursor.close()

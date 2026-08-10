@@ -136,6 +136,139 @@ async function setupAllDatabases() {
         FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE,
         FOREIGN KEY (room_type_id) REFERENCES campus_room_types(id) ON DELETE RESTRICT
       );
+
+      CREATE TABLE IF NOT EXISTS indoor_blocks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_floors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        block_id INT NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        level INT NOT NULL,
+        background_image LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (block_id) REFERENCES indoor_blocks(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_rooms (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        room_number VARCHAR(50) NOT NULL,
+        room_name VARCHAR(100) NOT NULL,
+        department VARCHAR(100),
+        room_type VARCHAR(100),
+        capacity INT DEFAULT 0,
+        faculty VARCHAR(100),
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'Active',
+        accessibility BOOLEAN DEFAULT true,
+        x FLOAT NOT NULL,
+        y FLOAT NOT NULL,
+        width FLOAT NOT NULL,
+        height FLOAT NOT NULL,
+        rotation FLOAT DEFAULT 0,
+        color VARCHAR(20) DEFAULT '#ffffff',
+        border_color VARCHAR(20) DEFAULT '#000000',
+        opacity FLOAT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_walls (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        x1 FLOAT NOT NULL,
+        y1 FLOAT NOT NULL,
+        x2 FLOAT NOT NULL,
+        y2 FLOAT NOT NULL,
+        thickness FLOAT DEFAULT 5,
+        color VARCHAR(20) DEFAULT '#333333',
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_doors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        x FLOAT NOT NULL,
+        y FLOAT NOT NULL,
+        width FLOAT NOT NULL,
+        rotation FLOAT DEFAULT 0,
+        is_open BOOLEAN DEFAULT false,
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_windows (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        x FLOAT NOT NULL,
+        y FLOAT NOT NULL,
+        width FLOAT NOT NULL,
+        rotation FLOAT DEFAULT 0,
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_furniture (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        svg_data LONGTEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_objects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        furniture_id INT,
+        room_id INT,
+        x FLOAT NOT NULL,
+        y FLOAT NOT NULL,
+        width FLOAT NOT NULL,
+        height FLOAT NOT NULL,
+        rotation FLOAT DEFAULT 0,
+        opacity FLOAT DEFAULT 1,
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE,
+        FOREIGN KEY (furniture_id) REFERENCES indoor_furniture(id) ON DELETE SET NULL,
+        FOREIGN KEY (room_id) REFERENCES indoor_rooms(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_nav_nodes (
+        id VARCHAR(50) PRIMARY KEY,
+        floor_id INT NOT NULL,
+        node_name VARCHAR(100),
+        node_type VARCHAR(50) DEFAULT 'waypoint',
+        related_room_id INT,
+        x FLOAT NOT NULL,
+        y FLOAT NOT NULL,
+        status VARCHAR(20) DEFAULT 'Active',
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE,
+        FOREIGN KEY (related_room_id) REFERENCES indoor_rooms(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_nav_edges (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        from_node VARCHAR(50) NOT NULL,
+        to_node VARCHAR(50) NOT NULL,
+        distance FLOAT NOT NULL,
+        walking_time FLOAT NOT NULL,
+        is_bidirectional BOOLEAN DEFAULT TRUE,
+        is_accessible BOOLEAN DEFAULT TRUE,
+        FOREIGN KEY (from_node) REFERENCES indoor_nav_nodes(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_node) REFERENCES indoor_nav_nodes(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS indoor_versions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        version_number INT NOT NULL,
+        version_data LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (floor_id) REFERENCES indoor_floors(id) ON DELETE CASCADE
+      );
     `);
 
     // Step 4: Execute seed.sql

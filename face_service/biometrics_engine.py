@@ -1,7 +1,8 @@
 import numpy as np
 
 # Strict Cosine Similarity Threshold for Positive Verified Match (0.0 to 1.0)
-MATCH_THRESHOLD = 0.58
+MATCH_THRESHOLD = 0.52
+DUPLICATE_THRESHOLD = 0.65
 
 def cosine_similarity(vec1, vec2):
     """
@@ -36,13 +37,13 @@ def check_duplicate_face(target_embedding, stored_embeddings, exclude_user_id=No
     duplicate_user_id = None
 
     for user_id, stored_emb in stored_embeddings:
-        if exclude_user_id is not None and user_id == exclude_user_id:
+        if exclude_user_id is not None and int(user_id) == int(exclude_user_id):
             continue
 
         sim = cosine_similarity(target_embedding, stored_emb)
         if sim > max_sim:
             max_sim = sim
-            if sim >= MATCH_THRESHOLD:
+            if sim >= DUPLICATE_THRESHOLD:
                 duplicate_user_id = user_id
 
     is_duplicate = duplicate_user_id is not None
