@@ -161,6 +161,109 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Registration Endpoint for All Roles
+router.post('/register', async (req, res) => {
+    try {
+        const { fullName, username, email, password, role, identifier, phone, department } = req.body;
+        
+        if (!email || !password) {
+            return errorResponse(res, 'Email and password are required', [], 400);
+        }
+
+        if (password.length < 6) {
+            return errorResponse(res, 'Password must be at least 6 characters long', [], 400);
+        }
+
+        const userEmail = email.trim().toLowerCase();
+        const rawUsername = (username || fullName || userEmail.split('@')[0] || 'user').trim();
+        const requestedRole = (role || 'Student').trim();
+
+        // 1. Check if email already exists
+        const [existing] = await pool.execute(
+            'SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?',
+            [userEmail, rawUsername.toLowerCase()]
+        );
+
+        if (existing.length > 0) {
+            return errorResponse(res, 'An account with this email or username already exists. Please sign in.', [], 409);
+        }
+
+        // 2. Resolve Role ID
+        const [roleRows] = await pool.execute(
+            'SELECT id, name FROM roles WHERE LOWER(name) = ? OR LOWER(name) LIKE ?',
+            [requestedRole.toLowerCase(), `%${requestedRole.toLowerCase()}%`]
+        );
+
+        let roleId = null;
+        let roleName = requestedRole;
+
+        if (roleRows.length > 0) {
+            roleId = roleRows[0].id;
+            roleName = roleRows[0].name;
+        } else {
+            // Insert new role if not found
+            const [newRole] = await pool.execute('INSERT INTO roles (name) VALUES (?)', [requestedRole]);
+            roleId = newRole.insertId;
+        }
+
+        // 3. Hash password
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        // 4. Create user in users table
+        const [insertResult] = await pool.execute(
+            'INSERT INTO users (username, password, email, role_id, status, face_registered) VALUES (?, ?, ?, ?, ?, ?)',
+            [rawUsername, passwordHash, userEmail, roleId, 'active', 0]
+        );
+
+        const newUserId = insertResult.insertId;
+
+        // 5. Create auxiliary record in role-specific tables if applicable
+        try {
+            if (roleName.toLowerCase().includes('student')) {
+                const rollNo = identifier || `STU${newUserId.toString().padStart(4, '0')}`;
+                await pool.execute(
+                    `INSERT INTO students (user_id, roll_number, name, email, phone, semester, status) 
+                     VALUES (?, ?, ?, ?, ?, 1, 'Active')
+                     ON DUPLICATE KEY UPDATE name=VALUES(name)`,
+                    [newUserId, rollNo, fullName || rawUsername, userEmail, phone || '']
+                );
+            } else if (roleName.toLowerCase().includes('faculty')) {
+                const empId = identifier || `FAC${newUserId.toString().padStart(4, '0')}`;
+                await pool.execute(
+                    `INSERT INTO faculty (user_id, employee_id, name, email, phone, designation, status) 
+                     VALUES (?, ?, ?, ?, ?, 'Lecturer', 'Active')
+                     ON DUPLICATE KEY UPDATE name=VALUES(name)`,
+                    [newUserId, empId, fullName || rawUsername, userEmail, phone || '']
+                );
+            }
+        } catch (auxErr) {
+            console.warn('[AUTH REGISTER] Auxiliary profile creation notice:', auxErr.message);
+        }
+
+        // 6. Generate JWT Token
+        const token = jwt.sign(
+            { id: newUserId, role: roleName, email: userEmail },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        await logActivity(newUserId, 'REGISTER_SUCCESS', `New user registered with role ${roleName}`);
+
+        return successResponse(res, 'Account created successfully!', {
+            token,
+            user: {
+                id: newUserId,
+                username: rawUsername,
+                email: userEmail,
+                role: roleName
+            }
+        }, 201);
+    } catch (error) {
+        console.error('Registration Error:', error);
+        return errorResponse(res, 'Failed to create account', [error.message], 500);
+    }
+});
+
 // Diagnostic test-email endpoint for admin verification
 const handleTestEmailEndpoint = async (req, res) => {
     try {
