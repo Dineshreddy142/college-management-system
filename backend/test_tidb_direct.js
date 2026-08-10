@@ -1,12 +1,12 @@
 import mysql from 'mysql2/promise';
 
 async function testTiDB() {
-  console.log('Connecting with new TiDB password gaWJ6glCNKr7D9oW ...');
+  console.log('Connecting to TiDB Cloud with password Jlriyn1naUq72MxB ...');
   const conn = await mysql.createConnection({
     host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
     port: 4000,
     user: '2ZhWtaNceZkmRfJ.root',
-    password: 'gaWJ6glCNKr7D9oW',
+    password: 'Jlriyn1naUq72MxB',
     database: 'test',
     ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true }
   });
@@ -36,18 +36,7 @@ async function testTiDB() {
     );
   `);
 
-  // 3. Failed login attempts
-  await conn.query(`
-    CREATE TABLE IF NOT EXISTS failed_login_attempts (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NULL,
-      ip_address VARCHAR(45),
-      reason VARCHAR(255),
-      attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // 4. Activity logs
+  // 3. Activity logs
   await conn.query(`
     CREATE TABLE IF NOT EXISTS activity_logs (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,6 +45,17 @@ async function testTiDB() {
       description TEXT,
       ip_address VARCHAR(45),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 4. Failed login attempts
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS failed_login_attempts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NULL,
+      ip_address VARCHAR(45),
+      reason VARCHAR(255),
+      attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -131,12 +131,12 @@ async function testTiDB() {
     );
   }
 
-  console.log('Current users in TiDB:');
+  console.log('Verifying users in TiDB:');
   const [users] = await conn.query('SELECT u.id, u.username, u.email, u.password, r.name as role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id;');
   console.table(users);
 
   await conn.end();
-  console.log('SUCCESS: All tables & users successfully initialized in TiDB Cloud!');
+  console.log('SUCCESS! ALL DATABASE TABLES AND DEFAULT USERS INITIALIZED IN TIDB CLOUD!');
 }
 
 testTiDB().catch(console.error);
