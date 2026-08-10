@@ -51,6 +51,20 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
+// --- BASE & HEALTH CHECK ROUTES ---
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'College Management System API',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // --- AUTHENTICATION ROUTES ---
 app.use('/api', authRouter);
 app.use('/api/auth', authRouter);

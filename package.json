@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node run_all.js",
+    "start": "node backend/server.js",
     "dev": "node run_all.js",
     "dev:all": "node run_all.js",
     "dev:admin": "vite --mode admin --port 5171 --strictPort",
