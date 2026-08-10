@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace, Sparkles, ShieldCheck, Lock, KeyRound } from 'lucide-react';
+import {
+  Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace,
+  Sparkles, ShieldCheck, Lock, KeyRound, Monitor, Smartphone,
+  Send, CheckCircle2, Shield, RefreshCw
+} from 'lucide-react';
 import { useAuth } from './AuthContext';
 import client from '../../api/client';
 import { FaceAuthModal } from '../../components/FaceAuthModal';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 const roleConfig: Record<string, { title: string, field: string, placeholder: string }> = {
   admin: { title: 'Administrator Login', field: 'Email', placeholder: 'admin@collegeerp.com' },
@@ -22,12 +27,29 @@ export const PortalLogin: React.FC = () => {
   const { role } = useParams<{ role: string }>();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const detectedDevice = useDeviceType();
+
+  // Manual device override for preview/testing
+  const [deviceOverride, setDeviceOverride] = useState<'auto' | 'desktop' | 'mobile'>('auto');
+  const isMobile = deviceOverride === 'auto' ? detectedDevice.isMobile : deviceOverride === 'mobile';
+  const isDesktop = !isMobile;
   
   const effectiveRole = ((import.meta as any).env?.VITE_PORTAL_NAME || role || 'admin').toLowerCase();
   const config = roleConfig[effectiveRole] || roleConfig.admin;
   
-  // Login Mode: 'face' (Primary / Default) or 'password'
-  const [loginMethod, setLoginMethod] = useState<'face' | 'password'>('face');
+  // Login Mode: On Desktop -> 'authenticator' | 'password'. On Mobile -> 'face' | 'password'
+  const [loginMethod, setLoginMethod] = useState<'authenticator' | 'face' | 'password'>(
+    isMobile ? 'face' : 'authenticator'
+  );
+
+  // Synchronize default tab whenever device mode changes
+  useEffect(() => {
+    if (isDesktop && loginMethod === 'face') {
+      setLoginMethod('authenticator');
+    } else if (isMobile && loginMethod === 'authenticator') {
+      setLoginMethod('face');
+    }
+  }, [isDesktop, isMobile]);
 
   // Standard Password Login State
   const [identifier, setIdentifier] = useState('');
@@ -39,8 +61,26 @@ export const PortalLogin: React.FC = () => {
   const [accountLocked, setAccountLocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Face Authentication Modal Toggle
+  // Authenticator / 2FA Code State (Desktop Mode)
+  const [authIdentifier, setAuthIdentifier] = useState('');
+  const [authCode, setAuthCode] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [devCodeHint, setDevCodeHint] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  // Face Authentication Modal Toggle (Mobile Mode)
   const [showFaceAuth, setShowFaceAuth] = useState(false);
+
+  // Cooldown countdown timer for sending OTP
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleNavigateDashboard = (userRole: string) => {
     const rawRole = (userRole || role || 'admin').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -67,7 +107,80 @@ export const PortalLogin: React.FC = () => {
     handleNavigateDashboard(data.user.role);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Request Authenticator Code via Email
+  const handleSendOtp = async () => {
+    const targetIdentifier = authIdentifier.trim() || identifier.trim();
+    if (!targetIdentifier) {
+      setError('Please enter your email or username to receive the Authenticator code.');
+      return;
+    }
+
+    setError('');
+    setIsSendingOtp(true);
+    try {
+      const res = await client.post('/auth/send-login-otp', {
+        identifier: targetIdentifier,
+        portalRole: effectiveRole,
+      });
+
+      setOtpSent(true);
+      setMaskedEmail(res.data.data?.maskedEmail || 'your email');
+      if (res.data.data?.devCode) {
+        setDevCodeHint(res.data.data.devCode);
+      }
+      setCooldown(60); // 60s cooldown
+    } catch (err: any) {
+      const errData = err.response?.data || {};
+      setError(errData.message || 'Failed to dispatch authenticator code. Please try again.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Submit Authenticator Code Login (Desktop / Laptop)
+  const handleAuthenticatorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setWarningMessage('');
+    setAccountLocked(false);
+
+    const targetIdentifier = authIdentifier.trim() || identifier.trim();
+    if (!targetIdentifier || !authCode.trim()) {
+      setError('Please provide your identifier and 6-digit Authenticator code.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await client.post('/auth/authenticator-login', {
+        identifier: targetIdentifier,
+        code: authCode.trim(),
+        portalRole: effectiveRole,
+      });
+
+      const { token, user } = res.data.data;
+      login(token, user);
+
+      if (rememberMe) {
+        localStorage.setItem('remembered_user', targetIdentifier);
+      }
+
+      handleNavigateDashboard(user.role);
+    } catch (err: any) {
+      const errData = err.response?.data || {};
+      if (errData.accountLocked) {
+        setAccountLocked(true);
+        setError('Account temporarily locked due to multiple unsuccessful attempts.');
+      } else {
+        setError(errData.message || 'Invalid or expired Authenticator code.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Submit Standard Password Login
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setWarningMessage('');
@@ -116,71 +229,171 @@ export const PortalLogin: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
       {/* Left side styling - Illustration / Welcome */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 p-12 flex-col justify-between relative overflow-hidden">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 text-white mb-12">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg">
-              <GraduationCap size={24} className="text-white" />
+          <div className="flex items-center gap-3 text-white mb-10">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/20">
+              <GraduationCap size={26} className="text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">EduERP</span>
+            <div>
+              <span className="text-xl font-bold tracking-tight block">EduERP</span>
+              <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold">Institutional Portal</span>
+            </div>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
+
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
             Welcome to the <br/> {config.title.replace(' Login', '')}
           </h1>
-          <p className="text-blue-100 text-lg max-w-md">
-            Sign in instantly using high-security 3D Face Biometrics or standard password credentials.
+
+          <p className="text-blue-100/90 text-base max-w-md leading-relaxed mb-8">
+            {isDesktop
+              ? 'Workstation & Monitor Access: Sign in securely with two-factor Authenticator verification codes or password credentials.'
+              : 'Mobile Smartphone Access: Sign in instantly with high-precision 3D Face Biometrics or password credentials.'}
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 max-w-sm">
-            <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-              <ShieldCheck size={18} className="text-emerald-300 shrink-0" />
-              <span>AES-256 Encrypted Biometric Vectors</span>
-            </div>
-            <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-              <Sparkles size={18} className="text-amber-300 shrink-0" />
-              <span>Anti-Spoofing: Photo & Screen Replays Blocked</span>
-            </div>
+          {/* Dynamic Security Highlights based on Device Type */}
+          <div className="flex flex-col gap-3 max-w-md">
+            {isDesktop ? (
+              <>
+                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
+                  <ShieldCheck size={20} className="text-emerald-300 shrink-0" />
+                  <div>
+                    <span className="font-semibold block">Two-Factor Authenticator Protection</span>
+                    <span className="text-blue-100 text-[11px]">Time-synchronized 6-digit security code authentication</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
+                  <Monitor size={20} className="text-cyan-300 shrink-0" />
+                  <div>
+                    <span className="font-semibold block">Laptop & External Monitor Optimization</span>
+                    <span className="text-blue-100 text-[11px]">Enforces secure 2FA protocol across all desktop browsers</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
+                  <ScanFace size={20} className="text-cyan-300 shrink-0" />
+                  <div>
+                    <span className="font-semibold block">1-Click Mobile Face Biometrics</span>
+                    <span className="text-blue-100 text-[11px]">Fast camera recognition tailored for smartphone screens</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
+                  <Sparkles size={20} className="text-amber-300 shrink-0" />
+                  <div>
+                    <span className="font-semibold block">Anti-Spoofing & Liveness Detection</span>
+                    <span className="text-blue-100 text-[11px]">Blocks photo, replay, and screen impersonation attacks</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
         
         {/* Abstract decorative shapes */}
         <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute top-20 -right-20 w-72 h-72 bg-indigo-500/30 rounded-full blur-3xl" />
+        <div className="absolute top-20 -right-20 w-72 h-72 bg-indigo-500/25 rounded-full blur-3xl" />
         
-        <div className="relative z-10 text-blue-100/60 text-sm">
+        <div className="relative z-10 text-blue-200/70 text-xs">
           &copy; {new Date().getFullYear()} College Management System. All rights reserved.
         </div>
       </div>
 
       {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 relative">
+        
+        {/* Device Mode Switcher Pill (Preview / Testing Aid) */}
+        <div className="w-full max-w-md mb-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 pl-2">
+            {isDesktop ? (
+              <>
+                <Monitor size={15} className="text-blue-600 dark:text-blue-400" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Laptop / Desktop Mode</span>
+              </>
+            ) : (
+              <>
+                <Smartphone size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Mobile Smartphone Mode</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setDeviceOverride('desktop')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                isDesktop
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Test Laptop / Desktop login experience"
+            >
+              🖥️ Laptop
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeviceOverride('mobile')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                isMobile
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Test Mobile Phone login experience"
+            >
+              📱 Mobile
+            </button>
+          </div>
+        </div>
+
         <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
           
           {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold mb-1">{config.title}</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                Choose your preferred sign-in method
-              </p>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-1">{config.title}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs">
+              {isDesktop
+                ? 'Laptop / PC detected: Authenticator Code or Password login required.'
+                : 'Mobile device detected: 1-Click Face Biometrics or Password login available.'}
+            </p>
           </div>
 
           {/* Primary / Secondary Method Tabs */}
           <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-6">
-            <button
-              type="button"
-              onClick={() => setLoginMethod('face')}
-              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                loginMethod === 'face'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ScanFace size={16} />
-              <span>Face Login (Primary)</span>
-            </button>
+            {/* DESKTOP MODE: Authenticator Code Tab (Face Login is HIDDEN on Desktop) */}
+            {isDesktop && (
+              <button
+                type="button"
+                onClick={() => setLoginMethod('authenticator')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  loginMethod === 'authenticator'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Shield size={16} />
+                <span>Authenticator Code</span>
+              </button>
+            )}
 
+            {/* MOBILE MODE: Face Login Tab (Only displayed on Mobile Phones) */}
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setLoginMethod('face')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  loginMethod === 'face'
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <ScanFace size={16} />
+                <span>Face Biometrics</span>
+              </button>
+            )}
+
+            {/* Password Login Tab (Available on both) */}
             <button
               type="button"
               onClick={() => setLoginMethod('password')}
@@ -202,7 +415,7 @@ export const PortalLogin: React.FC = () => {
               <div>
                 <p className="font-bold">Account Temporarily Locked</p>
                 <p className="text-xs mt-1">
-                  Multiple unsuccessful password attempts recorded. Use Face Biometrics or contact your administrator.
+                  Multiple unsuccessful attempts recorded. Please contact your administrator or reset your password.
                 </p>
               </div>
             </div>
@@ -218,17 +431,117 @@ export const PortalLogin: React.FC = () => {
 
           {/* Login Error Banner */}
           {!accountLocked && error && (
-            <div className="mb-5 p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-sm font-medium border border-red-100 dark:border-red-900/50">
+            <div className="mb-5 p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium border border-red-100 dark:border-red-900/50">
               {error}
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* PRIMARY METHOD: FACE BIOMETRICS HERO CARD */}
+          {/* DESKTOP METHOD: AUTHENTICATOR CODE (TOTP / 2FA OTP)          */}
           {/* ============================================================ */}
-          {loginMethod === 'face' && (
+          {isDesktop && loginMethod === 'authenticator' && (
+            <form onSubmit={handleAuthenticatorSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
+              <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 flex items-start gap-3">
+                <ShieldCheck size={20} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-900 dark:text-blue-200">
+                  <p className="font-bold mb-0.5">Desktop Security Verification</p>
+                  <p className="text-blue-700 dark:text-blue-300 text-[11px]">
+                    Enter your registered account identifier and 6-digit Authenticator code (or click below to get code via email).
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+                <input
+                  type="text"
+                  value={authIdentifier}
+                  onChange={(e) => setAuthIdentifier(e.target.value)}
+                  placeholder={config.placeholder}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold">6-Digit Authenticator Code</label>
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp || cooldown > 0}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSendingOtp ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : cooldown > 0 ? (
+                      <span>Resend in {cooldown}s</span>
+                    ) : (
+                      <>
+                        <Send size={12} />
+                        <span>Send Code to Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={authCode}
+                    onChange={(e) => setAuthCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="e.g. 123456"
+                    className="w-full px-4 py-3 text-center tracking-[0.4em] font-mono text-lg font-bold rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:font-sans placeholder:text-sm"
+                    required
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <Lock size={16} />
+                  </div>
+                </div>
+
+                {otpSent && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-2">
+                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                    <span>
+                      Security code sent to <strong>{maskedEmail}</strong>.
+                      {devCodeHint && <span className="ml-1 text-[11px] font-mono font-bold bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">Code: {devCodeHint}</span>}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code & Sign In'}
+                </button>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod('password')}
+                  className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Prefer password sign in? Click here &rarr;
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ============================================================ */}
+          {/* MOBILE METHOD: FACE BIOMETRICS HERO CARD                     */}
+          {/* ============================================================ */}
+          {isMobile && loginMethod === 'face' && (
             <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
+              <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/60 to-blue-50/40 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
                 <div className="relative mb-4">
                   <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 animate-pulse">
                     <ScanFace size={40} />
@@ -239,10 +552,10 @@ export const PortalLogin: React.FC = () => {
                 </div>
 
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  1-Click Instant Face Login
+                  1-Click Mobile Face Unlock
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
-                  Look into your webcam to instantly verify your 3D live facial signature.
+                  Look into your front camera to securely verify your 3D live facial signature.
                 </p>
 
                 <div className="w-full mt-6">
@@ -270,31 +583,31 @@ export const PortalLogin: React.FC = () => {
           )}
 
           {/* ============================================================ */}
-          {/* ALTERNATIVE METHOD: PASSWORD LOGIN FORM */}
+          {/* ALTERNATIVE METHOD: PASSWORD LOGIN FORM                      */}
           {/* ============================================================ */}
           {loginMethod === 'password' && (
-            <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in zoom-in duration-300">
+            <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{config.field}</label>
+                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder={config.placeholder}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Password</label>
+                <label className="block text-xs font-semibold mb-1.5">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
                     required
                   />
                   <button
@@ -307,7 +620,7 @@ export const PortalLogin: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs pt-1">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -326,21 +639,31 @@ export const PortalLogin: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Sign In with Password'}
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In with Password'}
+                </button>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod(isDesktop ? 'authenticator' : 'face')}
+                  className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  {isDesktop ? '← Back to Authenticator Code' : '← Back to 3D Face Login'}
                 </button>
               </div>
             </form>
           )}
 
-          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
+          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
             &copy; {new Date().getFullYear()} College Management System. All rights reserved.
           </div>
         </div>
       </div>
 
-      {/* SECURE FACE AUTHENTICATION MODAL */}
+      {/* SECURE FACE AUTHENTICATION MODAL (Triggered only in Mobile Mode) */}
       {showFaceAuth && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <FaceAuthModal
@@ -354,4 +677,3 @@ export const PortalLogin: React.FC = () => {
     </div>
   );
 };
-
