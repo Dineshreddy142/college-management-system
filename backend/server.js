@@ -23,6 +23,7 @@ import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import indoorMapRoutes from './routes/indoorMapRoutes.js';
+import { initializeDatabase } from './init_db.js';
 
 dotenv.config();
 
@@ -197,9 +198,26 @@ app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), a
   }
 });
 
+// Database Initialization & Seed Health Check Endpoint
+app.get('/api/init-db', async (req, res) => {
+  const result = await initializeDatabase();
+  res.json(result);
+});
+
+app.post('/api/init-db', async (req, res) => {
+  const result = await initializeDatabase();
+  res.json(result);
+});
+
 // Global Error Handler
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
+  // Automatically ensure database tables & seed users exist
+  try {
+    await initializeDatabase();
+  } catch (e) {
+    console.error('Auto database initialization error:', e);
+  }
 });
