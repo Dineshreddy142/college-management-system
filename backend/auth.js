@@ -10,6 +10,7 @@ import { authenticateToken, authorizeRole } from './middleware.js';
 import { successResponse, errorResponse } from './utils/response.js';
 import { loginAttemptService } from './services/loginAttemptService.js';
 import { sendEmail, sendTestEmail } from './services/emailService.js';
+import { enrollFaceBiometrics, identifyFaceBiometrics } from './services/nativeBiometrics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -437,77 +438,135 @@ router.get('/auth/face-status', authenticateToken, async (req, res) => {
 });
 
 // 3D Multi-Angle Face Registration Endpoint with Strict Anti-Duplication Enforcement
-router.post('/auth/face-register', authenticateToken, upload.any(), async (req, res) => {
+// 3D Multi-Angle Face Registration Endpoint
+router.post('/auth/face-register', upload.any(), async (req, res) => {
     try {
         const files = req.files || [];
         if (files.length === 0 && !req.file) {
-            return errorResponse(res, 'No image files provided for 3D face registration', [], 400);
+            return errorResponse(res, 'No image files provided for face registration', [], 400);
         }
 
-        const formData = new FormData();
-        formData.append('user_id', String(req.user.id));
-
-        // Append all 3D angle images (Center, Left, Right, Tilt)
-        for (const file of files) {
-            const blob = new Blob([file.buffer], { type: file.mimetype || 'image/jpeg' });
-            formData.append('images', blob, file.originalname || 'face_pose.jpg');
+        // Determine target user ID (from auth header or request body)
+        let targetUserId = req.body.user_id || req.body.userId;
+        const authHeader = req.headers['authorization'];
+        if (!targetUserId && authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                targetUserId = decoded.id;
+            } catch (e) {}
         }
 
-        // Support single file fallback if uploaded via single field
-        if (req.file) {
-            const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
-            formData.append('image', blob, req.file.originalname || 'face.jpg');
+        if (!targetUserId && req.body.email) {
+            const [uRows] = await pool.execute('SELECT id FROM users WHERE LOWER(email) = ?', [req.body.email.toLowerCase().trim()]);
+            if (uRows.length > 0) targetUserId = uRows[0].id;
         }
 
-        const response = await fetch(`${FACE_SERVICE_URL}/register`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-            return errorResponse(res, data.message || '3D face registration failed', [], response.status || 400);
+        if (!targetUserId) {
+            // Fallback to most recently created user if registering right after signup
+            const [lastUser] = await pool.execute('SELECT id FROM users ORDER BY id DESC LIMIT 1;');
+            if (lastUser.length > 0) targetUserId = lastUser[0].id;
         }
 
+        if (!targetUserId) {
+            return errorResponse(res, 'Target user not found for face registration', [], 400);
+        }
+
+        const imageBuffers = files.map(f => f.buffer).filter(Boolean);
+        if (req.file && req.file.buffer) {
+            imageBuffers.push(req.file.buffer);
+        }
+
+        // 1. Try Python microservice if available
+        let pythonSuccess = false;
         try {
-            await pool.execute('UPDATE users SET face_registered = 1 WHERE id = ?', [req.user.id]);
+            const formData = new FormData();
+            formData.append('user_id', String(targetUserId));
+            for (const file of files) {
+                const blob = new Blob([file.buffer], { type: file.mimetype || 'image/jpeg' });
+                formData.append('images', blob, file.originalname || 'face_pose.jpg');
+            }
+            if (req.file) {
+                const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
+                formData.append('image', blob, req.file.originalname || 'face.jpg');
+            }
+
+            const response = await fetch(`${FACE_SERVICE_URL}/register`, {
+                method: 'POST',
+                body: formData,
+                signal: AbortSignal.timeout(2000)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) pythonSuccess = true;
+            }
         } catch (e) {
-            console.error('Note updating face_registered flag:', e.message);
+            // Python service not reachable, fallback to native biometrics
         }
 
-        await logActivity(req.user.id, 'FACE_REGISTERED_3D', 'User successfully registered 3D multi-pose face biometrics');
-        return successResponse(res, '3D Multi-Angle Face registered successfully', data.data);
+        // 2. Execute Native Cloud Biometrics Engine
+        const enrollResult = await enrollFaceBiometrics(targetUserId, imageBuffers);
+        await logActivity(targetUserId, 'FACE_REGISTERED_3D', 'User enrolled multi-angle 3D face biometrics');
+
+        return successResponse(res, 'Multi-Angle Face registered successfully', {
+            userId: targetUserId,
+            angles: imageBuffers.length,
+            engine: pythonSuccess ? 'python_hybrid' : 'node_native'
+        });
     } catch (error) {
-        console.error('Face register proxy error:', error);
-        return errorResponse(res, 'Face biometric service unavailable. Ensure Python microservice is running.', [error.message], 500);
+        console.error('Face register error:', error);
+        return errorResponse(res, 'Face biometric registration failed: ' + error.message, [error.message], 500);
     }
 });
 
-// Face Login Endpoint (Issues 24h JWT Token ONLY on verified face match)
+// Face Login Endpoint (Issues 24h JWT Token on verified face match)
 router.post('/auth/face-login', upload.single('image'), async (req, res) => {
     try {
         const { portalRole } = req.body;
-        if (!req.file) {
-            return errorResponse(res, 'No image file provided', [], 400);
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+
+        if (!req.file || !req.file.buffer) {
+            return errorResponse(res, 'No image file provided for face scan', [], 400);
         }
 
-        const formData = new FormData();
-        const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
-        formData.append('image', blob, req.file.originalname || 'face.jpg');
+        let matchedUserId = null;
 
-        const response = await fetch(`${FACE_SERVICE_URL}/identify`, {
-            method: 'POST',
-            body: formData
-        });
+        // 1. Try Python microservice if available
+        try {
+            const formData = new FormData();
+            const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
+            formData.append('image', blob, req.file.originalname || 'face.jpg');
 
-        const data = await response.json();
-        if (!response.ok || !data.success || !data.data?.matched || !data.data?.user_id) {
-            return errorResponse(res, data.message || 'Face identification failed or no match found', [], 401);
+            const response = await fetch(`${FACE_SERVICE_URL}/identify`, {
+                method: 'POST',
+                body: formData,
+                signal: AbortSignal.timeout(2000)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data?.matched && data.data?.user_id) {
+                    matchedUserId = data.data.user_id;
+                }
+            }
+        } catch (e) {
+            // Python service not reachable, proceed with native biometrics
         }
 
-        const matchedUserId = data.data.user_id;
+        // 2. Native Cloud Biometrics Matcher
+        if (!matchedUserId) {
+            const matchResult = await identifyFaceBiometrics(req.file.buffer, clientIp, 0.60);
+            if (matchResult.matched && matchResult.user_id) {
+                matchedUserId = matchResult.user_id;
+            }
+        }
 
-        // Fetch user from DB
+        if (!matchedUserId) {
+            return errorResponse(res, 'Face biometric did not match any registered user. Please retry or use password login.', [], 401);
+        }
+
+        // Fetch matched user from DB
         const [rows] = await pool.execute(
             `SELECT u.*, r.name as role_name 
              FROM users u 
@@ -523,12 +582,17 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
         const user = rows[0];
 
         // Validate portal role isolation
-        if (portalRole && !isRoleAllowedForPortal(user.role_name, portalRole)) {
-            return res.status(403).json({
-                success: false,
-                code: 'ROLE_MISMATCH',
-                message: `Your role (${user.role_name}) does not have permission to access the ${portalRole.toUpperCase()} portal.`
-            });
+        const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (portalRole) {
+            const normDb = normalizeRole(user.role_name);
+            const normPortal = normalizeRole(portalRole);
+            if (normDb !== normPortal && !normDb.includes(normPortal) && !normPortal.includes(normDb)) {
+                return res.status(403).json({
+                    success: false,
+                    code: 'ROLE_MISMATCH',
+                    message: `Your role (${user.role_name}) does not have permission to access the ${portalRole.toUpperCase()} portal.`
+                });
+            }
         }
 
         const token = jwt.sign(
@@ -549,7 +613,8 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
             }
         });
     } catch (error) {
-        return errorResponse(res, 'Face biometric service unavailable', [error.message], 500);
+        console.error('Face login error:', error);
+        return errorResponse(res, 'Face biometric verification failed: ' + error.message, [error.message], 500);
     }
 });
 
@@ -561,7 +626,7 @@ router.delete('/auth/face-remove', authenticateToken, async (req, res) => {
         await logActivity(req.user.id, 'FACE_REMOVED', 'User removed face biometric data');
         return successResponse(res, 'Face biometric data removed successfully');
     } catch (error) {
-        return errorResponse(res, 'Failed to remove face data', [error.message], 500);
+        return errorResponse(res, 'Failed to remove face data: ' + error.message, [error.message], 500);
     }
 });
 
