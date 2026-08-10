@@ -99,6 +99,33 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 8. Face Embeddings table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS face_embeddings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        encrypted_embedding MEDIUMBLOB NOT NULL,
+        encryption_iv VARBINARY(16) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id)
+      )
+    `);
+
+    // 9. Face Auth Audit Log table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS face_auth_audit_log (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        matched TINYINT(1) NOT NULL,
+        confidence DECIMAL(5,4) NULL,
+        ip_address VARCHAR(45),
+        liveness_passed TINYINT(1) NOT NULL,
+        INDEX idx_face_audit_user (user_id)
+      )
+    `);
+
     // --- SEED ESSENTIAL ROLES ---
     const roles = [
       'Admin',
@@ -117,8 +144,35 @@ export async function initializeDatabase() {
       await pool.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
     }
 
-    console.log('[DATABASE INIT] Schema and essential roles verified successfully.');
-    return { success: true, message: 'Database schema and roles ready' };
+    // --- PERMANENT ADMIN ACCOUNT CHECK ---
+    const adminEmail = 'nuthanakalvadineshreddy@gmail.com';
+    const [adminRoleRows] = await pool.query('SELECT id FROM roles WHERE name = ?', ['Admin']);
+    const adminRoleId = adminRoleRows[0]?.id;
+
+    if (adminRoleId) {
+      const [existingAdmin] = await pool.query(
+        'SELECT id FROM users WHERE LOWER(email) = ?',
+        [adminEmail.toLowerCase()]
+      );
+
+      if (existingAdmin.length === 0) {
+        const hashedPassword = await bcrypt.hash('Dinesh@123', 10);
+        await pool.query(
+          `INSERT INTO users (username, full_name, email, password, role_id, status)
+           VALUES (?, ?, ?, ?, ?, 'active')`,
+          ['dineshreddy', 'Dinesh Reddy', adminEmail, hashedPassword, adminRoleId]
+        );
+        console.log(`[DATABASE INIT] Permanent Admin account initialized: ${adminEmail}`);
+      } else {
+        await pool.query(
+          `UPDATE users SET role_id = ?, status = 'active' WHERE id = ?`,
+          [adminRoleId, existingAdmin[0].id]
+        );
+      }
+    }
+
+    console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');
+    return { success: true, message: 'Database schema and permanent admin ready' };
   } catch (err) {
     console.error('[DATABASE INIT ERROR]:', err);
     return { success: false, error: err.message };
