@@ -128,7 +128,13 @@ export const PortalLogin: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Registration failed:', err);
-      setError(err.response?.data?.message || 'Registration failed. An account with this email may already exist.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.message && err.message.includes('Network Error')) {
+        setError('Unable to reach backend server. Please verify your connection.');
+      } else {
+        setError(err.message || 'Registration failed. Please check your details and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
