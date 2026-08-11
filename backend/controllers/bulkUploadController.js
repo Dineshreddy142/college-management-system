@@ -180,16 +180,17 @@ export async function importStudents(req, res) {
         [email, rollNumber.toLowerCase()]
       );
 
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
       let userId = null;
       if (existingUsers.length > 0) {
         userId = existingUsers[0].id;
         await conn.query(
-          'UPDATE users SET full_name = COALESCE(NULLIF(?, ""), full_name), status = "active" WHERE id = ?',
-          [fullName, userId]
+          'UPDATE users SET password = ?, full_name = COALESCE(NULLIF(?, ""), full_name), status = "active" WHERE id = ?',
+          [hashedPassword, fullName, userId]
         );
+        try { await conn.query('DELETE FROM failed_login_attempts WHERE user_id = ?', [userId]); } catch (e) {}
         updatedCount++;
       } else {
-        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const [newUser] = await conn.query(
           'INSERT INTO users (username, full_name, email, password, role_id, status) VALUES (?, ?, ?, ?, ?, "active")',
           [rollNumber.toLowerCase(), fullName || rollNumber, email, hashedPassword, studentRoleId]
