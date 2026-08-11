@@ -36,6 +36,7 @@ try:
         get_all_face_embeddings,
         log_auth_attempt
     )
+    from face_service.pose_validator import validate_enrollment_frame
 except ImportError:
     from crypto import encrypt_embedding, decrypt_embedding
     from face_extraction import (
@@ -65,6 +66,7 @@ except ImportError:
         get_all_face_embeddings,
         log_auth_attempt
     )
+    from pose_validator import validate_enrollment_frame
 
 app = Flask(__name__)
 
@@ -154,11 +156,47 @@ def verify_challenge_endpoint():
             "data": meta
         }), 400
 
-    return jsonify({
-        "success": True,
-        "message": msg,
-        "data": meta
-    }), 200
+@app.route('/enroll/validate-pose', methods=['POST'])
+def validate_pose_endpoint():
+    """
+    Automatic Pose-Guided Enrollment Frame Validator:
+      Independently analyzes the camera frame against the requested pose ('front', 'right', 'left', 'up').
+      Enforces single face, quality, and 3D landmark head pose estimation.
+    """
+    expected_pose = request.form.get('expected_pose') or request.args.get('expected_pose') or 'front'
+    
+    if 'image' not in request.files:
+        return jsonify({
+            "success": False,
+            "data": {
+                "valid": False,
+                "feedback": "No image frame received.",
+                "pose_detected": "none",
+                "quality_passed": False
+            }
+        }), 400
+
+    file = request.files['image']
+    image_bytes = file.read()
+
+    try:
+        detector, _ = get_face_models()
+        result = validate_enrollment_frame(image_bytes, expected_pose, detector)
+        return jsonify({
+            "success": True,
+            "data": result
+        }), 200
+    except Exception as e:
+        app.logger.error(f"[POSE_VALIDATE_ERROR]: {str(e)}")
+        return jsonify({
+            "success": False,
+            "data": {
+                "valid": False,
+                "feedback": f"Validation error: {str(e)}",
+                "pose_detected": "error",
+                "quality_passed": False
+            }
+        }), 500
 
 @app.route('/register', methods=['POST'])
 def register_face():

@@ -10,7 +10,7 @@ interface FaceAuthModalProps {
 }
 
 interface PoseStep {
-  id: 'center' | 'left' | 'right' | 'tilt';
+  id: 'front' | 'right' | 'left' | 'up';
   label: string;
   instruction: string;
   guideHint: string;
@@ -18,10 +18,10 @@ interface PoseStep {
 }
 
 const POSE_STEPS: PoseStep[] = [
-  { id: 'center', label: 'Look Straight (0°)', instruction: 'Look directly forward at the camera...', guideHint: 'Hold steady facing forward', icon: <Crosshair size={14} /> },
-  { id: 'left', label: 'Turn Head Left (←)', instruction: 'Turn your head slightly to the LEFT (~20°)...', guideHint: 'Turn head left', icon: <ArrowLeft size={14} /> },
-  { id: 'right', label: 'Turn Head Right (→)', instruction: 'Turn your head slightly to the RIGHT (~20°)...', guideHint: 'Turn head right', icon: <ArrowRight size={14} /> },
-  { id: 'tilt', label: 'Tilt Head Up (↑)', instruction: 'Tilt your head slightly UPWARD (~15°)...', guideHint: 'Tilt head upward', icon: <ArrowUp size={14} /> },
+  { id: 'front', label: 'Front', instruction: 'Look straight at the camera', guideHint: 'Center your face and look straight forward', icon: <Crosshair size={14} /> },
+  { id: 'right', label: 'Right', instruction: 'Slowly turn your face to the RIGHT (→)', guideHint: 'Turn head right and hold steady', icon: <ArrowRight size={14} /> },
+  { id: 'left', label: 'Left', instruction: 'Slowly turn your face to the LEFT (←)', guideHint: 'Turn head left and hold steady', icon: <ArrowLeft size={14} /> },
+  { id: 'up', label: 'Up', instruction: 'Slowly look UP (↑)', guideHint: 'Tilt head upward and hold steady', icon: <ArrowUp size={14} /> },
 ];
 
 export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
@@ -32,7 +32,6 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const analyzeCanvasRef = useRef<HTMLCanvasElement>(null);
   const isAutoScanningRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -44,16 +43,14 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [matchedUser, setMatchedUser] = useState<any>(null);
 
-  // Multi-Pose Auto-Capture State
+  // Multi-Pose Automatic Enrollment State
   const [currentPoseIndex, setCurrentPoseIndex] = useState(0);
   const [capturedPoses, setCapturedPoses] = useState<{ id: string; blob: Blob; previewUrl: string }[]>([]);
-  const [baselineCenter, setBaselineCenter] = useState<{ cx: number; cy: number } | null>(null);
   const [poseHoldCount, setPoseHoldCount] = useState(0);
-  const [livenessStatus, setLivenessStatus] = useState<string>(
-    mode === 'login' ? 'Full-frame live recognition active...' : 'Step 1/4: Look directly at camera'
-  );
-  const [scanCount, setScanCount] = useState(0);
+  const [poseFeedback, setPoseFeedback] = useState<string>('Look straight at the camera');
+  const [isPoseValid, setIsPoseValid] = useState(false);
   const [flashEffect, setFlashEffect] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -81,9 +78,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       }
       setCameraReady(true);
       if (mode === 'login') {
-        setLivenessStatus('Instant auto-recognition active. Looking for registered face...');
+        setPoseFeedback('Looking for registered face...');
       } else {
-        setLivenessStatus('Step 1/4: Look directly forward at camera');
+        setPoseFeedback(POSE_STEPS[0].instruction);
       }
     } catch (err: any) {
       console.error("Camera access error:", err);
@@ -102,169 +99,102 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
     };
   }, []);
 
-  // 1. Continuous Login Recognition Loop
+  // 1. Automatic Face Login Auto-Scanner
   useEffect(() => {
     let timer: any = null;
-
-    if (cameraReady && mode === 'login' && !matchedUser && !isProcessing && !hasFailed) {
+    if (cameraReady && mode === 'login' && !isProcessing && !matchedUser && !hasFailed) {
       timer = setTimeout(() => {
-        if (!isAutoScanningRef.current && isMountedRef.current && !matchedUser) {
+        if (isMountedRef.current && !isAutoScanningRef.current && !matchedUser) {
           executeLoginRecognition(true);
         }
       }, 700);
     }
-
     return () => {
       if (timer) clearTimeout(timer);
     };
   }, [cameraReady, mode, isProcessing, matchedUser, scanCount, hasFailed]);
 
-  // 2. Head Pose Tracker Loop for Guided Registration
+  // 2. Real-Time Pose Validation & Auto-Capture Loop
   useEffect(() => {
     let poseTimer: any = null;
 
     if (cameraReady && mode === 'register' && !isProcessing && !hasFailed && currentPoseIndex < POSE_STEPS.length) {
       poseTimer = setTimeout(() => {
-        if (isMountedRef.current && !hasFailed) {
-          trackHeadPose();
+        if (isMountedRef.current && !isAutoScanningRef.current) {
+          evaluateLivePose();
         }
-      }, 200);
+      }, 250);
     }
 
     return () => {
       if (poseTimer) clearTimeout(poseTimer);
     };
-  }, [cameraReady, mode, isProcessing, hasFailed, currentPoseIndex, baselineCenter, poseHoldCount]);
+  }, [cameraReady, mode, isProcessing, hasFailed, currentPoseIndex, poseHoldCount]);
 
-  // Optical Head Pose & Turn Estimator
-  const trackHeadPose = () => {
-    if (!videoRef.current || !analyzeCanvasRef.current || !cameraReady || isProcessing || hasFailed) return;
+  // Real-Time Frame Validation against Backend
+  const evaluateLivePose = async () => {
+    if (!videoRef.current || !canvasRef.current || !cameraReady || isProcessing || hasFailed || isAutoScanningRef.current) return;
 
+    const currentStep = POSE_STEPS[currentPoseIndex];
+    if (!currentStep) return;
+
+    isAutoScanningRef.current = true;
     const video = videoRef.current;
-    const canvas = analyzeCanvasRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = 320;
+    canvas.height = 240;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = 80;
-    canvas.height = 60;
-    ctx.drawImage(video, 0, 0, 80, 60);
-
-    const imgData = ctx.getImageData(0, 0, 80, 60).data;
-
-    let totalWeight = 0;
-    let sumX = 0;
-    let sumY = 0;
-    let leftSkin = 0;
-    let rightSkin = 0;
-    let topSkin = 0;
-    let bottomSkin = 0;
-
-    // Skin & Face distribution analysis
-    for (let y = 0; y < 60; y++) {
-      for (let x = 0; x < 80; x++) {
-        const idx = (y * 80 + x) * 4;
-        const r = imgData[idx];
-        const g = imgData[idx + 1];
-        const b = imgData[idx + 2];
-
-        // Skin chrominance formula
-        const cr = 128 + 0.5 * r - 0.418 * g - 0.081 * b;
-        const cb = 128 - 0.168 * r - 0.331 * g + 0.5 * b;
-
-        if (cr >= 125 && cr <= 185 && cb >= 70 && cb <= 140) {
-          sumX += x;
-          sumY += y;
-          totalWeight += 1;
-
-          if (x < 40) leftSkin++;
-          else rightSkin++;
-
-          if (y < 30) topSkin++;
-          else bottomSkin++;
-        }
-      }
-    }
-
-    if (totalWeight < 35) {
-      setLivenessStatus('Please center your face inside the camera view...');
-      setPoseHoldCount(0);
+    if (!ctx) {
+      isAutoScanningRef.current = false;
       return;
     }
 
-    const currentCx = sumX / totalWeight;
-    const currentCy = sumY / totalWeight;
+    ctx.drawImage(video, 0, 0, 320, 240);
 
-    // Step 0: Center baseline lock (Look Straight forward)
-    if (currentPoseIndex === 0) {
-      if (!baselineCenter) {
-        setBaselineCenter({ cx: currentCx, cy: currentCy });
-        setPoseHoldCount(1);
-        setLivenessStatus('Center Angle Locking... (1/3)');
-      } else {
-        const dx = Math.abs(currentCx - baselineCenter.cx);
-        const dy = Math.abs(currentCy - baselineCenter.cy);
+    canvas.toBlob(async (blob) => {
+      if (!blob || !isMountedRef.current) {
+        isAutoScanningRef.current = false;
+        return;
+      }
 
-        if (dx < 6 && dy < 6) {
-          const count = poseHoldCount + 1;
-          setPoseHoldCount(count);
-          setLivenessStatus(`Center Angle Locking... (${count}/3)`);
+      const formData = new FormData();
+      formData.append('image', blob, 'frame.jpg');
+      formData.append('expected_pose', currentStep.id);
 
-          if (count >= 3) {
-            snapCurrentPose();
+      try {
+        const response = await client.post('/auth/face-validate-pose', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const data = response.data?.data;
+        if (data && isMountedRef.current) {
+          setPoseFeedback(data.feedback || currentStep.instruction);
+          setIsPoseValid(Boolean(data.valid));
+
+          if (data.valid) {
+            const nextHold = poseHoldCount + 1;
+            setPoseHoldCount(nextHold);
+
+            if (nextHold >= 3) {
+              // Stability verified -> Automatic Pose Capture!
+              await autoCaptureCurrentPose();
+            }
+          } else {
+            // User moved or changed pose -> Reset stability timer
+            setPoseHoldCount(0);
           }
-        } else {
-          setBaselineCenter({ cx: currentCx, cy: currentCy });
-          setPoseHoldCount(1);
         }
+      } catch (e) {
+        // Fallback: Continue scanning
+      } finally {
+        isAutoScanningRef.current = false;
       }
-      return;
-    }
-
-    // Step 1: Turn Head Left
-    if (currentPoseIndex === 1) {
-      const deltaX = baselineCenter ? currentCx - baselineCenter.cx : 0;
-      // Head turn detected by asymmetry or horizontal shift or steady pose hold
-      const isTurnedLeft = deltaX < -1.8 || (rightSkin > 0 && leftSkin / rightSkin > 1.2) || (leftSkin > 0 && rightSkin / leftSkin > 1.2);
-      
-      const count = isTurnedLeft ? poseHoldCount + 2 : poseHoldCount + 1;
-      setPoseHoldCount(count);
-      setLivenessStatus(`Left Angle Holding... (${Math.min(count, 4)}/4)`);
-
-      if (count >= 4) {
-        snapCurrentPose();
-      }
-    }
-    // Step 2: Turn Head Right
-    else if (currentPoseIndex === 2) {
-      const deltaX = baselineCenter ? currentCx - baselineCenter.cx : 0;
-      const isTurnedRight = deltaX > 1.8 || (leftSkin > 0 && rightSkin / leftSkin > 1.2) || (rightSkin > 0 && leftSkin / rightSkin > 1.2);
-
-      const count = isTurnedRight ? poseHoldCount + 2 : poseHoldCount + 1;
-      setPoseHoldCount(count);
-      setLivenessStatus(`Right Angle Holding... (${Math.min(count, 4)}/4)`);
-
-      if (count >= 4) {
-        snapCurrentPose();
-      }
-    }
-    // Step 3: Tilt Head Up
-    else if (currentPoseIndex === 3) {
-      const deltaY = baselineCenter ? currentCy - baselineCenter.cy : 0;
-      const isTilted = deltaY < -1.5 || Math.abs(deltaY) > 1.8 || (topSkin > 0 && topSkin / (bottomSkin + 1) > 1.1);
-
-      const count = isTilted ? poseHoldCount + 2 : poseHoldCount + 1;
-      setPoseHoldCount(count);
-      setLivenessStatus(`Tilt Angle Holding... (${Math.min(count, 4)}/4)`);
-
-      if (count >= 4) {
-        snapCurrentPose();
-      }
-    }
+    }, 'image/jpeg', 0.80);
   };
 
-  // Pose Snapshot
-  const snapCurrentPose = () => {
-    if (!videoRef.current || !canvasRef.current || isProcessing || hasFailed) return;
+  // High-Resolution Automatic Pose Snapshot
+  const autoCaptureCurrentPose = async () => {
+    if (!videoRef.current || !canvasRef.current || isProcessing) return;
 
     setIsProcessing(true);
     setFlashEffect(true);
@@ -281,10 +211,8 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       return;
     }
 
-    // Capture natural, full-fidelity camera frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const previewUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const previewUrl = canvas.toDataURL('image/jpeg', 0.90);
 
     canvas.toBlob(async (blob) => {
       if (!blob || !isMountedRef.current) {
@@ -296,19 +224,20 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       const updatedPoses = [...capturedPoses, { id: currentStep.id, blob, previewUrl }];
       setCapturedPoses(updatedPoses);
       setPoseHoldCount(0);
+      setIsPoseValid(false);
 
       const nextIndex = currentPoseIndex + 1;
 
       if (nextIndex < POSE_STEPS.length) {
         setCurrentPoseIndex(nextIndex);
-        setLivenessStatus(`Angle ${nextIndex} Captured! Next: ${POSE_STEPS[nextIndex].instruction}`);
+        setPoseFeedback(`${currentStep.label} face captured ✓`);
         setIsProcessing(false);
       } else {
-        // All 4 Multi-Angles Captured!
-        setLivenessStatus('All 4 Angles Captured! Enrolling Biometric Signature...');
+        // All 4 poses captured automatically!
+        setPoseFeedback('All 4 poses captured ✓ Finalizing biometric enrollment...');
         await submitAllPoses(updatedPoses);
       }
-    }, 'image/jpeg', 0.90);
+    }, 'image/jpeg', 0.92);
   };
 
   // Submit all 4 poses to backend
@@ -318,8 +247,8 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
     setHasFailed(false);
 
     const formData = new FormData();
-    allPoses.forEach((p, idx) => {
-      formData.append('images', p.blob, `pose_${idx}_${p.id}.jpg`);
+    allPoses.forEach((p) => {
+      formData.append('images', p.blob, `pose_${p.id}.jpg`);
     });
 
     try {
@@ -328,8 +257,8 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       });
 
       if (response.data?.success) {
-        setSuccessMessage('Face Biometrics Enrolled Successfully!');
-        setLivenessStatus('Face Registration Complete!');
+        setSuccessMessage('Face registration completed successfully ✓');
+        setPoseFeedback('Registration completed ✓');
         setTimeout(() => {
           if (isMountedRef.current) {
             stopCamera();
@@ -350,14 +279,19 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
     }
   };
 
-  const handleRetryRegistration = () => {
-    setCapturedPoses([]);
-    setCurrentPoseIndex(0);
-    setBaselineCenter(null);
+  const handleRetryRegistration = (retryIndex = 0) => {
+    if (retryIndex === 0) {
+      setCapturedPoses([]);
+      setCurrentPoseIndex(0);
+    } else {
+      setCapturedPoses(prev => prev.slice(0, retryIndex));
+      setCurrentPoseIndex(retryIndex);
+    }
     setPoseHoldCount(0);
+    setIsPoseValid(false);
     setErrorMessage('');
     setHasFailed(false);
-    setLivenessStatus('Step 1/4: Look directly forward at camera');
+    setPoseFeedback(POSE_STEPS[retryIndex]?.instruction || 'Look straight at the camera');
   };
 
   // Instant Face Login
@@ -372,7 +306,6 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
 
@@ -407,7 +340,7 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
           const userData = response.data.data?.user || response.data.data;
           setMatchedUser(userData);
           setSuccessMessage(`Face Verified! Welcome back, ${userData?.username || 'User'}.`);
-          setLivenessStatus('Verified! Redirecting to dashboard...');
+          setPoseFeedback('Verified! Redirecting to dashboard...');
 
           setTimeout(() => {
             if (isMountedRef.current) {
@@ -420,16 +353,16 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
           if (!isAutomatic) {
             setErrorMessage(response.data?.message || 'Face authentication failed.');
           }
-          setLivenessStatus('Looking for registered face in view...');
+          setPoseFeedback('Looking for registered face in view...');
         }
       } catch (err: any) {
         const msg = err.response?.data?.message || err.message || '';
         if (!isAutomatic) {
           setErrorMessage(msg || 'Face identification failed.');
-          setLivenessStatus('Verification error. Please retry or use password.');
+          setPoseFeedback('Verification error. Please retry or use password.');
         } else {
           if (err.response?.status === 401) {
-            setLivenessStatus('Looking for registered face...');
+            setPoseFeedback('Looking for registered face...');
           }
         }
       } finally {
@@ -471,14 +404,16 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
           </div>
           <div>
             <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span>{mode === 'login' ? 'Instant Face Login' : 'Biometric Face Registration'}</span>
+              <span>{mode === 'login' ? 'Instant Face Login' : 'Automatic Face Registration'}</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 <span>{registrationProgress}% Complete</span>
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              {mode === 'login' ? 'Looking into camera verifies identity automatically' : 'Follow the prompts to capture 4 multi-angle biometric poses'}
+              {mode === 'login' 
+                ? 'Looking into camera verifies identity automatically' 
+                : 'Follow the pose instructions. The camera captures automatically.'}
             </p>
           </div>
         </div>
@@ -532,7 +467,6 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
             style={{ width: circleSize - strokeWidth * 2 - 12, height: circleSize - strokeWidth * 2 - 12 }}
           >
             <canvas ref={canvasRef} className="hidden" />
-            <canvas ref={analyzeCanvasRef} className="hidden" />
 
             <video
               ref={videoRef}
@@ -557,11 +491,11 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                   className={`w-3/4 h-3/4 transition-all duration-300 ${
                     matchedUser 
                       ? 'text-emerald-400 opacity-70' 
-                      : poseHoldCount > 0 
-                      ? 'text-emerald-400 opacity-50' 
+                      : isPoseValid 
+                      ? 'text-emerald-400 opacity-80 scale-105' 
                       : hasFailed
                       ? 'text-red-400 opacity-40'
-                      : 'text-indigo-300 opacity-25'
+                      : 'text-indigo-300 opacity-30'
                   }`}
                   fill="none"
                   stroke="currentColor"
@@ -573,8 +507,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                   <path d="M 100 82 L 100 95 L 104 98" strokeDasharray="none" strokeWidth="2" opacity="0.6" />
                 </svg>
 
-                {!matchedUser && !hasFailed && (
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-b from-transparent via-emerald-400/10 to-transparent animate-[pulse_2s_infinite]" />
+                {/* Real-Time Stability Hold Indicator Ring */}
+                {mode === 'register' && isPoseValid && poseHoldCount > 0 && (
+                  <div className="absolute inset-4 rounded-full border-2 border-emerald-400 border-dashed animate-spin pointer-events-none" />
                 )}
 
                 {matchedUser && (
@@ -591,19 +526,40 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
           </div>
         </div>
 
-        {/* Real-time Guidance Pill */}
-        <div className={`mt-4 px-4 py-2 rounded-full backdrop-blur-md border text-xs font-medium flex items-center gap-2 shadow-lg max-w-sm text-center ${
-          hasFailed 
-            ? 'bg-red-950/90 border-red-700/60 text-red-300' 
-            : 'bg-slate-950/90 border-slate-700/60 text-emerald-300'
-        }`}>
-          <Sparkles size={14} className={hasFailed ? 'text-red-400 shrink-0' : 'text-emerald-400 shrink-0'} />
-          <span className="truncate">{livenessStatus}</span>
+        {/* Real-time Status Badges & Guidance Pill */}
+        <div className="mt-4 flex flex-col items-center gap-2 max-w-sm w-full">
+          {mode === 'register' && (
+            <div className="flex items-center gap-2 text-[11px] font-semibold">
+              <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1">
+                <Check size={12} className="text-emerald-400" /> Face detected ✓
+              </span>
+              {isPoseValid ? (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center gap-1 animate-pulse">
+                  <Check size={12} className="text-emerald-400" /> Pose detected ✓ ({poseHoldCount}/3)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center gap-1">
+                  Adjusting pose...
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className={`px-4 py-2 rounded-full backdrop-blur-md border text-xs font-medium flex items-center justify-center gap-2 shadow-lg w-full text-center ${
+            hasFailed 
+              ? 'bg-red-950/90 border-red-700/60 text-red-300' 
+              : isPoseValid
+              ? 'bg-emerald-950/90 border-emerald-700/60 text-emerald-300'
+              : 'bg-slate-950/90 border-slate-700/60 text-slate-200'
+          }`}>
+            <Sparkles size={14} className={hasFailed ? 'text-red-400 shrink-0' : 'text-emerald-400 shrink-0'} />
+            <span className="truncate">{poseFeedback}</span>
+          </div>
         </div>
 
       </div>
 
-      {/* Multi-Angle Step Progress Pills */}
+      {/* Multi-Pose Step Progress Indicators */}
       {mode === 'register' && (
         <div className="mb-4 grid grid-cols-4 gap-2 relative z-10">
           {POSE_STEPS.map((step, idx) => {
@@ -611,11 +567,13 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
             const isCurrent = idx === currentPoseIndex && !hasFailed;
 
             return (
-              <div
+              <button
                 key={step.id}
+                type="button"
+                onClick={() => isCompleted && handleRetryRegistration(idx)}
                 className={`p-2 rounded-xl border text-center transition-all ${
                   isCompleted
-                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-500/10'
+                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-500/10 cursor-pointer hover:bg-emerald-500/25'
                     : isCurrent
                     ? 'bg-emerald-500/10 border-emerald-400 text-white ring-1 ring-emerald-400/50 animate-pulse'
                     : 'bg-slate-950/40 border-slate-800/80 text-slate-500'
@@ -627,10 +585,12 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                   ) : (
                     <span className="text-xs text-emerald-400">{step.icon}</span>
                   )}
-                  <span className="text-[10px] font-bold">Angle {idx + 1}</span>
+                  <span className="text-[10px] font-bold">
+                    {isCompleted ? `[✓ ${step.label}]` : isCurrent ? `[● ${step.label}]` : `[○ ${step.label}]`}
+                  </span>
                 </div>
-                <p className="text-[9px] font-medium truncate">{step.label}</p>
-              </div>
+                <p className="text-[9px] font-medium truncate">{step.instruction.split(' ')[0]} {step.label}</p>
+              </button>
             );
           })}
         </div>
@@ -656,11 +616,11 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 mb-4 relative z-10">
         <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
           <ShieldCheck size={14} />
-          <span>{mode === 'register' ? 'Multi-Angle 3D Biometrics' : 'Anti-Spoof Liveness Protection'}</span>
+          <span>{mode === 'register' ? 'Automatic 3D Pose Biometrics' : 'Anti-Spoof Liveness Protection'}</span>
         </div>
         <div className="flex items-center gap-1 text-slate-500">
           <Lock size={12} />
-          <span>640-D Vector AES-256</span>
+          <span>AES-256-GCM Encrypted</span>
         </div>
       </div>
 
@@ -701,31 +661,26 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
         ) : hasFailed ? (
           <button
             type="button"
-            onClick={handleRetryRegistration}
+            onClick={() => handleRetryRegistration(0)}
             className="w-2/3 py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-amber-600/25 transition-all flex items-center justify-center gap-2"
           >
             <RotateCcw size={18} />
-            <span>Try Again</span>
+            <span>Retry Registration</span>
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={snapCurrentPose}
-            disabled={!cameraReady || isProcessing || currentPoseIndex >= POSE_STEPS.length}
-            className="w-2/3 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-          >
+          <div className="w-2/3 py-3 px-4 bg-slate-800/80 border border-slate-700/80 text-emerald-300 rounded-2xl font-bold text-xs flex items-center justify-center gap-2">
             {isProcessing ? (
               <>
-                <RefreshCw size={18} className="animate-spin" />
-                <span>Processing Angle {currentPoseIndex + 1}...</span>
+                <RefreshCw size={16} className="animate-spin text-emerald-400" />
+                <span>Capturing Pose {currentPoseIndex + 1}...</span>
               </>
             ) : (
               <>
-                <Camera size={18} />
-                <span>Capture Angle {currentPoseIndex + 1} / 4</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Auto-Capturing: {POSE_STEPS[currentPoseIndex]?.label} ({currentPoseIndex + 1}/4)</span>
               </>
             )}
-          </button>
+          </div>
         )}
       </div>
 
