@@ -115,6 +115,23 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Ensure existing pre-migration tables are automatically upgraded
+    try {
+      const [faceCols] = await pool.query('DESCRIBE face_embeddings');
+      const colNames = faceCols.map(c => c.Field);
+      if (!colNames.includes('auth_tag')) {
+        await pool.query('ALTER TABLE face_embeddings ADD COLUMN auth_tag VARBINARY(16) NULL AFTER encryption_iv');
+      }
+      if (!colNames.includes('key_version')) {
+        await pool.query("ALTER TABLE face_embeddings ADD COLUMN key_version VARCHAR(32) DEFAULT 'v1' AFTER auth_tag");
+      }
+      if (!colNames.includes('model_version')) {
+        await pool.query("ALTER TABLE face_embeddings ADD COLUMN model_version VARCHAR(64) DEFAULT 'sface_yunet_v1' AFTER key_version");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on face_embeddings columns:', colErr.message);
+    }
+
     // 9. Face Auth Audit Log table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS face_auth_audit_log (
