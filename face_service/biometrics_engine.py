@@ -1,9 +1,10 @@
+import os
 import numpy as np
 
-# Calibrated SFace Cosine Similarity Thresholds
-# SFace default cosine threshold: 0.363 (FAR < 0.1%), strict mode threshold: 0.40
-MATCH_THRESHOLD = 0.38
-DUPLICATE_THRESHOLD = 0.55
+# Configurable 1:1 Verification & Duplicate Thresholds (Customizable via environment variables)
+# SFace default recommended cosine similarity threshold is 0.363 - 0.40
+BIOMETRIC_MATCH_THRESHOLD = float(os.getenv("BIOMETRIC_MATCH_THRESHOLD", "0.38"))
+DUPLICATE_THRESHOLD = float(os.getenv("BIOMETRIC_DUPLICATE_THRESHOLD", "0.55"))
 
 def cosine_similarity(vec1, vec2):
     """
@@ -28,6 +29,21 @@ def cosine_similarity(vec1, vec2):
 
     return float(np.dot(v1, v2) / (norm1 * norm2))
 
+def verify_face_1to1(live_embedding, stored_embedding, threshold: float = None):
+    """
+    Performs strict 1:1 biometric identity verification against a single user's template.
+    Returns: dict {"verified": bool, "similarity": float, "threshold": float}
+    """
+    effective_threshold = float(threshold) if threshold is not None else BIOMETRIC_MATCH_THRESHOLD
+    sim = cosine_similarity(live_embedding, stored_embedding)
+    verified = bool(sim >= effective_threshold)
+
+    return {
+        "verified": verified,
+        "similarity": float(sim),
+        "threshold": effective_threshold
+    }
+
 def check_duplicate_face(target_embedding, stored_embeddings, exclude_user_id=None):
     """
     Checks if target_embedding matches any existing stored face template in database.
@@ -50,11 +66,12 @@ def check_duplicate_face(target_embedding, stored_embeddings, exclude_user_id=No
     is_duplicate = duplicate_user_id is not None
     return is_duplicate, duplicate_user_id, max_sim
 
-def identify_face(live_embedding, stored_embeddings):
+def identify_face(live_embedding, stored_embeddings, threshold: float = None):
     """
     Identifies if live_embedding belongs to any user in stored_embeddings.
-    Returns: dict {"matched": bool, "user_id": int | None, "confidence": float}
+    Returns: dict {"matched": bool, "user_id": int | None, "confidence": float, "threshold": float}
     """
+    effective_threshold = float(threshold) if threshold is not None else BIOMETRIC_MATCH_THRESHOLD
     best_user_id = None
     best_sim = 0.0
 
@@ -62,13 +79,14 @@ def identify_face(live_embedding, stored_embeddings):
         sim = cosine_similarity(live_embedding, stored_emb)
         if sim > best_sim:
             best_sim = sim
-            if sim >= MATCH_THRESHOLD:
+            if sim >= effective_threshold:
                 best_user_id = user_id
 
-    matched = best_user_id is not None and best_sim >= MATCH_THRESHOLD
+    matched = best_user_id is not None and best_sim >= effective_threshold
 
     return {
         "matched": matched,
         "user_id": best_user_id,
-        "confidence": float(best_sim)
+        "confidence": float(best_sim),
+        "threshold": effective_threshold
     }

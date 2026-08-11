@@ -66,6 +66,32 @@ def save_face_embedding(
         cursor.close()
         conn.close()
 
+def get_user_face_embedding(user_id: int):
+    """
+    Retrieves ONLY a specific user's stored face embedding from MySQL (1:1 isolation).
+    Returns tuple: (user_id, encrypted_bytes, iv_bytes, auth_tag, key_version, model_version) or None
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        sql = """
+        SELECT 
+            user_id,
+            encrypted_embedding,
+            encryption_iv,
+            auth_tag,
+            key_version,
+            model_version
+        FROM face_embeddings
+        WHERE user_id = %s
+        LIMIT 1
+        """
+        cursor.execute(sql, (user_id,))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
 def get_all_face_embeddings():
     """
     Retrieves all stored face embeddings from MySQL with authenticated metadata.

@@ -27,10 +27,12 @@ try:
         cosine_similarity,
         check_duplicate_face,
         identify_face,
-        MATCH_THRESHOLD
+        verify_face_1to1,
+        BIOMETRIC_MATCH_THRESHOLD
     )
     from face_service.models import (
         save_face_embedding,
+        get_user_face_embedding,
         get_all_face_embeddings,
         log_auth_attempt
     )
@@ -54,10 +56,12 @@ except ImportError:
         cosine_similarity,
         check_duplicate_face,
         identify_face,
-        MATCH_THRESHOLD
+        verify_face_1to1,
+        BIOMETRIC_MATCH_THRESHOLD
     )
     from models import (
         save_face_embedding,
+        get_user_face_embedding,
         get_all_face_embeddings,
         log_auth_attempt
     )
@@ -259,6 +263,105 @@ def register_face():
             "key_version": key_ver,
             "encryption_algorithm": "AES-256-GCM",
             "embedding_dim": EMBEDDING_DIM
+        }
+    }), 200
+
+@app.route('/verify-1to1', methods=['POST'])
+def verify_user_face_1to1():
+    """
+    Strict 1:1 Identity Verification:
+      1. Receives target user_id and live face image.
+      2. Validates frame liveness.
+      3. Extracts live 128-D embedding.
+      4. Retrieves ONLY the target user's stored template (1:1 isolation).
+      5. Computes cosine similarity against BIOMETRIC_MATCH_THRESHOLD.
+      6. Returns verified True/False based strictly on backend calculation.
+    """
+    ip_address = request.remote_addr or '127.0.0.1'
+    user_id = request.form.get('user_id')
+
+    if not user_id:
+        return jsonify({"success": False, "verified": False, "message": "user_id is required for 1:1 verification."}), 400
+
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return jsonify({"success": False, "verified": False, "message": "Invalid user_id."}), 400
+
+    if 'image' not in request.files:
+        return jsonify({"success": False, "verified": False, "message": "No image file provided for face verification."}), 400
+
+    file = request.files['image']
+    image_bytes = file.read()
+
+    # 1. Liveness check
+    liveness_ok, liveness_msg = check_liveness(image_bytes)
+    if not liveness_ok:
+        log_auth_attempt(user_id, False, 0.0, ip_address, False)
+        return jsonify({
+            "success": False,
+            "verified": False,
+            "message": liveness_msg or "Liveness verification failed."
+        }), 400
+
+    # 2. Extract live embedding
+    try:
+        live_embedding = extract_embedding_from_image(image_bytes)
+    except Exception as e:
+        return jsonify({"success": False, "verified": False, "message": str(e)}), 400
+
+    # 3. Retrieve ONLY target user's biometric template (1:1 isolation)
+    user_record = get_user_face_embedding(user_id)
+    if not user_record:
+        return jsonify({
+            "success": False,
+            "verified": False,
+            "message": "No registered biometric template found for this account."
+        }), 404
+
+    _, enc_bytes, iv_bytes, auth_tag, key_ver, model_ver = user_record
+
+    try:
+        stored_embedding = decrypt_embedding(enc_bytes, iv_bytes, auth_tag, key_ver, model_ver)
+    except Exception as e:
+        app.logger.error(f"[1:1 VERIFY] Decryption failure for user {user_id}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "verified": False,
+            "message": "Failed to decrypt stored biometric template."
+        }), 500
+
+    # 4. Perform 1:1 Cosine Similarity Verification with configurable threshold
+    result = verify_face_1to1(live_embedding, stored_embedding)
+    verified = result["verified"]
+    similarity = result["similarity"]
+    threshold = result["threshold"]
+
+    # 5. Log audit attempt
+    log_auth_attempt(user_id, verified, similarity, ip_address, True)
+
+    if not verified:
+        return jsonify({
+            "success": False,
+            "verified": False,
+            "message": "Biometric verification failed: Face does not match the requested account.",
+            "data": {
+                "user_id": user_id,
+                "similarity": similarity,
+                "threshold": threshold,
+                "model_version": MODEL_VERSION
+            }
+        }), 401
+
+    return jsonify({
+        "success": True,
+        "verified": True,
+        "message": "1:1 Face verification successful.",
+        "data": {
+            "user_id": user_id,
+            "similarity": similarity,
+            "threshold": threshold,
+            "model_version": MODEL_VERSION
         }
     }), 200
 

@@ -9,8 +9,7 @@ import pool from './db.js';
 import { authenticateToken, authorizeRole } from './middleware.js';
 import { successResponse, errorResponse } from './utils/response.js';
 import { loginAttemptService } from './services/loginAttemptService.js';
-import { sendEmail, sendTestEmail } from './services/emailService.js';
-import { enrollFaceBiometrics, identifyFaceBiometrics } from './services/nativeBiometrics.js';
+import { enrollFaceBiometrics, identifyFaceBiometrics, verifyUserFaceBiometrics, BIOMETRIC_MATCH_THRESHOLD } from './services/nativeBiometrics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -520,66 +519,130 @@ router.post('/auth/face-register', upload.any(), async (req, res) => {
     }
 });
 
-// Face Login Endpoint (Issues 24h JWT Token on verified face match)
+// Strict 1:1 Biometric Verification Endpoint (Issues 24h JWT Token on verified match)
 router.post('/auth/face-login', upload.single('image'), async (req, res) => {
     try {
-        const { portalRole } = req.body;
+        const { email, identifier, userId, portalRole } = req.body;
         const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        const targetIdentifier = (identifier || email || '').trim().toLowerCase();
 
         if (!req.file || !req.file.buffer) {
             return errorResponse(res, 'No image file provided for face scan', [], 400);
         }
 
-        let matchedUserId = null;
+        let targetUser = null;
 
-        // 1. Try Python microservice if available
-        try {
-            const formData = new FormData();
-            const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
-            formData.append('image', blob, req.file.originalname || 'face.jpg');
+        // 1. Resolve Target User Account (1:1 Flow)
+        if (targetIdentifier) {
+            const [uRows] = await pool.execute(
+                `SELECT u.*, r.name as role_name 
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE (LOWER(u.email) = ? OR LOWER(u.username) = ?) AND u.status = 'active'
+                 LIMIT 1;`,
+                [targetIdentifier, targetIdentifier]
+            );
+            if (uRows.length > 0) targetUser = uRows[0];
+        } else if (userId) {
+            const [uRows] = await pool.execute(
+                `SELECT u.*, r.name as role_name 
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'
+                 LIMIT 1;`,
+                [userId]
+            );
+            if (uRows.length > 0) targetUser = uRows[0];
+        }
 
-            const response = await fetch(`${FACE_SERVICE_URL}/identify`, {
-                method: 'POST',
-                body: formData,
-                signal: AbortSignal.timeout(2000)
-            });
+        let verifiedUserId = null;
+        let matchSimilarity = 0.0;
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data?.matched && data.data?.user_id) {
-                    matchedUserId = data.data.user_id;
+        // 2. Execute 1:1 Biometric Verification (If target user specified)
+        if (targetUser) {
+            let python1to1Success = false;
+            try {
+                const formData = new FormData();
+                formData.append('user_id', String(targetUser.id));
+                const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
+                formData.append('image', blob, req.file.originalname || 'face.jpg');
+
+                const response = await fetch(`${FACE_SERVICE_URL}/verify-1to1`, {
+                    method: 'POST',
+                    body: formData,
+                    signal: AbortSignal.timeout(2000)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.verified) {
+                        verifiedUserId = targetUser.id;
+                        matchSimilarity = data.data?.similarity || 1.0;
+                        python1to1Success = true;
+                    }
+                }
+            } catch (e) {
+                // Fallback to native 1:1 matcher
+            }
+
+            if (!python1to1Success) {
+                const verifyResult = await verifyUserFaceBiometrics(targetUser.id, req.file.buffer, clientIp);
+                if (verifyResult.verified) {
+                    verifiedUserId = targetUser.id;
+                    matchSimilarity = verifyResult.similarity;
                 }
             }
-        } catch (e) {
-            // Python service not reachable, proceed with native biometrics
-        }
 
-        // 2. Native Cloud Biometrics Matcher
-        if (!matchedUserId) {
-            const matchResult = await identifyFaceBiometrics(req.file.buffer, clientIp, 0.60);
-            if (matchResult.matched && matchResult.user_id) {
-                matchedUserId = matchResult.user_id;
+            if (!verifiedUserId) {
+                return errorResponse(res, 'Face biometric did not match the specified account. Please retry or sign in with password.', [], 401);
             }
+        } else {
+            // Fallback 1:N Identification if no email/identifier was provided
+            try {
+                const formData = new FormData();
+                const blob = new Blob([req.file.buffer], { type: req.file.mimetype || 'image/jpeg' });
+                formData.append('image', blob, req.file.originalname || 'face.jpg');
+
+                const response = await fetch(`${FACE_SERVICE_URL}/identify`, {
+                    method: 'POST',
+                    body: formData,
+                    signal: AbortSignal.timeout(2000)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data?.matched && data.data?.user_id) {
+                        verifiedUserId = data.data.user_id;
+                    }
+                }
+            } catch (e) {}
+
+            if (!verifiedUserId) {
+                const matchResult = await identifyFaceBiometrics(req.file.buffer, clientIp);
+                if (matchResult.matched && matchResult.user_id) {
+                    verifiedUserId = matchResult.user_id;
+                }
+            }
+
+            if (!verifiedUserId) {
+                return errorResponse(res, 'Face biometric did not match any registered user. Please retry or use password login.', [], 401);
+            }
+
+            const [rows] = await pool.execute(
+                `SELECT u.*, r.name as role_name 
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'`,
+                [verifiedUserId]
+            );
+
+            if (rows.length === 0) {
+                return errorResponse(res, 'Account not found or inactive', [], 401);
+            }
+            targetUser = rows[0];
         }
 
-        if (!matchedUserId) {
-            return errorResponse(res, 'Face biometric did not match any registered user. Please retry or use password login.', [], 401);
-        }
-
-        // Fetch matched user from DB
-        const [rows] = await pool.execute(
-            `SELECT u.*, r.name as role_name 
-             FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE u.id = ? AND u.status = 'active'`,
-            [matchedUserId]
-        );
-
-        if (rows.length === 0) {
-            return errorResponse(res, 'Account not found or inactive', [], 401);
-        }
-
-        const user = rows[0];
+        const user = targetUser;
 
         // Validate portal role isolation
         const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');

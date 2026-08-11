@@ -234,10 +234,82 @@ export async function identifyFaceBiometrics(imageBuffer, clientIp = '127.0.0.1'
     console.error('[BIOMETRIC AUDIT LOG ERROR]:', err.message);
   }
 
+// Configurable match threshold from environment
+export const BIOMETRIC_MATCH_THRESHOLD = parseFloat(process.env.BIOMETRIC_MATCH_THRESHOLD || '0.38');
+
+/**
+ * Performs strict 1:1 biometric identity verification against ONLY the target user's template.
+ */
+export async function verifyUserFaceBiometrics(
+  userId,
+  imageBuffer,
+  clientIp = '127.0.0.1',
+  threshold = BIOMETRIC_MATCH_THRESHOLD
+) {
+  const queryVector = extractEmbeddingFromBuffer(imageBuffer);
+
+  // Retrieve ONLY target user's template (1:1 isolation)
+  const [rows] = await pool.execute(
+    `SELECT 
+       user_id,
+       encrypted_embedding,
+       encryption_iv,
+       auth_tag,
+       key_version,
+       model_version
+     FROM face_embeddings
+     WHERE user_id = ?
+     LIMIT 1;`,
+    [userId]
+  );
+
+  if (rows.length === 0) {
+    return {
+      verified: false,
+      message: 'No registered biometric template found for this user',
+      similarity: 0.0,
+      threshold
+    };
+  }
+
+  const row = rows[0];
+  let similarity = 0.0;
+
+  try {
+    const storedVector = decryptEmbedding(
+      row.encrypted_embedding,
+      row.encryption_iv,
+      row.auth_tag,
+      row.key_version,
+      row.model_version
+    );
+    similarity = cosineSimilarity(queryVector, storedVector);
+  } catch (e) {
+    console.error(`[1:1 BIOMETRIC] Failed decrypting user ${userId}:`, e.message);
+    return {
+      verified: false,
+      message: 'Failed to decrypt biometric template',
+      similarity: 0.0,
+      threshold
+    };
+  }
+
+  const verified = similarity >= threshold;
+
+  // Log 1:1 audit attempt
+  try {
+    await pool.execute(
+      'INSERT INTO face_auth_audit_log (user_id, matched, confidence, ip_address, liveness_passed) VALUES (?, ?, ?, ?, ?)',
+      [userId, verified ? 1 : 0, similarity.toFixed(4), clientIp, 1]
+    );
+  } catch (err) {
+    console.error('[BIOMETRIC AUDIT LOG ERROR]:', err.message);
+  }
+
   return {
-    matched,
-    user_id: matched ? bestMatch : null,
-    confidence: highestSimilarity,
+    verified,
+    user_id: userId,
+    similarity,
     threshold
   };
 }
