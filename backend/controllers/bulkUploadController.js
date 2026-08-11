@@ -18,6 +18,39 @@ function normalizeRow(row) {
 }
 
 /**
+ * Dynamic Students Table Column Inspector to support schema variations
+ */
+async function getStudentsColumns(conn) {
+  try {
+    const [cols] = await conn.query('DESCRIBE students');
+    const fields = cols.map(c => c.Field);
+    return {
+      hasAdmissionNumber: fields.includes('admission_number'),
+      hasRollNumber: fields.includes('roll_number'),
+      hasFirstName: fields.includes('first_name'),
+      hasLastName: fields.includes('last_name'),
+      hasName: fields.includes('name'),
+      hasEmail: fields.includes('email'),
+      hasDepartmentId: fields.includes('department_id'),
+      hasSectionId: fields.includes('section_id'),
+      hasAcademicYearId: fields.includes('academic_year_id')
+    };
+  } catch (e) {
+    return {
+      hasAdmissionNumber: true,
+      hasRollNumber: true,
+      hasFirstName: true,
+      hasLastName: true,
+      hasName: true,
+      hasEmail: true,
+      hasDepartmentId: true,
+      hasSectionId: true,
+      hasAcademicYearId: true
+    };
+  }
+}
+
+/**
  * Helper to ensure department, academic_year, course, semester and section records exist
  */
 async function ensureAcademicHierarchy(conn, deptName = 'Computer Science', semNumber = 1) {
@@ -101,6 +134,9 @@ export async function importStudents(req, res) {
       return errorResponse(res, 'The uploaded Excel sheet is empty.', [], 400);
     }
 
+    // Inspect columns of students table
+    const stCols = await getStudentsColumns(conn);
+
     // 1. Resolve Student Role ID
     const [roleRows] = await conn.query('SELECT id FROM roles WHERE LOWER(name) = "student"');
     let studentRoleId = roleRows[0]?.id;
@@ -162,25 +198,58 @@ export async function importStudents(req, res) {
         insertedCount++;
       }
 
-      // Split name into first and last name
       const nameParts = (fullName || rollNumber).split(' ');
       const firstName = nameParts[0] || rollNumber;
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      // Update / Insert into students table
-      const [existingStudent] = await conn.query('SELECT id FROM students WHERE user_id = ? OR admission_number = ?', [userId, rollNumber]);
+      // Construct dynamic WHERE clause for student lookup
+      const whereConds = ['user_id = ?'];
+      const whereParams = [userId];
+      if (stCols.hasAdmissionNumber) {
+        whereConds.push('admission_number = ?');
+        whereParams.push(rollNumber);
+      }
+      if (stCols.hasRollNumber) {
+        whereConds.push('roll_number = ?');
+        whereParams.push(rollNumber);
+      }
+
+      const [existingStudent] = await conn.query(`SELECT id FROM students WHERE ${whereConds.join(' OR ')}`, whereParams);
+
       if (existingStudent.length > 0) {
-        await conn.query(
-          `UPDATE students 
-           SET first_name = ?, last_name = ?, section_id = ?, academic_year_id = ?
-           WHERE id = ?`,
-          [firstName, lastName, sectionId, ayId, existingStudent[0].id]
-        );
+        const updateFields = [];
+        const updateParams = [];
+        if (stCols.hasFirstName) { updateFields.push('first_name = ?'); updateParams.push(firstName); }
+        if (stCols.hasLastName) { updateFields.push('last_name = ?'); updateParams.push(lastName); }
+        if (stCols.hasName) { updateFields.push('name = ?'); updateParams.push(fullName || rollNumber); }
+        if (stCols.hasEmail) { updateFields.push('email = ?'); updateParams.push(email); }
+        if (stCols.hasSectionId) { updateFields.push('section_id = ?'); updateParams.push(sectionId); }
+        if (stCols.hasAcademicYearId) { updateFields.push('academic_year_id = ?'); updateParams.push(ayId); }
+        if (stCols.hasAdmissionNumber) { updateFields.push('admission_number = ?'); updateParams.push(rollNumber); }
+        if (stCols.hasRollNumber) { updateFields.push('roll_number = ?'); updateParams.push(rollNumber); }
+
+        if (updateFields.length > 0) {
+          updateParams.push(existingStudent[0].id);
+          await conn.query(`UPDATE students SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
+        }
       } else {
+        const insertCols = ['user_id'];
+        const insertPlaceholders = ['?'];
+        const insertParams = [userId];
+
+        if (stCols.hasAdmissionNumber) { insertCols.push('admission_number'); insertPlaceholders.push('?'); insertParams.push(rollNumber); }
+        if (stCols.hasRollNumber) { insertCols.push('roll_number'); insertPlaceholders.push('?'); insertParams.push(rollNumber); }
+        if (stCols.hasFirstName) { insertCols.push('first_name'); insertPlaceholders.push('?'); insertParams.push(firstName); }
+        if (stCols.hasLastName) { insertCols.push('last_name'); insertPlaceholders.push('?'); insertParams.push(lastName); }
+        if (stCols.hasName) { insertCols.push('name'); insertPlaceholders.push('?'); insertParams.push(fullName || rollNumber); }
+        if (stCols.hasEmail) { insertCols.push('email'); insertPlaceholders.push('?'); insertParams.push(email); }
+        if (stCols.hasDepartmentId) { insertCols.push('department_id'); insertPlaceholders.push('?'); insertParams.push(deptId); }
+        if (stCols.hasSectionId) { insertCols.push('section_id'); insertPlaceholders.push('?'); insertParams.push(sectionId); }
+        if (stCols.hasAcademicYearId) { insertCols.push('academic_year_id'); insertPlaceholders.push('?'); insertParams.push(ayId); }
+
         await conn.query(
-          `INSERT INTO students (user_id, admission_number, first_name, last_name, section_id, academic_year_id)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [userId, rollNumber, firstName, lastName, sectionId, ayId]
+          `INSERT INTO students (${insertCols.join(', ')}) VALUES (${insertPlaceholders.join(', ')})`,
+          insertParams
         );
       }
     }
@@ -230,11 +299,18 @@ export async function importAttendance(req, res) {
     let lateCount = 0;
     const errors = [];
 
-    // Cache students and sections for fast lookups
-    const [allStudents] = await conn.query('SELECT id, user_id, admission_number FROM students');
+    // Inspect columns of students table dynamically
+    const stCols = await getStudentsColumns(conn);
+
+    const selectFields = ['id', 'user_id'];
+    if (stCols.hasAdmissionNumber) selectFields.push('admission_number');
+    if (stCols.hasRollNumber) selectFields.push('roll_number');
+
+    const [allStudents] = await conn.query(`SELECT ${selectFields.join(', ')} FROM students`);
     const studentMap = new Map();
     allStudents.forEach(s => {
       if (s.admission_number) studentMap.set(s.admission_number.toLowerCase().trim(), s.id);
+      if (s.roll_number) studentMap.set(s.roll_number.toLowerCase().trim(), s.id);
     });
 
     const [allSections] = await conn.query('SELECT id, name FROM sections');
@@ -342,7 +418,6 @@ export async function importAttendance(req, res) {
         presentCount++;
       }
 
-      // Insert or update attendance details
       await conn.query(
         `INSERT INTO attendance_details (attendance_id, student_id, status)
          VALUES (?, ?, ?)
@@ -399,11 +474,16 @@ export async function importMarks(req, res) {
     const gradeDistribution = { O: 0, 'A+': 0, A: 0, 'B+': 0, B: 0, C: 0, P: 0, F: 0 };
     const errors = [];
 
-    // Cache students, subjects, exams
-    const [allStudents] = await conn.query('SELECT id, admission_number FROM students');
+    const stCols = await getStudentsColumns(conn);
+    const selectFields = ['id'];
+    if (stCols.hasAdmissionNumber) selectFields.push('admission_number');
+    if (stCols.hasRollNumber) selectFields.push('roll_number');
+
+    const [allStudents] = await conn.query(`SELECT ${selectFields.join(', ')} FROM students`);
     const studentMap = new Map();
     allStudents.forEach(s => {
       if (s.admission_number) studentMap.set(s.admission_number.toLowerCase().trim(), s.id);
+      if (s.roll_number) studentMap.set(s.roll_number.toLowerCase().trim(), s.id);
     });
 
     const [allSubjects] = await conn.query('SELECT id, name, code FROM subjects');
@@ -438,7 +518,6 @@ export async function importMarks(req, res) {
         continue;
       }
 
-      // Resolve Subject
       let subjectId = subjectMap.get(subjectCode.toLowerCase());
       if (!subjectId) {
         const { deptId, semId } = await ensureAcademicHierarchy(conn, 'Computer Science', 1);
@@ -450,7 +529,6 @@ export async function importMarks(req, res) {
         subjectMap.set(subjectCode.toLowerCase(), subjectId);
       }
 
-      // Resolve Exam
       let examId = examMap.get(examName.toLowerCase());
       if (!examId) {
         const { ayId } = await ensureAcademicHierarchy(conn, 'Computer Science', 1);
@@ -459,13 +537,11 @@ export async function importMarks(req, res) {
         examMap.set(examName.toLowerCase(), examId);
       }
 
-      // Calculate UGC/AICTE Grade
       const gradeResult = calculateGrade(marksObtained, maxMarks);
       if (gradeDistribution[gradeResult.grade] !== undefined) {
         gradeDistribution[gradeResult.grade]++;
       }
 
-      // Insert or Update Marks
       const [existingMark] = await conn.query(
         'SELECT id FROM marks WHERE exam_id = ? AND student_id = ? AND subject_id = ?',
         [examId, studentId, subjectId]
@@ -480,7 +556,6 @@ export async function importMarks(req, res) {
         );
       }
 
-      // Update / Insert Results summary
       const statusStr = gradeResult.passed ? 'pass' : 'fail';
       const [existingResult] = await conn.query(
         'SELECT id FROM results WHERE student_id = ? AND exam_id = ?',
@@ -567,10 +642,8 @@ export async function importFaculty(req, res) {
         continue;
       }
 
-      // Ensure Department
       const { deptId } = await ensureAcademicHierarchy(conn, deptName, 1);
 
-      // Check / Create User
       const [existingUsers] = await conn.query(
         'SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?',
         [email, empId.toLowerCase()]
@@ -591,7 +664,6 @@ export async function importFaculty(req, res) {
         createdCount++;
       }
 
-      // Insert into faculty table
       await conn.query(
         `INSERT INTO faculty (user_id, employee_id, name, email, phone, designation, department_id, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'Active')
@@ -756,7 +828,6 @@ export async function getAcademicStats(req, res) {
     const presAtt = presentAttendance[0]?.cnt || 0;
     const avgAttendance = totalAtt > 0 ? Number(((presAtt / totalAtt) * 100).toFixed(1)) : 88.5;
 
-    // Grade breakdown from results
     const [gradeRows] = await pool.query(
       'SELECT grade, COUNT(*) as count FROM results WHERE grade IS NOT NULL GROUP BY grade'
     );

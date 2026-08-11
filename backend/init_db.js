@@ -73,11 +73,16 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS students (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT,
-        roll_number VARCHAR(50) UNIQUE,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(100) UNIQUE,
+        admission_number VARCHAR(50) UNIQUE,
+        roll_number VARCHAR(50),
+        first_name VARCHAR(50),
+        last_name VARCHAR(50),
+        name VARCHAR(100) NULL,
+        email VARCHAR(100) NULL,
         phone VARCHAR(20),
         department_id INT,
+        section_id INT,
+        academic_year_id INT,
         semester INT DEFAULT 1,
         section VARCHAR(10) DEFAULT 'A',
         cgpa DECIMAL(3,2) DEFAULT 0.00,
@@ -85,6 +90,32 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Ensure admission_number and roll_number columns exist for pre-existing tables
+    try {
+      const [stCols] = await pool.query('DESCRIBE students');
+      const stColNames = stCols.map(c => c.Field);
+      if (!stColNames.includes('admission_number')) {
+        await pool.query('ALTER TABLE students ADD COLUMN admission_number VARCHAR(50) NULL AFTER user_id');
+      }
+      if (!stColNames.includes('roll_number')) {
+        await pool.query('ALTER TABLE students ADD COLUMN roll_number VARCHAR(50) NULL AFTER user_id');
+      }
+      if (!stColNames.includes('first_name')) {
+        await pool.query('ALTER TABLE students ADD COLUMN first_name VARCHAR(50) NULL AFTER roll_number');
+      }
+      if (!stColNames.includes('last_name')) {
+        await pool.query('ALTER TABLE students ADD COLUMN last_name VARCHAR(50) NULL AFTER first_name');
+      }
+      if (!stColNames.includes('section_id')) {
+        await pool.query('ALTER TABLE students ADD COLUMN section_id INT NULL AFTER department_id');
+      }
+      if (!stColNames.includes('academic_year_id')) {
+        await pool.query('ALTER TABLE students ADD COLUMN academic_year_id INT NULL AFTER section_id');
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on students columns:', colErr.message);
+    }
 
     // 6. Faculty table
     await pool.query(`
