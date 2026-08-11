@@ -2000,15 +2000,15 @@ function LandingPage({ onNav }: { onNav: (v: string) => void }) {
 // MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function App() {
+export default function App({ portalName, portalRole }: { portalName?: string; portalRole?: string } = {}) {
   return (
     <AuthProvider>
-      <AppContent />
+      <AppContent initialPortalName={portalName} initialPortalRole={portalRole} />
     </AuthProvider>
   );
 }
 
-function AppContent() {
+function AppContent({ initialPortalName, initialPortalRole }: { initialPortalName?: string; initialPortalRole?: string }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -2055,27 +2055,27 @@ function AppContent() {
   };
 
   const detectedSubdomainRole = getSubdomainPortal();
-  const activePortal = detectedSubdomainRole || ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
-  const defaultLoginRedirect = activePortal ? `/${activePortal}/login` : '/admin/login';
+  const activePortal = initialPortalName?.toLowerCase() || detectedSubdomainRole || ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
+  const defaultLoginRedirect = activePortal ? `/${activePortal}/login` : '/student/login';
 
   return (
     <div className={cn("min-h-screen font-[Inter,sans-serif]", theme === "dark" && "dark")}>
       <div className="min-h-screen bg-background text-foreground antialiased">
         <Routes>
           <Route path="/" element={<Navigate to={defaultLoginRedirect} replace />} />
+          <Route path="/admin/login" element={<PortalLogin role="admin" />} />
+          <Route path="/student/login" element={<PortalLogin role="student" />} />
+          <Route path="/faculty/login" element={<PortalLogin role="faculty" />} />
+          <Route path="/hod/login" element={<PortalLogin role="hod" />} />
+          <Route path="/parent/login" element={<PortalLogin role="parent" />} />
+          <Route path="/accountant/login" element={<PortalLogin role="accountant" />} />
+          <Route path="/librarian/login" element={<PortalLogin role="librarian" />} />
+          <Route path="/placement/login" element={<PortalLogin role="placement" />} />
+          <Route path="/principal/login" element={<PortalLogin role="principal" />} />
+          <Route path="/office/login" element={<PortalLogin role="office" />} />
           <Route path="/:role/login" element={<PortalLogin />} />
           <Route path="/login/:role" element={<PortalLogin />} />
           <Route path="/login" element={<PortalLogin />} />
-          <Route path="/admin/login" element={<PortalLogin />} />
-          <Route path="/student/login" element={<PortalLogin />} />
-          <Route path="/faculty/login" element={<PortalLogin />} />
-          <Route path="/hod/login" element={<PortalLogin />} />
-          <Route path="/parent/login" element={<PortalLogin />} />
-          <Route path="/accountant/login" element={<PortalLogin />} />
-          <Route path="/librarian/login" element={<PortalLogin />} />
-          <Route path="/placement/login" element={<PortalLogin />} />
-          <Route path="/principal/login" element={<PortalLogin />} />
-          <Route path="/office/login" element={<PortalLogin />} />
           <Route path="/forgot-password" element={<PasswordReset />} />
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/access-denied" element={<AccessDenied />} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import {
   Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace,
   Sparkles, ShieldCheck, Lock, KeyRound, Monitor, Smartphone,
@@ -10,21 +10,26 @@ import client from '../../api/client';
 import { FaceAuthModal } from '../../components/FaceAuthModal';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
-const roleConfig: Record<string, { title: string, field: string, placeholder: string }> = {
-  admin: { title: 'Administrator Login', field: 'Email', placeholder: 'admin@collegeerp.com' },
-  hod: { title: 'Head of Department Login', field: 'Email or Employee ID', placeholder: 'hod@collegeerp.com' },
-  faculty: { title: 'Faculty Login', field: 'Email or Employee ID', placeholder: 'faculty@collegeerp.com' },
-  student: { title: 'Student Login', field: 'Email or Roll Number', placeholder: 'student@collegeerp.com' },
-  parent: { title: 'Parent Login', field: 'Email or Parent ID', placeholder: 'parent@collegeerp.com' },
-  accountant: { title: 'Accountant Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com' },
-  librarian: { title: 'Librarian Login', field: 'Email or Employee ID', placeholder: 'librarian@collegeerp.com' },
-  placement: { title: 'Placement Login', field: 'Email or Employee ID', placeholder: 'placement@collegeerp.com' },
-  principal: { title: 'Principal Login', field: 'Email or Employee ID', placeholder: 'principal@collegeerp.com' },
-  office: { title: 'Office Staff Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com' },
+export interface PortalLoginProps {
+  role?: string;
+}
+
+const roleConfig: Record<string, { title: string, field: string, placeholder: string, icon: string, badge: string }> = {
+  student: { title: 'Student Login', field: 'Email or Roll Number', placeholder: 'student@collegeerp.com', icon: '🎓', badge: 'Student Portal' },
+  faculty: { title: 'Faculty Login', field: 'Email or Employee ID', placeholder: 'faculty@collegeerp.com', icon: '👨‍🏫', badge: 'Faculty Portal' },
+  admin: { title: 'Administrator Login', field: 'Email', placeholder: 'admin@collegeerp.com', icon: '🛡️', badge: 'Admin Portal' },
+  hod: { title: 'Head of Department Login', field: 'Email or Employee ID', placeholder: 'hod@collegeerp.com', icon: '🏛️', badge: 'HOD Portal' },
+  parent: { title: 'Parent Login', field: 'Email or Parent ID', placeholder: 'parent@collegeerp.com', icon: '👨‍👩‍👧', badge: 'Parent Portal' },
+  accountant: { title: 'Accountant Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com', icon: '💰', badge: 'Accountant Portal' },
+  librarian: { title: 'Librarian Login', field: 'Email or Employee ID', placeholder: 'librarian@collegeerp.com', icon: '📚', badge: 'Librarian Portal' },
+  placement: { title: 'Placement Login', field: 'Email or Employee ID', placeholder: 'placement@collegeerp.com', icon: '🏢', badge: 'Placement Portal' },
+  principal: { title: 'Principal Login', field: 'Email or Employee ID', placeholder: 'principal@collegeerp.com', icon: '👔', badge: 'Principal Portal' },
+  office: { title: 'Office Staff Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com', icon: '💼', badge: 'Office Portal' },
 };
 
-export const PortalLogin: React.FC = () => {
-  const { role } = useParams<{ role: string }>();
+export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
+  const { role: paramRole } = useParams<{ role: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const detectedDevice = useDeviceType();
@@ -34,8 +39,47 @@ export const PortalLogin: React.FC = () => {
   const isMobile = deviceOverride === 'auto' ? detectedDevice.isMobile : deviceOverride === 'mobile';
   const isDesktop = !isMobile;
   
-  const effectiveRole = ((import.meta as any).env?.VITE_PORTAL_NAME || role || 'admin').toLowerCase();
-  const config = roleConfig[effectiveRole] || roleConfig.admin;
+  // Extract role from URL pathname (e.g. /student/login -> 'student')
+  const getRoleFromPath = (pathname: string): string => {
+    const validRoles = ['admin', 'student', 'faculty', 'hod', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+    const segments = pathname.toLowerCase().split('/').filter(Boolean);
+    for (const segment of segments) {
+      if (validRoles.includes(segment)) {
+        return segment;
+      }
+    }
+    return '';
+  };
+
+  const getSubdomainRole = (): string => {
+    if (typeof window === 'undefined') return '';
+    const host = window.location.hostname.toLowerCase();
+    const parts = host.split('.');
+    if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
+      const sub = parts[0];
+      const validRoles = ['admin', 'student', 'faculty', 'hod', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+      if (validRoles.includes(sub)) {
+        return sub;
+      }
+    }
+    return '';
+  };
+
+  const pathRole = getRoleFromPath(location.pathname);
+  const subdomainRole = getSubdomainRole();
+  const envRole = ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
+
+  // Priority order: 1. explicit prop -> 2. Route param -> 3. Pathname segments -> 4. Subdomain -> 5. Env var -> 6. Default
+  const effectiveRole = (
+    propRole ||
+    paramRole ||
+    pathRole ||
+    subdomainRole ||
+    envRole ||
+    'student'
+  ).toLowerCase();
+
+  const config = roleConfig[effectiveRole] || roleConfig.student;
   
   // Login Mode: On Desktop -> 'authenticator' | 'password'. On Mobile -> 'face' | 'password'
   const [loginMethod, setLoginMethod] = useState<'authenticator' | 'face' | 'password'>(
@@ -141,7 +185,7 @@ export const PortalLogin: React.FC = () => {
   };
 
   const handleNavigateDashboard = (userRole: string) => {
-    const rawRole = (userRole || role || 'admin').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const rawRole = (userRole || effectiveRole || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
     const roleMap: Record<string, string> = {
       admin: 'admin',
       student: 'student',
@@ -155,7 +199,7 @@ export const PortalLogin: React.FC = () => {
       principal: 'admin',
       office: 'admin'
     };
-    const dest = roleMap[rawRole] || 'admin';
+    const dest = roleMap[rawRole] || 'student';
     navigate(`/${dest}/dashboard`);
   };
 
@@ -290,17 +334,17 @@ export const PortalLogin: React.FC = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 p-12 flex-col justify-between relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-3 text-white mb-10">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/20">
-              <GraduationCap size={26} className="text-white" />
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/20 text-2xl">
+              {config.icon}
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight block">EduERP</span>
-              <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold">Institutional Portal</span>
+              <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold">{config.badge}</span>
             </div>
           </div>
 
           <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
-            Welcome to the <br/> {config.title.replace(' Login', '')}
+            Welcome to the <br/> {config.title.replace(' Login', '')} Portal
           </h1>
 
           <p className="text-blue-100/90 text-base max-w-md leading-relaxed mb-8">
@@ -408,10 +452,11 @@ export const PortalLogin: React.FC = () => {
         <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
           
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-2xl font-bold">
-                {isRegisterMode ? `Create ${config.title.replace(' Login', '')} Account` : config.title}
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span>{config.icon}</span>
+                <span>{isRegisterMode ? `Create ${config.title.replace(' Login', '')} Account` : config.title}</span>
               </h2>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
@@ -421,6 +466,33 @@ export const PortalLogin: React.FC = () => {
                 ? 'Laptop / PC detected: Authenticator Code or Password login required.'
                 : 'Mobile device detected: 1-Click Face Biometrics or Password login available.'}
             </p>
+          </div>
+
+          {/* Quick Portal Switcher Selector */}
+          <div className="mb-5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 shrink-0">
+              <span>Portal:</span>
+            </span>
+            <select
+              value={effectiveRole}
+              onChange={(e) => {
+                setError('');
+                setWarningMessage('');
+                navigate(`/${e.target.value}/login`);
+              }}
+              className="w-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="student">🎓 Student Portal</option>
+              <option value="faculty">👨‍🏫 Faculty Portal</option>
+              <option value="admin">🛡️ Administrator Portal</option>
+              <option value="hod">🏛️ Head of Dept (HOD) Portal</option>
+              <option value="parent">👨‍👩‍👧 Parent Portal</option>
+              <option value="placement">🏢 Placement Portal</option>
+              <option value="librarian">📚 Librarian Portal</option>
+              <option value="accountant">💰 Accountant Portal</option>
+              <option value="principal">👔 Principal Portal</option>
+              <option value="office">💼 Office Staff Portal</option>
+            </select>
           </div>
 
           {/* Account Locked Banner */}
@@ -836,7 +908,7 @@ export const PortalLogin: React.FC = () => {
                       />
                       <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
                     </label>
-                    <Link to={`/forgot-password?role=${role}`} className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    <Link to={`/forgot-password?role=${effectiveRole}`} className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                       Forgot Password?
                     </Link>
                   </div>
