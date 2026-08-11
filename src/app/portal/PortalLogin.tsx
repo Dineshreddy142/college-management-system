@@ -802,13 +802,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-2">
-                    <Link
-                      to={`/update-email?role=${effectiveRole}`}
-                      className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"
-                    >
-                      <span>Update Email?</span>
-                    </Link>
+                  <div className="flex items-center justify-end text-xs pt-2">
                     <button
                       type="button"
                       onClick={() => setLoginMethod('password')}
@@ -849,7 +843,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center gap-3 text-xs">
+                  <div className="flex items-center justify-center text-xs">
                     <button
                       type="button"
                       onClick={() => setLoginMethod('password')}
@@ -857,13 +851,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                     >
                       Sign in with password
                     </button>
-                    <span className="text-slate-300 dark:text-slate-600">·</span>
-                    <Link
-                      to={`/update-email?role=${effectiveRole}`}
-                      className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                      Update Email
-                    </Link>
                   </div>
                 </div>
               )}
@@ -916,22 +903,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                       />
                       <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
                     </label>
-                    <div className="flex items-center space-x-2">
-                      <Link 
-                        to={`/update-email?role=${effectiveRole}`} 
-                        className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-                        title="Update or change your registered account email address"
-                      >
-                        Update Email?
-                      </Link>
-                      <span className="text-slate-300 dark:text-slate-600">·</span>
-                      <Link 
-                        to={`/forgot-password?role=${effectiveRole}`} 
-                        className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        Forgot Password?
-                      </Link>
-                    </div>
+                    <Link 
+                      to={`/forgot-password?role=${effectiveRole}`} 
+                      className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Forgot Password?
+                    </Link>
                   </div>
 
                   <div className="pt-2">
