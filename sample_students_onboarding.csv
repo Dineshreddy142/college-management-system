@@ -1,0 +1,13 @@
+Roll Number,Full Name,Email,Default Password,Department,Semester,Section,Phone,Address
+24CS001,Aarav Sharma,aarav.sharma@collegeerp.com,Student@123,Computer Science,4,A,+91 9876543201,"124 Green Park, Hyderabad"
+24CS002,Ananya Patel,ananya.patel@collegeerp.com,Student@123,Computer Science,4,A,+91 9876543202,"45 Lakeview Enclave, Bangalore"
+24CS003,Siddharth Rao,siddharth.rao@collegeerp.com,Student@123,Computer Science,4,B,+91 9876543203,"78 Hilltop Residency, Pune"
+24CS004,Sneha Reddy,sneha.reddy@collegeerp.com,Student@123,Computer Science,4,B,+91 9876543204,"12 Cyber City, Hyderabad"
+24EC001,Rohan Verma,rohan.verma@collegeerp.com,Student@123,Electronics & Comm,4,A,+91 9876543205,"34 Metro Towers, Chennai"
+24EC002,Pooja Hegde,pooja.hegde@collegeerp.com,Student@123,Electronics & Comm,4,A,+91 9876543206,"89 Palm Meadows, Bangalore"
+24ME001,Kavya Nair,kavya.nair@collegeerp.com,Student@123,Mechanical Eng,4,A,+91 9876543207,"15 Riverside Road, Kochi"
+24ME002,Vikram Singh,vikram.singh@collegeerp.com,Student@123,Mechanical Eng,4,A,+91 9876543208,"92 Royal Crest, Delhi"
+24IT001,Deepak Joshi,deepak.joshi@collegeerp.com,Student@123,Information Tech,2,A,+91 9876543209,"67 Silicon Valley, Noida"
+24IT002,Meera Iyer,meera.iyer@collegeerp.com,Student@123,Information Tech,2,A,+91 9876543210,"23 Temple View, Chennai"
+24AI001,Aditya Kulkarni,aditya.kulkarni@collegeerp.com,Student@123,Artificial Intelligence,2,A,+91 9876543211,"51 IT Park Road, Mumbai"
+24AI002,Ishita Sen,ishita.sen@collegeerp.com,Student@123,Artificial Intelligence,2,A,+91 9876543212,"10 Salt Lake City, Kolkata"

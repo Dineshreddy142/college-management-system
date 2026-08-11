@@ -92,6 +92,7 @@ export async function importStudents(req, res) {
 
   const conn = await pool.getConnection();
   try {
+    await conn.query(`USE ${process.env.DB_NAME || 'college_management_system'}`);
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
@@ -212,6 +213,7 @@ export async function importAttendance(req, res) {
 
   const conn = await pool.getConnection();
   try {
+    await conn.query(`USE ${process.env.DB_NAME || 'college_management_system'}`);
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
@@ -382,6 +384,7 @@ export async function importMarks(req, res) {
 
   const conn = await pool.getConnection();
   try {
+    await conn.query(`USE ${process.env.DB_NAME || 'college_management_system'}`);
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
@@ -525,6 +528,7 @@ export async function importFaculty(req, res) {
 
   const conn = await pool.getConnection();
   try {
+    await conn.query(`USE ${process.env.DB_NAME || 'college_management_system'}`);
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
