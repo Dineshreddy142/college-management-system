@@ -161,9 +161,9 @@ export async function initializeDatabase() {
       if (existingAdmin.length === 0) {
         const hashedPassword = await bcrypt.hash('Dinesh@123', 10);
         await pool.query(
-          `INSERT INTO users (username, full_name, email, password, role_id, status)
-           VALUES (?, ?, ?, ?, ?, 'active')`,
-          ['dineshreddy', 'Dinesh Reddy', adminEmail, hashedPassword, adminRoleId]
+          `INSERT INTO users (username, email, password, role_id, status)
+           VALUES (?, ?, ?, ?, 'active')`,
+          ['dineshreddy', adminEmail, hashedPassword, adminRoleId]
         );
         console.log(`[DATABASE INIT] Permanent Admin account initialized: ${adminEmail}`);
       } else {

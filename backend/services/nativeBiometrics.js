@@ -234,6 +234,14 @@ export async function identifyFaceBiometrics(imageBuffer, clientIp = '127.0.0.1'
     console.error('[BIOMETRIC AUDIT LOG ERROR]:', err.message);
   }
 
+  return {
+    matched,
+    user_id: matched ? bestMatch : null,
+    confidence: highestSimilarity,
+    threshold
+  };
+}
+
 // Configurable match threshold from environment
 export const BIOMETRIC_MATCH_THRESHOLD = parseFloat(process.env.BIOMETRIC_MATCH_THRESHOLD || '0.38');
 
