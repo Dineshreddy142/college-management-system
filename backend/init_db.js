@@ -107,6 +107,9 @@ export async function initializeDatabase() {
       if (!stColNames.includes('last_name')) {
         await pool.query('ALTER TABLE students ADD COLUMN last_name VARCHAR(50) NULL AFTER first_name');
       }
+      if (stColNames.includes('name')) {
+        await pool.query('ALTER TABLE students MODIFY COLUMN name VARCHAR(100) NULL');
+      }
       if (!stColNames.includes('section_id')) {
         await pool.query('ALTER TABLE students ADD COLUMN section_id INT NULL AFTER department_id');
       }

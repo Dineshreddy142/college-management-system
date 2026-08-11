@@ -233,6 +233,7 @@ export async function importStudents(req, res) {
           await conn.query(`UPDATE students SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
         }
       } else {
+        const resolvedName = (fullName || `${firstName} ${lastName}`.trim() || rollNumber || 'Student').trim();
         const insertCols = ['user_id'];
         const insertPlaceholders = ['?'];
         const insertParams = [userId];
@@ -241,16 +242,30 @@ export async function importStudents(req, res) {
         if (stCols.hasRollNumber) { insertCols.push('roll_number'); insertPlaceholders.push('?'); insertParams.push(rollNumber); }
         if (stCols.hasFirstName) { insertCols.push('first_name'); insertPlaceholders.push('?'); insertParams.push(firstName); }
         if (stCols.hasLastName) { insertCols.push('last_name'); insertPlaceholders.push('?'); insertParams.push(lastName); }
-        if (stCols.hasName) { insertCols.push('name'); insertPlaceholders.push('?'); insertParams.push(fullName || rollNumber); }
+        if (stCols.hasName) { insertCols.push('name'); insertPlaceholders.push('?'); insertParams.push(resolvedName); }
         if (stCols.hasEmail) { insertCols.push('email'); insertPlaceholders.push('?'); insertParams.push(email); }
         if (stCols.hasDepartmentId) { insertCols.push('department_id'); insertPlaceholders.push('?'); insertParams.push(deptId); }
         if (stCols.hasSectionId) { insertCols.push('section_id'); insertPlaceholders.push('?'); insertParams.push(sectionId); }
         if (stCols.hasAcademicYearId) { insertCols.push('academic_year_id'); insertPlaceholders.push('?'); insertParams.push(ayId); }
 
-        await conn.query(
-          `INSERT INTO students (${insertCols.join(', ')}) VALUES (${insertPlaceholders.join(', ')})`,
-          insertParams
-        );
+        try {
+          await conn.query(
+            `INSERT INTO students (${insertCols.join(', ')}) VALUES (${insertPlaceholders.join(', ')})`,
+            insertParams
+          );
+        } catch (insertErr) {
+          if (insertErr.message.includes('name') && !insertCols.includes('name')) {
+            insertCols.push('name');
+            insertPlaceholders.push('?');
+            insertParams.push(resolvedName);
+            await conn.query(
+              `INSERT INTO students (${insertCols.join(', ')}) VALUES (${insertPlaceholders.join(', ')})`,
+              insertParams
+            );
+          } else {
+            throw insertErr;
+          }
+        }
       }
     }
 
