@@ -21,6 +21,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.10.1",
     "nodemailer": "^9.0.5",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {

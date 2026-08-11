@@ -12,6 +12,7 @@ import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
 import { IndoorMapModule } from "./admin/indoor-map/IndoorMapModule";
+import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import client from "../api/client";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, DollarSign,
@@ -23,7 +24,8 @@ import {
   Shield, Globe, MessageSquare, LogOut, User,
   Home, Send, Building, AlertTriangle, Info,
   Zap, Lock, Key, Smartphone, AlertCircle,
-  BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass
+  BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
+  FileSpreadsheet, Sparkles
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -228,6 +230,7 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 
 const SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
+  { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "profile", label: "Security & Face ID", icon: UserCheck, badge: "Biometrics" },
   { id: "academic", label: "Academic & Subjects", icon: BookOpen, badge: "New" },
   { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
@@ -585,7 +588,7 @@ function DashboardHome() {
   );
 }
 
-function StudentManagement() {
+function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const [studentsData, setStudentsData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [dept, setDept] = useState("All");
@@ -600,8 +603,8 @@ function StudentManagement() {
     id: s.admission_number || `STU${s.id}`,
     name: `${s.first_name} ${s.last_name}`,
     email: s.email,
-    dept: "Computer Science", // Hardcoded fallback for UI
-    semester: 1,
+    dept: s.department_name || "Computer Science",
+    semester: s.semester || 1,
     cgpa: 8.5,
     status: s.status || "Active"
   }));
@@ -617,8 +620,8 @@ function StudentManagement() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value="1,280" change="+48 this term" changeType="up" icon={<GraduationCap size={19} />} color="blue" />
-        <StatCard title="Active" value="1,247" subtitle="97.4% active rate" icon={<CheckCircle size={19} />} color="green" />
+        <StatCard title="Total Students" value={studentsData.length > 0 ? studentsData.length.toString() : "1,280"} change="+48 this term" changeType="up" icon={<GraduationCap size={19} />} color="blue" />
+        <StatCard title="Active" value={studentsData.length > 0 ? studentsData.length.toString() : "1,247"} subtitle="97.4% active rate" icon={<CheckCircle size={19} />} color="green" />
         <StatCard title="New Admissions" value="320" subtitle="Current academic year" icon={<UserPlus size={19} />} color="indigo" />
         <StatCard title="Avg CGPA" value="8.42" change="+0.3 from last year" changeType="up" icon={<Award size={19} />} color="amber" />
       </div>
@@ -631,6 +634,16 @@ function StudentManagement() {
               className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
               {depts.map(d => <option key={d}>{d}</option>)}
             </select>
+            {onGoBulk && (
+              <button
+                type="button"
+                onClick={onGoBulk}
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
+              >
+                <FileSpreadsheet size={14} />
+                <span>Bulk Import .XLSX</span>
+              </button>
+            )}
             <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Student</Btn>
           </div>
         </div>
@@ -758,7 +771,7 @@ function AdminMentorManagement() {
   );
 }
 
-function FacultyManagement() {
+function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -766,6 +779,18 @@ function FacultyManagement() {
         <StatCard title="Departments" value="12" subtitle="Across all schools" icon={<Building size={19} />} color="indigo" />
         <StatCard title="On Leave" value="8" subtitle="5.6% of total" icon={<Clock size={19} />} color="amber" />
         <StatCard title="Avg Experience" value="11.4 yrs" subtitle="Per faculty member" icon={<Award size={19} />} color="green" />
+      </div>
+      <div className="flex justify-end gap-2">
+        {onGoBulk && (
+          <button
+            type="button"
+            onClick={onGoBulk}
+            className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
+          >
+            <FileSpreadsheet size={14} />
+            <span>Bulk Faculty Onboarding (.XLSX)</span>
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {FACULTY.map(f => (
@@ -803,7 +828,7 @@ function FacultyManagement() {
   );
 }
 
-function AttendanceModule() {
+function AttendanceModule({ onGoBulk }: { onGoBulk?: () => void }) {
   const [tab, setTab] = useState("daily");
   const tabs = ["daily", "monthly", "analytics", "defaulters"];
 
@@ -816,14 +841,27 @@ function AttendanceModule() {
         <StatCard title="Avg Monthly" value="88.4%" subtitle="AY 2023-24" icon={<Activity size={19} />} color="indigo" />
       </div>
 
-      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize",
-              tab === t ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")}>
-            {t}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+          {tabs.map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize",
+                tab === t ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {onGoBulk && (
+          <button
+            type="button"
+            onClick={onGoBulk}
+            className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
+          >
+            <FileSpreadsheet size={14} />
+            <span>Upload Attendance Matrix (.XLSX)</span>
           </button>
-        ))}
+        )}
       </div>
 
       {tab === "analytics" && (
@@ -923,7 +961,7 @@ function AttendanceModule() {
   );
 }
 
-function ExaminationModule() {
+function ExaminationModule({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -933,9 +971,21 @@ function ExaminationModule() {
         <StatCard title="Pending Results" value="2" subtitle="To be processed" icon={<Clock size={19} />} color="amber" />
       </div>
       <Card>
-        <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Exam Schedule — Semester 6 End Term</h3>
-          <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Exam</Btn>
+          <div className="flex items-center gap-2">
+            {onGoBulk && (
+              <button
+                type="button"
+                onClick={onGoBulk}
+                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
+              >
+                <FileSpreadsheet size={14} />
+                <span>Upload Marks & Auto-Grade (.XLSX)</span>
+              </button>
+            )}
+            <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Exam</Btn>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -1413,12 +1463,13 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   const render = () => {
     switch (mod) {
       case "dashboard": return <DashboardHome />;
+      case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;
-      case "students": return <StudentManagement />;
-      case "faculty": return <FacultyManagement />;
+      case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;
+      case "faculty": return <FacultyManagement onGoBulk={() => setMod("bulk-data")} />;
       case "mentors": return <AdminMentorManagement />;
-      case "attendance": return <AttendanceModule />;
-      case "exams": return <ExaminationModule />;
+      case "attendance": return <AttendanceModule onGoBulk={() => setMod("bulk-data")} />;
+      case "exams": return <ExaminationModule onGoBulk={() => setMod("bulk-data")} />;
       case "timetable": return <TimetableManager />;
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;

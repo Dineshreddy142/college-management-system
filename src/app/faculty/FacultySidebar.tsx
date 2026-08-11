@@ -1,12 +1,14 @@
 import { 
   LayoutDashboard, BookOpen, UserCheck, FileText, Award, 
   BarChart3, Users, CalendarDays, Clock, Bell, MessageSquare, 
-  Phone, Settings, Zap, GraduationCap, ChevronLeft, Shield, Map 
+  Phone, Settings, Zap, GraduationCap, ChevronLeft, Shield, Map,
+  FileSpreadsheet
 } from "lucide-react";
 import { cn } from "../App";
 
 export const FACULTY_SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
+  { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "Sync" },
   { id: "mentor", label: "Mentor Portal", icon: Shield, badge: "New" },
   { id: "classes", label: "Classes", icon: BookOpen, badge: null },
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "Pending" },

@@ -23,6 +23,7 @@ import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import indoorMapRoutes from './routes/indoorMapRoutes.js';
+import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import { initializeDatabase } from './init_db.js';
 
 dotenv.config();
@@ -97,9 +98,10 @@ app.use('/api/notifications', authenticateToken, notificationsRouter);
 // --- SEARCH ROUTES ---
 app.use('/api/search', authenticateToken, searchRouter);
 
-// --- PROFILE & INDOOR MAP ROUTES ---
+// --- PROFILE, INDOOR MAP & BULK UPLOAD ROUTES ---
 app.use('/api/profile', authenticateToken, profileRouter);
 app.use('/api/indoor-map', indoorMapRoutes);
+app.use('/api/bulk', bulkUploadRoutes);
 
 // --- SETTINGS ROUTES ---
 app.get('/api/settings', async (req, res) => {
