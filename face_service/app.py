@@ -73,9 +73,15 @@ def reload_biometric_cache():
     try:
         raw_rows = get_all_face_embeddings()
         recs = []
-        for user_id, enc_bytes, iv_bytes in raw_rows:
+        for row in raw_rows:
+            user_id = row[0]
+            enc_bytes = row[1]
+            iv_bytes = row[2]
+            auth_tag = row[3] if len(row) > 3 else None
+            key_version = row[4] if len(row) > 4 else "v1"
+            model_version = row[5] if len(row) > 5 else "sface_yunet_v1"
             try:
-                decrypted_emb = decrypt_embedding(enc_bytes, iv_bytes)
+                decrypted_emb = decrypt_embedding(enc_bytes, iv_bytes, auth_tag, key_version, model_version)
                 recs.append((user_id, decrypted_emb))
             except Exception as e:
                 app.logger.error(f"[CACHE] Error decrypting user {user_id}: {str(e)}")
@@ -219,10 +225,21 @@ def register_face():
             "message": "Duplicate Face Detected: This physical face is already registered to another user account."
         }), 400
 
-    # Encrypt 3D composite embedding using AES-256 and store in MySQL
+    # Encrypt 3D composite embedding using authenticated AES-256-GCM and store in MySQL
     try:
-        enc_bytes, iv_bytes = encrypt_embedding(live_embedding)
-        save_face_embedding(user_id, enc_bytes, iv_bytes)
+        enc_bytes, iv_bytes, auth_tag, key_ver, model_ver = encrypt_embedding(
+            live_embedding,
+            key_version="v1",
+            model_version=MODEL_VERSION
+        )
+        save_face_embedding(
+            user_id,
+            enc_bytes,
+            iv_bytes,
+            auth_tag,
+            key_ver,
+            model_ver
+        )
         reload_biometric_cache()  # Hot-reload in-memory cache instantly
     except Exception as e:
         app.logger.error(f"[FACE_SERVICE] Error saving face embedding: {str(e)}")
@@ -233,12 +250,14 @@ def register_face():
     app.logger.info(f"[FACE_SERVICE] 3D Multi-Angle Face registered successfully for user {user_id} ({len(extracted_embeddings)} poses)")
     return jsonify({
         "success": True,
-        "message": f"3D Multi-Angle Face registered successfully ({len(extracted_embeddings)} angles fused).",
+        "message": f"3D Multi-Angle Face registered successfully with authenticated AES-256-GCM ({len(extracted_embeddings)} angles fused).",
         "data": {
             "user_id": user_id,
             "registered": True,
             "poses_captured": len(extracted_embeddings),
             "model_version": MODEL_VERSION,
+            "key_version": key_ver,
+            "encryption_algorithm": "AES-256-GCM",
             "embedding_dim": EMBEDDING_DIM
         }
     }), 200

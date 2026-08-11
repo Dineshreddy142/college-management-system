@@ -13,25 +13,49 @@ def get_db_connection():
         port=int(os.getenv("DB_PORT", "3306"))
     )
 
-def save_face_embedding(user_id, encrypted_bytes, iv_bytes):
+def save_face_embedding(
+    user_id: int,
+    encrypted_bytes: bytes,
+    iv_bytes: bytes,
+    auth_tag_bytes: bytes = None,
+    key_version: str = "v1",
+    model_version: str = "sface_yunet_v1"
+):
     """
-    Inserts or updates the encrypted face embedding for user_id in MySQL.
+    Inserts or updates the authenticated AES-256-GCM encrypted face embedding in MySQL.
     Also updates users.face_registered = 1.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         sql = """
-        INSERT INTO face_embeddings (user_id, encrypted_embedding, encryption_iv)
-        VALUES (%s, %s, %s)
+        INSERT INTO face_embeddings (
+            user_id,
+            encrypted_embedding,
+            encryption_iv,
+            auth_tag,
+            key_version,
+            model_version
+        )
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE 
             encrypted_embedding = VALUES(encrypted_embedding),
             encryption_iv = VALUES(encryption_iv),
+            auth_tag = VALUES(auth_tag),
+            key_version = VALUES(key_version),
+            model_version = VALUES(model_version),
             updated_at = CURRENT_TIMESTAMP
         """
-        cursor.execute(sql, (user_id, encrypted_bytes, iv_bytes))
+        cursor.execute(sql, (
+            user_id,
+            encrypted_bytes,
+            iv_bytes,
+            auth_tag_bytes,
+            key_version,
+            model_version
+        ))
 
-        # Set face_registered flag in users table if column exists
+        # Set face_registered flag in users table
         try:
             cursor.execute("UPDATE users SET face_registered = 1 WHERE id = %s", (user_id,))
         except Exception as e:
@@ -44,13 +68,22 @@ def save_face_embedding(user_id, encrypted_bytes, iv_bytes):
 
 def get_all_face_embeddings():
     """
-    Retrieves all stored face embeddings from MySQL.
-    Returns list of tuples: [(user_id, encrypted_bytes, iv_bytes), ...]
+    Retrieves all stored face embeddings from MySQL with authenticated metadata.
+    Returns list of tuples: [(user_id, encrypted_bytes, iv_bytes, auth_tag, key_version, model_version), ...]
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        sql = "SELECT user_id, encrypted_embedding, encryption_iv FROM face_embeddings"
+        sql = """
+        SELECT 
+            user_id,
+            encrypted_embedding,
+            encryption_iv,
+            auth_tag,
+            key_version,
+            model_version
+        FROM face_embeddings
+        """
         cursor.execute(sql)
         return cursor.fetchall()
     finally:
