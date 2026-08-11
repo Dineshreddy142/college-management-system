@@ -11,13 +11,18 @@ try:
     from face_service.crypto import encrypt_embedding, decrypt_embedding
     from face_service.face_extraction import (
         extract_embedding_from_image,
+        get_face_models,
         MODEL_VERSION,
         EMBEDDING_DIM,
         NoFaceDetectedError,
         MultipleFacesDetectedError,
         LowResolutionFaceError
     )
-    from face_service.liveness import check_liveness
+    from face_service.liveness import (
+        check_liveness,
+        create_liveness_challenge,
+        verify_liveness_challenge
+    )
     from face_service.biometrics_engine import (
         cosine_similarity,
         check_duplicate_face,
@@ -33,13 +38,18 @@ except ImportError:
     from crypto import encrypt_embedding, decrypt_embedding
     from face_extraction import (
         extract_embedding_from_image,
+        get_face_models,
         MODEL_VERSION,
         EMBEDDING_DIM,
         NoFaceDetectedError,
         MultipleFacesDetectedError,
         LowResolutionFaceError
     )
-    from liveness import check_liveness
+    from liveness import (
+        check_liveness,
+        create_liveness_challenge,
+        verify_liveness_challenge
+    )
     from biometrics_engine import (
         cosine_similarity,
         check_duplicate_face,
@@ -86,6 +96,58 @@ def health_check():
         "embedding_dim": EMBEDDING_DIM,
         "cached_vectors": len(IN_MEMORY_EMBEDDINGS),
         "threshold": MATCH_THRESHOLD
+    }), 200
+
+@app.route('/liveness/challenge', methods=['POST', 'GET'])
+def get_liveness_challenge():
+    """
+    Generates a server-created, single-use, time-limited liveness challenge.
+    """
+    challenge_data = create_liveness_challenge()
+    return jsonify({
+        "success": True,
+        "message": "Active liveness challenge generated successfully.",
+        "data": challenge_data
+    }), 200
+
+@app.route('/liveness/verify', methods=['POST'])
+def verify_challenge_endpoint():
+    """
+    Verifies user's active challenge-response frames against the server session.
+    """
+    session_id = request.form.get('session_id') or request.json.get('session_id') if request.is_json else None
+    
+    if not session_id:
+        return jsonify({"success": False, "message": "session_id is required for liveness verification."}), 400
+
+    uploaded_files = request.files.getlist('frames')
+    if not uploaded_files and 'frame' in request.files:
+        uploaded_files = request.files.getlist('frame')
+    if not uploaded_files and 'images' in request.files:
+        uploaded_files = request.files.getlist('images')
+    if not uploaded_files and 'image' in request.files:
+        uploaded_files = request.files.getlist('image')
+
+    frame_bytes_list = [f.read() for f in uploaded_files if f]
+
+    try:
+        detector, _ = get_face_models()
+        passed, msg, meta = verify_liveness_challenge(session_id, frame_bytes_list, detector)
+    except Exception as e:
+        app.logger.error(f"[LIVENESS_VERIFY_ERROR]: {str(e)}")
+        return jsonify({"success": False, "message": f"Verification error: {str(e)}"}), 500
+
+    if not passed:
+        return jsonify({
+            "success": False,
+            "message": msg,
+            "data": meta
+        }), 400
+
+    return jsonify({
+        "success": True,
+        "message": msg,
+        "data": meta
     }), 200
 
 @app.route('/register', methods=['POST'])
