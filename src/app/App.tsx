@@ -322,9 +322,9 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav }: {
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
             title="Open Security & Face ID"
           >
-            <Avatar name={user?.username || "Admin User"} size="sm" />
+            <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate capitalize">{user?.username || "Admin User"}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
               <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">Security & Face ID</p>
             </div>
             <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
@@ -1306,30 +1306,36 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
       </div>
 
       {tab === "profile" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="p-6 text-center">
-            <div className="flex justify-center mb-3"><Avatar name={user?.username || "User"} size="xl" /></div>
-            <h3 className="text-base font-semibold text-slate-900 dark:text-white capitalize">{user?.username || "User"}</h3>
-            <p className="text-sm text-slate-400 capitalize">{user?.role || "System Administrator"}</p>
-            <p className="text-xs text-slate-400 mt-1">{user?.email || "user@techuniv.edu.in"}</p>
-            <Btn variant="outline" size="sm" className="mt-4">Change Photo</Btn>
-          </Card>
-          <Card className="p-6 lg:col-span-2">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Personal Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <SInput label="Username" placeholder="User" defaultValue={user?.username || ""} />
-              <SInput label="Role" placeholder="Role" defaultValue={user?.role || ""} disabled />
-              <SInput label="Email" type="email" defaultValue={user?.email || ""} />
-              <SInput label="Phone" type="tel" placeholder="+91 98765 00000" />
-              <SInput label="Department" defaultValue={user?.role === 'HOD' ? 'Computer Science' : 'Administration'} />
-              <SInput label="Employee ID" defaultValue={`EMP-${user?.id || '001'}`} />
+        (() => {
+          const settingsDisplayName = user?.name || user?.full_name || user?.username || "User";
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="p-6 text-center">
+                <div className="flex justify-center mb-3"><Avatar name={settingsDisplayName} size="xl" /></div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white capitalize">{settingsDisplayName}</h3>
+                <p className="text-sm text-slate-400 capitalize">{user?.role || "System Administrator"}</p>
+                <p className="text-xs text-slate-400 mt-1">{user?.email || "user@techuniv.edu.in"}</p>
+                <Btn variant="outline" size="sm" className="mt-4">Change Photo</Btn>
+              </Card>
+              <Card className="p-6 lg:col-span-2">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Personal Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SInput label="Full Name" placeholder="Full Name" defaultValue={settingsDisplayName} />
+                  <SInput label="Username" placeholder="User" defaultValue={user?.username || ""} disabled />
+                  <SInput label="Role" placeholder="Role" defaultValue={user?.role || ""} disabled />
+                  <SInput label="Email" type="email" defaultValue={user?.email || ""} />
+                  <SInput label="Phone" type="tel" placeholder="+91 98765 00000" />
+                  <SInput label="Department" defaultValue={user?.role === 'HOD' ? 'Computer Science' : 'Administration'} />
+                  <SInput label="Employee ID" defaultValue={`EMP-${user?.id || '001'}`} />
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <Btn variant="primary">Save Changes</Btn>
+                  <Btn variant="outline">Cancel</Btn>
+                </div>
+              </Card>
             </div>
-            <div className="flex gap-3 mt-5">
-              <Btn variant="primary">Save Changes</Btn>
-              <Btn variant="outline">Cancel</Btn>
-            </div>
-          </Card>
-        </div>
+          );
+        })()
       )}
 
       {tab === "security" && (

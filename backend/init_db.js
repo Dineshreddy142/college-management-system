@@ -20,6 +20,7 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
+        full_name VARCHAR(150) NULL,
         password VARCHAR(255) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
         role_id INT,
@@ -30,6 +31,17 @@ export async function initializeDatabase() {
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
       )
     `);
+
+    // Ensure full_name column exists for pre-existing tables
+    try {
+      const [uCols] = await pool.query('DESCRIBE users');
+      const uColNames = uCols.map(c => c.Field);
+      if (!uColNames.includes('full_name')) {
+        await pool.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER username');
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on users columns:', colErr.message);
+    }
 
     // 3. Activity logs table
     await pool.query(`
@@ -178,14 +190,14 @@ export async function initializeDatabase() {
       if (existingAdmin.length === 0) {
         const hashedPassword = await bcrypt.hash('Dinesh@123', 10);
         await pool.query(
-          `INSERT INTO users (username, email, password, role_id, status)
-           VALUES (?, ?, ?, ?, 'active')`,
-          ['dineshreddy', adminEmail, hashedPassword, adminRoleId]
+          `INSERT INTO users (username, full_name, email, password, role_id, status)
+           VALUES (?, ?, ?, ?, ?, 'active')`,
+          ['dineshreddy', 'Dinesh Reddy', adminEmail, hashedPassword, adminRoleId]
         );
         console.log(`[DATABASE INIT] Permanent Admin account initialized: ${adminEmail}`);
       } else {
         await pool.query(
-          `UPDATE users SET role_id = ?, status = 'active' WHERE id = ?`,
+          `UPDATE users SET role_id = ?, full_name = COALESCE(NULLIF(full_name, ''), 'Dinesh Reddy'), status = 'active' WHERE id = ?`,
           [adminRoleId, existingAdmin[0].id]
         );
       }

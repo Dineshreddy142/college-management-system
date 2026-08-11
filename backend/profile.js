@@ -6,56 +6,131 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
     try {
-        const [users] = await pool.execute(
-            `SELECT u.id, u.username as name, u.email, r.name as role, u.created_at 
-             FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE u.id = ?`,
-            [req.user.id]
-        );
-        if (users.length === 0) return res.status(404).json({ error: 'User not found' });
-        
-        let profile = { ...users[0] };
-        
+        // 1. Fetch user base info
+        let userRow = null;
         try {
-            // Fetch role-specific details
-            if (profile.role && profile.role.toLowerCase() === 'student') {
+            const [users] = await pool.execute(
+                `SELECT u.id, u.username, u.full_name, u.email, r.name as role, u.created_at 
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ?`,
+                [req.user.id]
+            );
+            if (users.length > 0) userRow = users[0];
+        } catch (colErr) {
+            // Fallback if full_name column is temporarily missing
+            const [users] = await pool.execute(
+                `SELECT u.id, u.username, u.email, r.name as role, u.created_at 
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ?`,
+                [req.user.id]
+            );
+            if (users.length > 0) userRow = users[0];
+        }
+
+        if (!userRow) return res.status(404).json({ error: 'User not found' });
+        
+        let profile = { ...userRow };
+        let resolvedName = userRow.full_name || userRow.username || '';
+
+        // 2. Fetch role-specific details safely
+        const roleLower = (profile.role || '').toLowerCase();
+        try {
+            if (roleLower.includes('student')) {
                 const [students] = await pool.execute(
-                    'SELECT phone, address, roll_number, current_semester FROM students WHERE user_id = ?',
+                    'SELECT * FROM students WHERE user_id = ?',
                     [req.user.id]
                 );
-                if (students.length > 0) Object.assign(profile, students[0]);
-            } else if (profile.role && profile.role.toLowerCase() === 'faculty') {
-                const [faculties] = await pool.execute(
-                    'SELECT phone, employee_id, designation FROM faculty WHERE user_id = ?',
+                if (students.length > 0) {
+                    const s = students[0];
+                    const studentName = s.name || [s.first_name, s.last_name].filter(Boolean).join(' ');
+                    if (studentName && !userRow.full_name) resolvedName = studentName;
+                    
+                    profile.phone = s.phone || profile.phone || '';
+                    profile.address = s.address || profile.address || '';
+                    profile.roll_number = s.roll_number || s.admission_number || '';
+                    profile.admission_number = s.admission_number || s.roll_number || '';
+                    profile.current_semester = s.semester || s.current_semester || 1;
+                    profile.section = s.section || 'A';
+                    profile.cgpa = s.cgpa || null;
+                }
+            } else if (roleLower.includes('faculty') || roleLower.includes('teacher') || roleLower.includes('lecturer')) {
+                const [facultyRows] = await pool.execute(
+                    'SELECT * FROM faculty WHERE user_id = ?',
                     [req.user.id]
                 );
-                if (faculties.length > 0) {
-                    Object.assign(profile, faculties[0]);
+                if (facultyRows.length > 0) {
+                    const f = facultyRows[0];
+                    if (f.name && !userRow.full_name) resolvedName = f.name;
+                    profile.phone = f.phone || profile.phone || '';
+                    profile.employee_id = f.employee_id || '';
+                    profile.designation = f.designation || 'Lecturer';
+                    profile.department_id = f.department_id || null;
                 } else {
-                    const [altFaculties] = await pool.execute(
-                        'SELECT phone, employee_id, designation FROM faculties WHERE user_id = ?',
+                    const [facultiesRows] = await pool.execute(
+                        'SELECT * FROM faculties WHERE user_id = ?',
                         [req.user.id]
                     );
-                    if (altFaculties.length > 0) Object.assign(profile, altFaculties[0]);
+                    if (facultiesRows.length > 0) {
+                        const af = facultiesRows[0];
+                        const facName = [af.first_name, af.last_name].filter(Boolean).join(' ');
+                        if (facName && !userRow.full_name) resolvedName = facName;
+                        profile.employee_id = af.employee_id || `FAC${af.id}`;
+                        profile.department_id = af.department_id || null;
+                    }
+                }
+            } else if (roleLower.includes('parent')) {
+                const [parentRows] = await pool.execute(
+                    'SELECT * FROM parents WHERE user_id = ?',
+                    [req.user.id]
+                );
+                if (parentRows.length > 0) {
+                    const p = parentRows[0];
+                    const pName = [p.first_name, p.last_name].filter(Boolean).join(' ');
+                    if (pName && !userRow.full_name) resolvedName = pName;
+                    profile.phone = p.phone || profile.phone || '';
+                    profile.address = p.address || profile.address || '';
                 }
             }
         } catch (dbErr) {
-            console.warn('Role specific profile tables may not exist yet:', dbErr.message);
+            console.warn('Role specific profile lookup notice:', dbErr.message);
         }
-        
-        res.json(profile);
+
+        // Ensure name is always set and capitalized
+        if (!resolvedName) {
+            resolvedName = userRow.username ? (userRow.username.charAt(0).toUpperCase() + userRow.username.slice(1)) : 'User';
+        }
+
+        profile.name = resolvedName;
+        profile.full_name = resolvedName;
+
+        res.json({
+            success: true,
+            data: profile,
+            ...profile
+        });
     } catch (error) {
         console.error('Profile Error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error: ' + error.message });
     }
 });
 
 router.put('/', async (req, res) => {
     try {
-        const { phone, address, email } = req.body;
+        const { name, fullName, full_name, phone, address, email } = req.body;
+        const newName = (name || fullName || full_name || '').trim();
         
-        // Handle Email Update
+        // 1. Handle Name Update
+        if (newName) {
+            try {
+                await pool.execute('UPDATE users SET full_name = ? WHERE id = ?', [newName, req.user.id]);
+            } catch (err) {
+                console.warn('Could not update full_name in users table:', err.message);
+            }
+        }
+
+        // 2. Handle Email Update
         if (email && typeof email === 'string' && email.trim()) {
             const cleanEmail = email.trim().toLowerCase();
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -84,29 +159,38 @@ router.put('/', async (req, res) => {
             }
         }
         
-        // Handle Phone & Address Update
+        // 3. Handle Phone, Address & Name Update in role specific tables
         try {
             const userRole = (req.user.role || '').toLowerCase();
-            if (userRole === 'student') {
+            if (userRole.includes('student')) {
                 await pool.execute(
-                    `INSERT INTO students (user_id, phone, address) 
-                     VALUES (?, ?, ?) 
-                     ON DUPLICATE KEY UPDATE phone = VALUES(phone), address = VALUES(address)`,
-                    [req.user.id, phone || '', address || '']
+                    `INSERT INTO students (user_id, name, phone, address) 
+                     VALUES (?, ?, ?, ?) 
+                     ON DUPLICATE KEY UPDATE name = COALESCE(NULLIF(VALUES(name), ''), name), phone = VALUES(phone), address = VALUES(address)`,
+                    [req.user.id, newName || '', phone || '', address || '']
                 );
-            } else if (userRole === 'faculty') {
+            } else if (userRole.includes('faculty')) {
                 await pool.execute(
-                    `INSERT INTO faculty (user_id, phone, address) 
+                    `INSERT INTO faculty (user_id, name, phone) 
                      VALUES (?, ?, ?) 
-                     ON DUPLICATE KEY UPDATE phone = VALUES(phone), address = VALUES(address)`,
-                    [req.user.id, phone || '', address || '']
+                     ON DUPLICATE KEY UPDATE name = COALESCE(NULLIF(VALUES(name), ''), name), phone = VALUES(phone)`,
+                    [req.user.id, newName || '', phone || '']
+                );
+            } else if (userRole.includes('parent')) {
+                await pool.execute(
+                    `UPDATE parents SET phone = COALESCE(NULLIF(?, ''), phone) WHERE user_id = ?`,
+                    [phone || '', req.user.id]
                 );
             }
         } catch (dbErr) {
             console.warn('Could not update role specific table:', dbErr.message);
         }
         
-        res.json({ success: true, message: 'Profile updated successfully!' });
+        res.json({ 
+            success: true, 
+            message: 'Profile updated successfully!',
+            data: { name: newName, phone, address, email }
+        });
     } catch (error) {
         console.error('Profile Update Error:', error);
         res.status(500).json({ error: 'Internal Server Error: ' + error.message });

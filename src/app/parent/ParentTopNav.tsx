@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Sun, Moon, Bell, LogOut, Menu, User } from "lucide-react";
 import { Avatar, Badge, cn } from "../App";
 import client from "../../api/client";
+import { useAuth } from "../portal/AuthContext";
 
 export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar, onNav }: {
   module: string;
@@ -11,6 +12,7 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
   onToggleSidebar: () => void;
   onNav: (v: string) => void;
 }) {
+  const { user } = useAuth();
   const getTitle = () => {
     switch (module) {
       case "dashboard": return "Dashboard Overview";
@@ -92,13 +94,18 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
 
         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
 
-        <div className="flex items-center gap-3">
-          <Avatar name="Mr. Rajesh Sharma" size="sm" />
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none">Rajesh Sharma</p>
-            <p className="text-xs text-slate-500 mt-1 leading-none">Parent</p>
-          </div>
-        </div>
+        {(() => {
+          const parentName = user?.name || user?.full_name || user?.username || "Parent User";
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar name={parentName} size="sm" />
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none capitalize">{parentName}</p>
+                <p className="text-xs text-slate-500 mt-1 leading-none">{user?.email || 'Parent'}</p>
+              </div>
+            </div>
+          );
+        })()}
 
         <button onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("user"); onNav("landing"); }} className="ml-2 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors" title="Logout">
           <LogOut size={18} />

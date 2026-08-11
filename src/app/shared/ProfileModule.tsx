@@ -2,15 +2,28 @@ import { useState, useEffect } from "react";
 import {
   Save, Download, Phone, MapPin, HeartPulse, Shield, Smartphone,
   Activity, ScanFace, CheckCircle2, AlertCircle, Trash2, Camera,
-  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck
+  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck, User
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
 import { FaceAuthModal } from "../../components/FaceAuthModal";
 
 export function ProfileModule() {
-  const [profile, setProfile] = useState<any>(null);
-  const [formData, setFormData] = useState({ phone: '', address: '' });
+  const savedUser = (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [profile, setProfile] = useState<any>(savedUser || null);
+  const [formData, setFormData] = useState({
+    name: savedUser?.name || savedUser?.full_name || savedUser?.username || '',
+    phone: '',
+    address: ''
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,14 +42,9 @@ export function ProfileModule() {
   const [emailUpdating, setEmailUpdating] = useState(false);
   const [emailModalError, setEmailModalError] = useState('');
 
-  const currentEmail = profile?.email || (() => {
-    try {
-      const savedUser = localStorage.getItem('user');
-      return savedUser ? JSON.parse(savedUser).email : '';
-    } catch (e) {
-      return '';
-    }
-  })() || '';
+  const displayName = profile?.name || profile?.full_name || profile?.username || savedUser?.name || savedUser?.full_name || savedUser?.username || 'User';
+
+  const currentEmail = profile?.email || savedUser?.email || '';
 
   useEffect(() => {
     fetchProfile();
@@ -45,11 +53,24 @@ export function ProfileModule() {
 
   const fetchProfile = () => {
     client.get('/profile').then(res => {
-      setProfile(res.data);
-      setFormData({ phone: res.data.phone || '', address: res.data.address || '' });
+      const data = res.data?.data || res.data || {};
+      setProfile(data);
+      const nameVal = data.name || data.full_name || data.username || savedUser?.name || savedUser?.full_name || savedUser?.username || '';
+      setFormData({
+        name: nameVal,
+        phone: data.phone || '',
+        address: data.address || ''
+      });
       setLoading(false);
     }).catch(error => {
-      console.error(error);
+      console.error('Failed to fetch profile:', error);
+      if (savedUser) {
+        setProfile(savedUser);
+        setFormData(prev => ({
+          ...prev,
+          name: savedUser.name || savedUser.full_name || savedUser.username || ''
+        }));
+      }
       setLoading(false);
     });
   };
@@ -75,7 +96,16 @@ export function ProfileModule() {
     try {
       await client.put('/profile', formData);
       setMessage('Profile updated successfully!');
-      setProfile({ ...profile, ...formData });
+      setProfile((prev: any) => ({ ...prev, ...formData }));
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.name = formData.name;
+          parsed.full_name = formData.name;
+          localStorage.setItem('user', JSON.stringify(parsed));
+        }
+      } catch (e) {}
     } catch (error) {
       console.error(error);
       setMessage('Failed to update profile.');
@@ -209,10 +239,10 @@ export function ProfileModule() {
           <div className="lg:col-span-1 space-y-5">
             <Card className="p-6 text-center flex flex-col items-center">
               <div className="relative mb-4">
-                <Avatar name={profile?.name || 'User'} size="xl" />
+                <Avatar name={displayName} size="xl" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{profile?.name}</h3>
-              <p className="text-sm text-slate-500 mb-4">{profile?.roll_number || profile?.employee_id || 'Institutional Member'}</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">{displayName}</h3>
+              <p className="text-sm text-slate-500 mb-4">{profile?.roll_number || profile?.admission_number || profile?.employee_id || 'Institutional Member'}</p>
               <div className="mb-2">
                 <Badge variant="success">Active Account</Badge>
               </div>
@@ -235,8 +265,21 @@ export function ProfileModule() {
               <h4 className="font-semibold text-slate-900 dark:text-white mb-4">Personal Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                  <input type="text" value={profile?.name || ''} disabled className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 cursor-not-allowed" />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+                    <span className="text-[11px] text-slate-400">Institutional Identity</span>
+                  </div>
+                  <div className="relative">
+                    <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Enter your full name"
+                      className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    />
+                  </div>
                 </div>
                 
                 {/* Email Address with Interactive Update Option */}

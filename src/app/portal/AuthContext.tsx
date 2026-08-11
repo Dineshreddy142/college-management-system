@@ -4,6 +4,8 @@ import client from '../../api/client';
 type User = {
   id: number;
   username: string;
+  name?: string;
+  full_name?: string;
   email: string;
   role: string;
 };

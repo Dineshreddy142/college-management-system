@@ -152,9 +152,18 @@ router.post('/login', async (req, res) => {
         
         await logActivity(user.id, 'LOGIN_SUCCESS', `User logged in from IP: ${clientIp}`);
 
+        const displayName = user.full_name || user.username || 'User';
+
         return successResponse(res, 'Login successful', { 
             token, 
-            user: { id: user.id, username: user.username, email: user.email, role: user.role_name } 
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                name: displayName,
+                full_name: displayName,
+                email: user.email, 
+                role: user.role_name 
+            } 
         });
     } catch (error) {
         console.error(error);
@@ -211,10 +220,19 @@ router.post('/register', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
 
         // 4. Create user in users table
-        const [insertResult] = await pool.execute(
-            'INSERT INTO users (username, password, email, role_id, status, face_registered) VALUES (?, ?, ?, ?, ?, ?)',
-            [rawUsername, passwordHash, userEmail, roleId, 'active', 0]
-        );
+        const effectiveFullName = (fullName || rawUsername).trim();
+        let insertResult;
+        try {
+            [insertResult] = await pool.execute(
+                'INSERT INTO users (username, full_name, password, email, role_id, status, face_registered) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [rawUsername, effectiveFullName, passwordHash, userEmail, roleId, 'active', 0]
+            );
+        } catch (colErr) {
+            [insertResult] = await pool.execute(
+                'INSERT INTO users (username, password, email, role_id, status, face_registered) VALUES (?, ?, ?, ?, ?, ?)',
+                [rawUsername, passwordHash, userEmail, roleId, 'active', 0]
+            );
+        }
 
         const newUserId = insertResult.insertId;
 
@@ -226,7 +244,7 @@ router.post('/register', async (req, res) => {
                     `INSERT INTO students (user_id, roll_number, name, email, phone, semester, status) 
                      VALUES (?, ?, ?, ?, ?, 1, 'Active')
                      ON DUPLICATE KEY UPDATE name=VALUES(name)`,
-                    [newUserId, rollNo, fullName || rawUsername, userEmail, phone || '']
+                    [newUserId, rollNo, effectiveFullName, userEmail, phone || '']
                 );
             } else if (roleName.toLowerCase().includes('faculty')) {
                 const empId = identifier || `FAC${newUserId.toString().padStart(4, '0')}`;
@@ -234,7 +252,7 @@ router.post('/register', async (req, res) => {
                     `INSERT INTO faculty (user_id, employee_id, name, email, phone, designation, status) 
                      VALUES (?, ?, ?, ?, ?, 'Lecturer', 'Active')
                      ON DUPLICATE KEY UPDATE name=VALUES(name)`,
-                    [newUserId, empId, fullName || rawUsername, userEmail, phone || '']
+                    [newUserId, empId, effectiveFullName, userEmail, phone || '']
                 );
             }
         } catch (auxErr) {
@@ -255,6 +273,8 @@ router.post('/register', async (req, res) => {
             user: {
                 id: newUserId,
                 username: rawUsername,
+                name: effectiveFullName,
+                full_name: effectiveFullName,
                 email: userEmail,
                 role: roleName
             }
@@ -311,20 +331,39 @@ router.post('/logout', authenticateToken, async (req, res) => {
 
 router.get('/me', authenticateToken, async (req, res) => {
     try {
-        const [rows] = await pool.execute(
-            `SELECT u.id, u.username, u.email, r.name as role_name
-             FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE u.id = ? AND u.status = 'active'`, 
-            [req.user.id]
-        );
+        let rows;
+        try {
+            [rows] = await pool.execute(
+                `SELECT u.id, u.username, u.full_name, u.email, r.name as role_name
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'`, 
+                [req.user.id]
+            );
+        } catch (colErr) {
+            [rows] = await pool.execute(
+                `SELECT u.id, u.username, u.email, r.name as role_name
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'`, 
+                [req.user.id]
+            );
+        }
 
         if (rows.length === 0) {
             return errorResponse(res, 'User not found or inactive', [], 401);
         }
         const user = rows[0];
+        const displayName = user.full_name || user.username || 'User';
         return successResponse(res, 'User details retrieved', { 
-            user: { id: user.id, username: user.username, email: user.email, role: user.role_name } 
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                name: displayName,
+                full_name: displayName,
+                email: user.email, 
+                role: user.role_name 
+            } 
         });
     } catch (error) {
         return errorResponse(res, 'Internal Server Error', [error.message], 500);
@@ -333,17 +372,36 @@ router.get('/me', authenticateToken, async (req, res) => {
 
 router.get('/validate-token', authenticateToken, async (req, res) => {
     try {
-        const [rows] = await pool.execute(
-            `SELECT u.id, u.username, u.email, r.name as role_name
-             FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE u.id = ? AND u.status = 'active'`, 
-            [req.user.id]
-        );
+        let rows;
+        try {
+            [rows] = await pool.execute(
+                `SELECT u.id, u.username, u.full_name, u.email, r.name as role_name
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'`, 
+                [req.user.id]
+            );
+        } catch (colErr) {
+            [rows] = await pool.execute(
+                `SELECT u.id, u.username, u.email, r.name as role_name
+                 FROM users u 
+                 JOIN roles r ON u.role_id = r.id 
+                 WHERE u.id = ? AND u.status = 'active'`, 
+                [req.user.id]
+            );
+        }
         if (rows.length === 0) return errorResponse(res, 'User not found or inactive', [], 401);
         const user = rows[0];
+        const displayName = user.full_name || user.username || 'User';
         return successResponse(res, 'Token is valid', { 
-            user: { id: user.id, username: user.username, email: user.email, role: user.role_name } 
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                name: displayName,
+                full_name: displayName,
+                email: user.email, 
+                role: user.role_name 
+            } 
         });
     } catch (error) {
          return errorResponse(res, 'Internal Server Error', [error.message], 500);
@@ -731,11 +789,15 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
 
         await logActivity(user.id, 'FACE_LOGIN_SUCCESS', `User logged in via face recognition on ${portalRole || 'portal'}`);
 
+        const displayName = user.full_name || user.username || 'User';
+
         return successResponse(res, 'Face login successful', {
             token,
             user: {
                 id: user.id,
                 username: user.username,
+                name: displayName,
+                full_name: displayName,
                 email: user.email,
                 role: user.role_name
             }
@@ -955,11 +1017,15 @@ router.post('/auth/authenticator-login', async (req, res) => {
 
         await logActivity(user.id, 'AUTHENTICATOR_LOGIN_SUCCESS', `User logged in via Authenticator Code on ${portalRole || 'desktop'}`);
 
+        const displayName = user.full_name || user.username || 'User';
+
         return successResponse(res, 'Authenticator login successful', {
             token,
             user: {
                 id: user.id,
                 username: user.username,
+                name: displayName,
+                full_name: displayName,
                 email: user.email,
                 role: user.role_name
             }
