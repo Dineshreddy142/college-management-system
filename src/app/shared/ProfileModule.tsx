@@ -29,6 +29,15 @@ export function ProfileModule() {
   const [emailUpdating, setEmailUpdating] = useState(false);
   const [emailModalError, setEmailModalError] = useState('');
 
+  const currentEmail = profile?.email || (() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser).email : '';
+    } catch (e) {
+      return '';
+    }
+  })() || '';
+
   useEffect(() => {
     fetchProfile();
     fetchFaceStatus();
@@ -238,7 +247,7 @@ export function ProfileModule() {
                       type="button"
                       onClick={() => {
                         setEmailModalError('');
-                        setNewEmail(profile?.email || '');
+                        setNewEmail('');
                         setConfirmPassword('');
                         setShowEmailModal(true);
                       }}
@@ -252,7 +261,7 @@ export function ProfileModule() {
                     <Mail size={16} className="absolute left-3 text-slate-400" />
                     <input
                       type="email"
-                      value={profile?.email || ''}
+                      value={currentEmail}
                       disabled
                       className="w-full pl-9 pr-24 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-200 font-medium cursor-default"
                     />
@@ -260,7 +269,7 @@ export function ProfileModule() {
                       type="button"
                       onClick={() => {
                         setEmailModalError('');
-                        setNewEmail(profile?.email || '');
+                        setNewEmail('');
                         setConfirmPassword('');
                         setShowEmailModal(true);
                       }}
@@ -447,16 +456,16 @@ export function ProfileModule() {
               </div>
             )}
 
-            <form onSubmit={handleUpdateEmailSubmit} className="space-y-4">
+            <form onSubmit={handleUpdateEmailSubmit} className="space-y-4" autoComplete="off">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Current Email Address
                 </label>
                 <input
                   type="email"
-                  value={profile?.email || ''}
+                  value={currentEmail}
                   disabled
-                  className="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-500 cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-300 font-medium cursor-not-allowed select-none"
                 />
               </div>
 
@@ -468,6 +477,8 @@ export function ProfileModule() {
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
+                    name="new_email_address_field"
+                    autoComplete="off"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="Enter new email (e.g. user@newdomain.com)"
@@ -485,9 +496,11 @@ export function ProfileModule() {
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="password"
+                    name="verify_account_password_field"
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter current password"
                     className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     required
                   />
