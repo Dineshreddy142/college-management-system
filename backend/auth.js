@@ -10,6 +10,7 @@ import { authenticateToken, authorizeRole } from './middleware.js';
 import { successResponse, errorResponse } from './utils/response.js';
 import { loginAttemptService } from './services/loginAttemptService.js';
 import { enrollFaceBiometrics, identifyFaceBiometrics, verifyUserFaceBiometrics, BIOMETRIC_MATCH_THRESHOLD } from './services/nativeBiometrics.js';
+import { checkBiometricSecurity, recordBiometricSuccess, recordBiometricFailure, logBiometricSecurityEvent } from './services/biometricSecurityService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -530,9 +531,20 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
             return errorResponse(res, 'No image file provided for face scan', [], 400);
         }
 
+        // 1. Enforce Biometric Security Protection (Rate Limiting, Temporary Lockout, Progressive Delay)
+        const securityCheck = await checkBiometricSecurity(targetIdentifier || userId, clientIp);
+        if (!securityCheck.allowed) {
+            return res.status(securityCheck.status || 429).json({
+                success: false,
+                code: securityCheck.reason,
+                message: securityCheck.message,
+                remainingSeconds: securityCheck.remainingSeconds
+            });
+        }
+
         let targetUser = null;
 
-        // 1. Resolve Target User Account (1:1 Flow)
+        // 2. Resolve Target User Account (1:1 Flow)
         if (targetIdentifier) {
             const [uRows] = await pool.execute(
                 `SELECT u.*, r.name as role_name 
@@ -558,7 +570,7 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
         let verifiedUserId = null;
         let matchSimilarity = 0.0;
 
-        // 2. Execute 1:1 Biometric Verification (If target user specified)
+        // 3. Execute 1:1 Biometric Verification (If target user specified)
         if (targetUser) {
             let python1to1Success = false;
             try {
@@ -594,7 +606,11 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
             }
 
             if (!verifiedUserId) {
-                return errorResponse(res, 'Face biometric did not match the specified account. Please retry or sign in with password.', [], 401);
+                const failPenalty = await recordBiometricFailure(targetIdentifier || targetUser.id, clientIp);
+                if (failPenalty.isLocked) {
+                    return errorResponse(res, `Face verification temporarily suspended for 5 minutes after ${failPenalty.failedAttempts} failed attempts. Please sign in with password.`, [], 429);
+                }
+                return errorResponse(res, `Face biometric did not match this account. ${failPenalty.remainingAttempts > 0 ? `(${failPenalty.remainingAttempts} attempts remaining before temporary lockout)` : ''}`, [], 401);
             }
         } else {
             // Fallback 1:N Identification if no email/identifier was provided
@@ -625,6 +641,7 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
             }
 
             if (!verifiedUserId) {
+                await recordBiometricFailure(null, clientIp);
                 return errorResponse(res, 'Face biometric did not match any registered user. Please retry or use password login.', [], 401);
             }
 
@@ -642,6 +659,8 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
             targetUser = rows[0];
         }
 
+        // On verified match: Reset failure penalty
+        recordBiometricSuccess(targetIdentifier || targetUser.id, clientIp);
         const user = targetUser;
 
         // Validate portal role isolation
