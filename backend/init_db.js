@@ -111,6 +111,141 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 8. Academic Years table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS academic_years (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        year_level INT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 9. Courses table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS courses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        department_id INT NULL,
+        duration_years INT DEFAULT 4,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 10. Semesters table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS semesters (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        semester_number INT NOT NULL,
+        academic_year_id INT NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 11. Sections table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sections (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        department_id INT NULL,
+        course_id INT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        capacity INT DEFAULT 60,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 12. Subjects table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subjects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        code VARCHAR(20) NOT NULL UNIQUE,
+        department_id INT NULL,
+        semester_id INT NULL,
+        credits DECIMAL(3,1) DEFAULT 3.0,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 13. Attendance header table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        date DATE NOT NULL,
+        section_id INT NOT NULL,
+        subject_id INT NULL,
+        FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 14. Attendance details table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS attendance_details (
+        attendance_id INT NOT NULL,
+        student_id INT NOT NULL,
+        status ENUM('present', 'absent', 'late', 'excused') NOT NULL,
+        PRIMARY KEY (attendance_id, student_id),
+        FOREIGN KEY (attendance_id) REFERENCES attendance(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 15. Exams table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exams (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        academic_year_id INT NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 16. Marks table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS marks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        exam_id INT NOT NULL,
+        student_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        marks_obtained DECIMAL(5,2) NOT NULL,
+        FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 17. Grades table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS grades (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        min_mark DECIMAL(5,2) NOT NULL,
+        max_mark DECIMAL(5,2) NOT NULL,
+        grade VARCHAR(5) NOT NULL
+      )
+    `);
+
+    // 18. Results table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        exam_id INT NOT NULL,
+        total_marks DECIMAL(7,2) NOT NULL,
+        grade VARCHAR(5),
+        status ENUM('pass', 'fail') NOT NULL,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
+      )
+    `);
+
     // 8. Face Embeddings table (AES-256-GCM Secure Storage)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS face_embeddings (
