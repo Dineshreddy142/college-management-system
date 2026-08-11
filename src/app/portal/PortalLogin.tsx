@@ -802,13 +802,19 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                     </button>
                   </div>
 
-                  <div className="text-center pt-2">
+                  <div className="flex items-center justify-between text-xs pt-2">
+                    <Link
+                      to={`/update-email?role=${effectiveRole}`}
+                      className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Update Email?</span>
+                    </Link>
                     <button
                       type="button"
                       onClick={() => setLoginMethod('password')}
-                      className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
-                      Prefer password sign in? Click here &rarr;
+                      Password sign in &rarr;
                     </button>
                   </div>
                 </form>
@@ -820,17 +826,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
               {isMobile && loginMethod === 'face' && (
                 <div className="space-y-6 animate-in fade-in zoom-in duration-300">
                   <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/60 to-blue-50/40 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
-                    <div className="relative mb-4">
-                      <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 animate-pulse">
-                        <ScanFace size={40} />
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-emerald-500 text-white shadow-md">
-                        <ShieldCheck size={14} />
-                      </div>
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 shadow-inner">
+                      <ScanFace size={36} />
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      1-Click Mobile Face Unlock
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Instant 3D Face Sign-In
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
                       Look into your front camera to securely verify your 3D live facial signature.
@@ -848,14 +849,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                     </div>
                   </div>
 
-                  <div className="text-center">
+                  <div className="flex items-center justify-center gap-3 text-xs">
                     <button
                       type="button"
                       onClick={() => setLoginMethod('password')}
-                      className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                      className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                     >
-                      Or sign in with email & password &rarr;
+                      Sign in with password
                     </button>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
+                    <Link
+                      to={`/update-email?role=${effectiveRole}`}
+                      className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      Update Email
+                    </Link>
                   </div>
                 </div>
               )}
@@ -908,9 +916,22 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                       />
                       <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
                     </label>
-                    <Link to={`/forgot-password?role=${effectiveRole}`} className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Forgot Password?
-                    </Link>
+                    <div className="flex items-center space-x-2">
+                      <Link 
+                        to={`/update-email?role=${effectiveRole}`} 
+                        className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                        title="Update or change your registered account email address"
+                      >
+                        Update Email?
+                      </Link>
+                      <span className="text-slate-300 dark:text-slate-600">·</span>
+                      <Link 
+                        to={`/forgot-password?role=${effectiveRole}`} 
+                        className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
                   </div>
 
                   <div className="pt-2">

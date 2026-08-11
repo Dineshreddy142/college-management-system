@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './portal/AuthContext';
 import { ProtectedRoute } from './portal/ProtectedRoute';
 import { PortalLogin } from './portal/PortalLogin';
 import { PasswordReset } from './portal/PasswordReset';
+import { UpdateEmail } from './portal/UpdateEmail';
 import { AccessDenied, NotFound } from './portal/ErrorPages';
 import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
@@ -2078,6 +2079,10 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/login" element={<PortalLogin />} />
           <Route path="/forgot-password" element={<PasswordReset />} />
           <Route path="/reset-password" element={<PasswordReset />} />
+          <Route path="/update-email" element={<UpdateEmail />} />
+          <Route path="/change-email" element={<UpdateEmail />} />
+          <Route path="/:role/update-email" element={<UpdateEmail />} />
+          <Route path="/:role/change-email" element={<UpdateEmail />} />
           <Route path="/access-denied" element={<AccessDenied />} />
           
           {/* Protected Dashboards */}
