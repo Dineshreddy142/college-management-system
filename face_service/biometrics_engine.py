@@ -1,8 +1,9 @@
 import numpy as np
 
-# Strict Cosine Similarity Threshold for Positive Verified Match (0.0 to 1.0)
-MATCH_THRESHOLD = 0.52
-DUPLICATE_THRESHOLD = 0.65
+# Calibrated SFace Cosine Similarity Thresholds
+# SFace default cosine threshold: 0.363 (FAR < 0.1%), strict mode threshold: 0.40
+MATCH_THRESHOLD = 0.38
+DUPLICATE_THRESHOLD = 0.55
 
 def cosine_similarity(vec1, vec2):
     """

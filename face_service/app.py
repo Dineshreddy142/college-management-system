@@ -11,6 +11,8 @@ try:
     from face_service.crypto import encrypt_embedding, decrypt_embedding
     from face_service.face_extraction import (
         extract_embedding_from_image,
+        MODEL_VERSION,
+        EMBEDDING_DIM,
         NoFaceDetectedError,
         MultipleFacesDetectedError,
         LowResolutionFaceError
@@ -31,6 +33,8 @@ except ImportError:
     from crypto import encrypt_embedding, decrypt_embedding
     from face_extraction import (
         extract_embedding_from_image,
+        MODEL_VERSION,
+        EMBEDDING_DIM,
         NoFaceDetectedError,
         MultipleFacesDetectedError,
         LowResolutionFaceError
@@ -77,7 +81,9 @@ def health_check():
         reload_biometric_cache()
     return jsonify({
         "status": "healthy",
-        "service": "python_face_biometrics_ultrafast",
+        "service": "python_face_biometrics_sface_yunet",
+        "model_version": MODEL_VERSION,
+        "embedding_dim": EMBEDDING_DIM,
         "cached_vectors": len(IN_MEMORY_EMBEDDINGS),
         "threshold": MATCH_THRESHOLD
     }), 200
@@ -169,7 +175,9 @@ def register_face():
         "data": {
             "user_id": user_id,
             "registered": True,
-            "poses_captured": len(extracted_embeddings)
+            "poses_captured": len(extracted_embeddings),
+            "model_version": MODEL_VERSION,
+            "embedding_dim": EMBEDDING_DIM
         }
     }), 200
 
@@ -211,7 +219,8 @@ def identify_user_face():
             "message": "Face authentication failed. No matching registered account found.",
             "data": {
                 "matched": False,
-                "confidence": result["confidence"]
+                "confidence": result["confidence"],
+                "model_version": MODEL_VERSION
             }
         }), 401
 
@@ -222,7 +231,9 @@ def identify_user_face():
             "matched": True,
             "user_id": result["user_id"],
             "confidence": result["confidence"],
-            "liveness_passed": True
+            "liveness_passed": True,
+            "model_version": MODEL_VERSION,
+            "embedding_dim": EMBEDDING_DIM
         }
     }), 200
 
