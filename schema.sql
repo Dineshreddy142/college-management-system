@@ -1073,5 +1073,153 @@ CREATE TABLE revaluation_requests (
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
+-- Fee Categories Table
+CREATE TABLE fee_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT NULL,
+    is_active TINYINT(1) DEFAULT 1
+);
+
+-- Fee Structures Table
+CREATE TABLE fee_structures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NULL,
+    course_id INT NULL,
+    regulation_id INT NULL,
+    academic_year_id INT NULL,
+    semester_id INT NULL,
+    fee_category_id INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    due_date DATE NULL,
+    is_mandatory TINYINT(1) DEFAULT 1,
+    installment_allowed TINYINT(1) DEFAULT 1,
+    status ENUM('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (fee_category_id) REFERENCES fee_categories(id) ON DELETE CASCADE
+);
+
+-- Student Fee Accounts Table
+CREATE TABLE student_fee_accounts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL UNIQUE,
+    total_charges DECIMAL(12,2) DEFAULT 0.00,
+    total_scholarships DECIMAL(12,2) DEFAULT 0.00,
+    total_concessions DECIMAL(12,2) DEFAULT 0.00,
+    total_paid DECIMAL(12,2) DEFAULT 0.00,
+    total_refunded DECIMAL(12,2) DEFAULT 0.00,
+    total_fines DECIMAL(12,2) DEFAULT 0.00,
+    outstanding_balance DECIMAL(12,2) DEFAULT 0.00,
+    status ENUM('PAID', 'PARTIALLY_PAID', 'PENDING', 'OVERDUE', 'WAIVED') DEFAULT 'PENDING',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Student Fee Items Table
+CREATE TABLE student_fee_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_fee_account_id INT NOT NULL,
+    student_id INT NOT NULL,
+    fee_structure_id INT NULL,
+    fee_category_id INT NOT NULL,
+    academic_year_id INT NULL,
+    semester_id INT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    due_date DATE NULL,
+    paid_amount DECIMAL(12,2) DEFAULT 0.00,
+    status ENUM('PENDING', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'WAIVED') DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_fee_account_id) REFERENCES student_fee_accounts(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (fee_category_id) REFERENCES fee_categories(id) ON DELETE CASCADE
+);
+
+-- Scholarships Table
+CREATE TABLE scholarships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    type ENUM('FIXED_AMOUNT', 'PERCENTAGE') DEFAULT 'PERCENTAGE',
+    amount_or_percentage DECIMAL(10,2) NOT NULL,
+    description TEXT NULL,
+    status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'
+);
+
+-- Student Scholarships Table
+CREATE TABLE student_scholarships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    scholarship_id INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    academic_year_id INT NULL,
+    semester_id INT NULL,
+    reason TEXT NULL,
+    approved_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (scholarship_id) REFERENCES scholarships(id) ON DELETE CASCADE
+);
+
+-- Concessions Table
+CREATE TABLE concessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    fee_category_id INT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason TEXT NOT NULL,
+    approved_by INT NOT NULL,
+    academic_year_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Payments Table
+CREATE TABLE payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    receipt_number VARCHAR(100) NOT NULL UNIQUE,
+    student_id INT NOT NULL,
+    student_fee_account_id INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    payment_method ENUM('ONLINE', 'BANK_TRANSFER', 'CARD', 'UPI', 'CASH', 'CHEQUE') DEFAULT 'UPI',
+    transaction_reference VARCHAR(150) NOT NULL,
+    status ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED') DEFAULT 'SUCCESS',
+    payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NULL,
+    verified_by INT NULL,
+    verified_at DATETIME NULL,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Refunds Table
+CREATE TABLE refunds (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_id INT NOT NULL,
+    student_id INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason TEXT NOT NULL,
+    status ENUM('REQUESTED', 'APPROVED', 'REJECTED', 'PROCESSED') DEFAULT 'REQUESTED',
+    requested_by INT NULL,
+    approved_by INT NULL,
+    processed_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Fines Table
+CREATE TABLE fines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    student_fee_item_id INT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+
 
 

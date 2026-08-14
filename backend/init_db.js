@@ -921,6 +921,279 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 19.a Fee Categories Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fee_categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        description TEXT NULL,
+        is_active TINYINT(1) DEFAULT 1
+      )
+    `);
+
+    const [fCats] = await pool.query('SELECT id FROM fee_categories LIMIT 1');
+    if (fCats.length === 0) {
+      await pool.query(`
+        INSERT INTO fee_categories (name, code, description) VALUES
+        ('Tuition Fee', 'TUITION_FEE', 'Academic Tuition Fee'),
+        ('Admission Fee', 'ADMISSION_FEE', 'One-time Admission Fee'),
+        ('Examination Fee', 'EXAMINATION_FEE', 'Semester Examination Fee'),
+        ('Laboratory Fee', 'LAB_FEE', 'Laboratory Infrastructure Fee'),
+        ('Library Fee', 'LIBRARY_FEE', 'Library Subscription Fee'),
+        ('Hostel Fee', 'HOSTEL_FEE', 'Hostel Boarding Fee'),
+        ('Transport Fee', 'TRANSPORT_FEE', 'Campus Transport Fee'),
+        ('Development Fee', 'DEVELOPMENT_FEE', 'Institutional Development Fee'),
+        ('Registration Fee', 'REGISTRATION_FEE', 'Enrollment & Registration Fee')
+      `);
+    }
+
+    // 19.b Fee Structures Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fee_structures (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        department_id INT NULL,
+        course_id INT NULL,
+        regulation_id INT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        fee_category_id INT NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        due_date DATE NULL,
+        is_mandatory TINYINT(1) DEFAULT 1,
+        installment_allowed TINYINT(1) DEFAULT 1,
+        status ENUM('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (fee_category_id) REFERENCES fee_categories(id) ON DELETE CASCADE
+      )
+    `);
+
+    try {
+      const [fsCols] = await pool.query('DESCRIBE fee_structures');
+      const fsNames = fsCols.map(c => c.Field);
+      if (!fsNames.includes('department_id')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN department_id INT NULL AFTER id');
+      }
+      if (!fsNames.includes('regulation_id')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN regulation_id INT NULL AFTER course_id');
+      }
+      if (!fsNames.includes('semester_id')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN semester_id INT NULL AFTER academic_year_id');
+      }
+      if (!fsNames.includes('fee_category_id')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN fee_category_id INT NULL AFTER semester_id');
+      }
+      if (!fsNames.includes('due_date')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN due_date DATE NULL AFTER amount');
+      }
+      if (!fsNames.includes('is_mandatory')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN is_mandatory TINYINT(1) DEFAULT 1 AFTER due_date');
+      }
+      if (!fsNames.includes('installment_allowed')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN installment_allowed TINYINT(1) DEFAULT 1 AFTER is_mandatory');
+      }
+      if (!fsNames.includes('status')) {
+        await pool.query("ALTER TABLE fee_structures ADD COLUMN status ENUM('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE' AFTER installment_allowed");
+      }
+      if (!fsNames.includes('created_by')) {
+        await pool.query('ALTER TABLE fee_structures ADD COLUMN created_by INT NULL AFTER status');
+      }
+      await pool.query('ALTER TABLE fee_structures MODIFY COLUMN course_id INT NULL');
+      await pool.query('ALTER TABLE fee_structures MODIFY COLUMN academic_year_id INT NULL');
+    } catch (fsErr) {
+      console.error('Migration error for fee_structures:', fsErr);
+    }
+
+    // 19.c Student Fee Accounts Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_fee_accounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL UNIQUE,
+        total_charges DECIMAL(12,2) DEFAULT 0.00,
+        total_scholarships DECIMAL(12,2) DEFAULT 0.00,
+        total_concessions DECIMAL(12,2) DEFAULT 0.00,
+        total_paid DECIMAL(12,2) DEFAULT 0.00,
+        total_refunded DECIMAL(12,2) DEFAULT 0.00,
+        total_fines DECIMAL(12,2) DEFAULT 0.00,
+        outstanding_balance DECIMAL(12,2) DEFAULT 0.00,
+        status ENUM('PAID', 'PARTIALLY_PAID', 'PENDING', 'OVERDUE', 'WAIVED') DEFAULT 'PENDING',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 19.d Student Fee Items Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_fee_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_fee_account_id INT NOT NULL,
+        student_id INT NOT NULL,
+        fee_structure_id INT NULL,
+        fee_category_id INT NOT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        due_date DATE NULL,
+        paid_amount DECIMAL(12,2) DEFAULT 0.00,
+        status ENUM('PENDING', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'WAIVED') DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_fee_account_id) REFERENCES student_fee_accounts(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (fee_category_id) REFERENCES fee_categories(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 19.e Scholarships Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scholarships (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        type ENUM('FIXED_AMOUNT', 'PERCENTAGE') DEFAULT 'PERCENTAGE',
+        amount_or_percentage DECIMAL(10,2) NOT NULL,
+        description TEXT NULL,
+        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'
+      )
+    `);
+
+    const [sSchols] = await pool.query('SELECT id FROM scholarships LIMIT 1');
+    if (sSchols.length === 0) {
+      await pool.query(`
+        INSERT INTO scholarships (name, code, type, amount_or_percentage, description) VALUES
+        ('Merit Excellence Scholarship', 'MERIT_25', 'PERCENTAGE', 25.00, '25% Tuition Fee Waiver for Top Academic Performers'),
+        ('Need-Based Assistance Scholarship', 'NEED_10000', 'FIXED_AMOUNT', 10000.00, 'Flat ₹10,000 Financial Aid Scholarship'),
+        ('Sports Achievement Scholarship', 'SPORTS_50', 'PERCENTAGE', 50.00, '50% Fee Concession for National Sports Medalists')
+      `);
+    }
+
+    // 19.f Student Scholarships Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_scholarships (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        scholarship_id INT NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        reason TEXT NULL,
+        approved_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (scholarship_id) REFERENCES scholarships(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 19.g Concessions Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS concessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        fee_category_id INT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        reason TEXT NOT NULL,
+        approved_by INT NOT NULL,
+        academic_year_id INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    try {
+      const [cCols] = await pool.query('DESCRIBE concessions');
+      const cNames = cCols.map(c => c.Field);
+      if (!cNames.includes('fee_category_id')) {
+        await pool.query('ALTER TABLE concessions ADD COLUMN fee_category_id INT NULL AFTER student_id');
+      }
+    } catch (cErr) {}
+
+    // 19.h Payments Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        receipt_number VARCHAR(100) NOT NULL UNIQUE,
+        student_id INT NOT NULL,
+        student_fee_account_id INT NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        payment_method ENUM('ONLINE', 'BANK_TRANSFER', 'CARD', 'UPI', 'CASH', 'CHEQUE') DEFAULT 'UPI',
+        transaction_reference VARCHAR(150) NOT NULL,
+        status ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED') DEFAULT 'SUCCESS',
+        payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by INT NULL,
+        verified_by INT NULL,
+        verified_at DATETIME NULL,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    try {
+      const [pCols] = await pool.query('DESCRIBE payments');
+      const pNames = pCols.map(c => c.Field);
+      if (!pNames.includes('receipt_number')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN receipt_number VARCHAR(100) NULL AFTER id');
+      }
+      if (!pNames.includes('student_id')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN student_id INT NULL AFTER receipt_number');
+      }
+      if (!pNames.includes('student_fee_account_id')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN student_fee_account_id INT NULL AFTER student_id');
+      }
+      if (!pNames.includes('payment_method')) {
+        await pool.query("ALTER TABLE payments ADD COLUMN payment_method ENUM('ONLINE', 'BANK_TRANSFER', 'CARD', 'UPI', 'CASH', 'CHEQUE') DEFAULT 'UPI' AFTER amount");
+      }
+      if (!pNames.includes('transaction_reference')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN transaction_reference VARCHAR(150) NULL AFTER payment_method');
+      }
+      if (!pNames.includes('status')) {
+        await pool.query("ALTER TABLE payments ADD COLUMN status ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED') DEFAULT 'SUCCESS' AFTER transaction_reference");
+      }
+      if (!pNames.includes('created_by')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN created_by INT NULL AFTER status');
+      }
+      if (!pNames.includes('verified_by')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN verified_by INT NULL AFTER created_by');
+      }
+      if (!pNames.includes('verified_at')) {
+        await pool.query('ALTER TABLE payments ADD COLUMN verified_at DATETIME NULL AFTER verified_by');
+      }
+      await pool.query('ALTER TABLE payments MODIFY COLUMN student_fee_id INT NULL');
+      await pool.query('ALTER TABLE payments MODIFY COLUMN payment_date DATETIME DEFAULT CURRENT_TIMESTAMP');
+    } catch (pErr) {
+      console.error('Migration error for payments:', pErr);
+    }
+
+    // 19.i Refunds Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS refunds (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        payment_id INT NOT NULL,
+        student_id INT NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        reason TEXT NOT NULL,
+        status ENUM('REQUESTED', 'APPROVED', 'REJECTED', 'PROCESSED') DEFAULT 'REQUESTED',
+        requested_by INT NULL,
+        approved_by INT NULL,
+        processed_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 19.j Fines Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fines (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        student_fee_item_id INT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        reason VARCHAR(255) NOT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
     // 8. Face Embeddings table (AES-256-GCM Secure Storage)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS face_embeddings (

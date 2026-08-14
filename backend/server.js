@@ -30,6 +30,7 @@ import facultyAssignmentRoutes from './routes/facultyAssignmentRoutes.js';
 import studentRegistrationRoutes from './routes/studentRegistrationRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import examRoutes from './routes/examRoutes.js';
+import feeRoutes from './routes/feeRoutes.js';
 import { initializeDatabase } from './init_db.js';
 
 dotenv.config();
@@ -99,6 +100,7 @@ app.use('/api/academic', facultyAssignmentRoutes);
 app.use('/api', studentRegistrationRoutes);
 app.use('/api', attendanceRoutes);
 app.use('/api', examRoutes);
+app.use('/api', feeRoutes);
 app.use('/api/academic', authenticateToken, authorizeRole(['Admin', 'HOD']), academicRouter);
 
 // --- TIMETABLE ROUTES ---
