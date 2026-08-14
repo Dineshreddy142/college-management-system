@@ -926,4 +926,152 @@ CREATE TABLE attendance_settings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Exam Types Table
+CREATE TABLE exam_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT NULL
+);
+
+-- Examinations Table
+CREATE TABLE examinations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    exam_type_id INT NOT NULL,
+    academic_year_id INT NULL,
+    department_id INT NULL,
+    course_id INT NULL,
+    semester_id INT NULL,
+    regulation_id INT NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    status ENUM('DRAFT', 'SCHEDULED', 'ONGOING', 'COMPLETED', 'PUBLISHED', 'ARCHIVED') DEFAULT 'DRAFT',
+    published_at DATETIME NULL,
+    published_by INT NULL,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (exam_type_id) REFERENCES exam_types(id) ON DELETE CASCADE
+);
+
+-- Examination Subjects Table
+CREATE TABLE examination_subjects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    examination_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    max_internal_marks DECIMAL(5,2) DEFAULT 40.00,
+    max_external_marks DECIMAL(5,2) DEFAULT 60.00,
+    max_total_marks DECIMAL(5,2) DEFAULT 100.00,
+    passing_marks DECIMAL(5,2) DEFAULT 40.00,
+    exam_date DATE NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    room_id INT NULL,
+    UNIQUE KEY uq_exam_subject (examination_id, subject_id),
+    FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+);
+
+-- Exam Eligibility Table
+CREATE TABLE exam_eligibility (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    examination_id INT NOT NULL,
+    student_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    attendance_percentage DECIMAL(5,2) DEFAULT 0.00,
+    is_eligible TINYINT(1) DEFAULT 1,
+    override_reason TEXT NULL,
+    overridden_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_exam_student_subject (examination_id, student_id, subject_id),
+    FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+);
+
+-- Student Marks Table
+CREATE TABLE student_marks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    examination_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    student_id INT NOT NULL,
+    internal_marks DECIMAL(5,2) DEFAULT 0.00,
+    external_marks DECIMAL(5,2) DEFAULT 0.00,
+    total_marks DECIMAL(5,2) DEFAULT 0.00,
+    grade VARCHAR(10) NULL,
+    grade_point DECIMAL(3,1) DEFAULT 0.0,
+    status ENUM('DRAFT', 'SUBMITTED', 'VERIFIED', 'PUBLISHED') DEFAULT 'DRAFT',
+    result_status ENUM('PASS', 'FAIL') DEFAULT 'PASS',
+    evaluated_by INT NULL,
+    submitted_at DATETIME NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_exam_student_sub_mark (examination_id, subject_id, student_id),
+    FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Grade Rules Table
+CREATE TABLE grade_rules (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    min_mark DECIMAL(5,2) NOT NULL,
+    max_mark DECIMAL(5,2) NOT NULL,
+    grade VARCHAR(10) NOT NULL,
+    grade_point DECIMAL(3,1) NOT NULL,
+    result_status ENUM('PASS', 'FAIL') DEFAULT 'PASS'
+);
+
+-- Student Results Table
+CREATE TABLE student_results (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    semester_id INT NOT NULL,
+    academic_year_id INT NULL,
+    sgpa DECIMAL(4,2) DEFAULT 0.00,
+    cgpa DECIMAL(4,2) DEFAULT 0.00,
+    total_credits_earned INT DEFAULT 0,
+    backlogs_count INT DEFAULT 0,
+    overall_status ENUM('PASS', 'FAIL', 'WITHHELD') DEFAULT 'PASS',
+    status ENUM('DRAFT', 'VERIFIED', 'PUBLISHED') DEFAULT 'DRAFT',
+    published_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_student_semester_result (student_id, semester_id),
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
+);
+
+-- Backlogs Table
+CREATE TABLE backlogs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    original_exam_id INT NOT NULL,
+    status ENUM('ACTIVE', 'CLEARED') DEFAULT 'ACTIVE',
+    cleared_exam_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    cleared_at DATETIME NULL,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (original_exam_id) REFERENCES examinations(id) ON DELETE CASCADE
+);
+
+-- Revaluation Requests Table
+CREATE TABLE revaluation_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mark_id INT NOT NULL,
+    student_id INT NOT NULL,
+    reason TEXT NOT NULL,
+    old_marks DECIMAL(5,2) NULL,
+    new_marks DECIMAL(5,2) NULL,
+    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'UPDATED') DEFAULT 'PENDING',
+    reviewed_by INT NULL,
+    decision_notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mark_id) REFERENCES student_marks(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+
 

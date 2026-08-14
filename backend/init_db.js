@@ -689,6 +689,93 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 15.a Exam Types Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_types (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        description TEXT NULL
+      )
+    `);
+
+    const [eTypes] = await pool.query('SELECT id FROM exam_types LIMIT 1');
+    if (eTypes.length === 0) {
+      await pool.query(`
+        INSERT INTO exam_types (name, code, description) VALUES
+        ('Internal Assessment 1', 'INTERNAL_1', 'First Internal Mid Examination'),
+        ('Internal Assessment 2', 'INTERNAL_2', 'Second Internal Mid Examination'),
+        ('Midterm Examination', 'MIDTERM', 'Midterm Examination'),
+        ('End Semester Examination', 'END_SEMESTER', 'Final End Semester Theory Exam'),
+        ('Practical / Laboratory Exam', 'PRACTICAL', 'Practical Lab Examination'),
+        ('Project Viva Voce', 'PROJECT_VIVA', 'Project Evaluation & Viva'),
+        ('Supplementary Examination', 'SUPPLEMENTARY', 'Supply Backlog Examination'),
+        ('Revaluation', 'REVALUATION', 'Answer Sheet Revaluation')
+      `);
+    }
+
+    // 15.b Examinations Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS examinations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        exam_type_id INT NOT NULL,
+        academic_year_id INT NULL,
+        department_id INT NULL,
+        course_id INT NULL,
+        semester_id INT NULL,
+        regulation_id INT NULL,
+        start_date DATE NULL,
+        end_date DATE NULL,
+        status ENUM('DRAFT', 'SCHEDULED', 'ONGOING', 'COMPLETED', 'PUBLISHED', 'ARCHIVED') DEFAULT 'DRAFT',
+        published_at DATETIME NULL,
+        published_by INT NULL,
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (exam_type_id) REFERENCES exam_types(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 15.c Examination Subjects Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS examination_subjects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        max_internal_marks DECIMAL(5,2) DEFAULT 40.00,
+        max_external_marks DECIMAL(5,2) DEFAULT 60.00,
+        max_total_marks DECIMAL(5,2) DEFAULT 100.00,
+        passing_marks DECIMAL(5,2) DEFAULT 40.00,
+        exam_date DATE NULL,
+        start_time TIME NULL,
+        end_time TIME NULL,
+        room_id INT NULL,
+        UNIQUE KEY uq_exam_subject (examination_id, subject_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 15.d Exam Eligibility Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_eligibility (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        student_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        attendance_percentage DECIMAL(5,2) DEFAULT 0.00,
+        is_eligible TINYINT(1) DEFAULT 1,
+        override_reason TEXT NULL,
+        overridden_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_exam_student_subject (examination_id, student_id, subject_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
     // 16. Marks table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS marks (
@@ -703,6 +790,30 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 16.a Student Marks Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_marks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        student_id INT NOT NULL,
+        internal_marks DECIMAL(5,2) DEFAULT 0.00,
+        external_marks DECIMAL(5,2) DEFAULT 0.00,
+        total_marks DECIMAL(5,2) DEFAULT 0.00,
+        grade VARCHAR(10) NULL,
+        grade_point DECIMAL(3,1) DEFAULT 0.0,
+        status ENUM('DRAFT', 'SUBMITTED', 'VERIFIED', 'PUBLISHED') DEFAULT 'DRAFT',
+        result_status ENUM('PASS', 'FAIL') DEFAULT 'PASS',
+        evaluated_by INT NULL,
+        submitted_at DATETIME NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_exam_student_sub_mark (examination_id, subject_id, student_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
     // 17. Grades table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS grades (
@@ -712,6 +823,32 @@ export async function initializeDatabase() {
         grade VARCHAR(5) NOT NULL
       )
     `);
+
+    // 17.a Grade Rules Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS grade_rules (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        min_mark DECIMAL(5,2) NOT NULL,
+        max_mark DECIMAL(5,2) NOT NULL,
+        grade VARCHAR(10) NOT NULL,
+        grade_point DECIMAL(3,1) NOT NULL,
+        result_status ENUM('PASS', 'FAIL') DEFAULT 'PASS'
+      )
+    `);
+
+    const [gRules] = await pool.query('SELECT id FROM grade_rules LIMIT 1');
+    if (gRules.length === 0) {
+      await pool.query(`
+        INSERT INTO grade_rules (min_mark, max_mark, grade, grade_point, result_status) VALUES
+        (90.00, 100.00, 'O', 10.0, 'PASS'),
+        (80.00, 89.99, 'A+', 9.0, 'PASS'),
+        (70.00, 79.99, 'A', 8.0, 'PASS'),
+        (60.00, 69.99, 'B+', 7.0, 'PASS'),
+        (50.00, 59.99, 'B', 6.0, 'PASS'),
+        (40.00, 49.99, 'C', 5.0, 'PASS'),
+        (0.00, 39.99, 'F', 0.0, 'FAIL')
+      `);
+    }
 
     // 18. Results table
     await pool.query(`
@@ -724,6 +861,63 @@ export async function initializeDatabase() {
         status ENUM('pass', 'fail') NOT NULL,
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
         FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 18.a Student Results Table (SGPA & CGPA Summary)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        semester_id INT NOT NULL,
+        academic_year_id INT NULL,
+        sgpa DECIMAL(4,2) DEFAULT 0.00,
+        cgpa DECIMAL(4,2) DEFAULT 0.00,
+        total_credits_earned INT DEFAULT 0,
+        backlogs_count INT DEFAULT 0,
+        overall_status ENUM('PASS', 'FAIL', 'WITHHELD') DEFAULT 'PASS',
+        status ENUM('DRAFT', 'VERIFIED', 'PUBLISHED') DEFAULT 'DRAFT',
+        published_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_student_semester_result (student_id, semester_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 18.b Backlogs Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS backlogs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        original_exam_id INT NOT NULL,
+        status ENUM('ACTIVE', 'CLEARED') DEFAULT 'ACTIVE',
+        cleared_exam_id INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        cleared_at DATETIME NULL,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (original_exam_id) REFERENCES examinations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 18.c Revaluation Requests Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS revaluation_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        mark_id INT NOT NULL,
+        student_id INT NOT NULL,
+        reason TEXT NOT NULL,
+        old_marks DECIMAL(5,2) NULL,
+        new_marks DECIMAL(5,2) NULL,
+        status ENUM('PENDING', 'APPROVED', 'REJECTED', 'UPDATED') DEFAULT 'PENDING',
+        reviewed_by INT NULL,
+        decision_notes TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (mark_id) REFERENCES student_marks(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
       )
     `);
 
