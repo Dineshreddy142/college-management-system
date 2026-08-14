@@ -232,10 +232,44 @@ CREATE TABLE faculty_departments (
 
 -- Classrooms table defined in Timetable Management System section
 
+CREATE TABLE regulations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    effective_year INT NOT NULL,
+    description TEXT,
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE curriculums (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    department_id INT NULL,
+    course_id INT NULL,
+    regulation_id INT NULL,
+    academic_year_id INT NULL,
+    semester_id INT NULL,
+    total_credits DECIMAL(5,1) DEFAULT 0,
+    total_subjects INT DEFAULT 0,
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
+);
+
 CREATE TABLE curriculum_subjects (
     curriculum_id INT NOT NULL,
     subject_id INT NOT NULL,
     type ENUM('Core', 'Elective', 'Lab', 'Project') DEFAULT 'Core',
+    is_compulsory TINYINT(1) DEFAULT 1,
+    is_elective TINYINT(1) DEFAULT 0,
+    is_lab TINYINT(1) DEFAULT 0,
+    elective_group VARCHAR(100) NULL,
+    credits DECIMAL(3,1) DEFAULT 3.0,
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
     PRIMARY KEY (curriculum_id, subject_id),
     FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE

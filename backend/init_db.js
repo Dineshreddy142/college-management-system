@@ -373,6 +373,114 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 12.c Regulations Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS regulations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL UNIQUE,
+        effective_year INT NOT NULL,
+        description TEXT,
+        status ENUM('Active', 'Inactive') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed standard regulations
+    const initialRegulations = [
+      { name: 'R24', year: 2024, description: 'New Outcome-Based Education (OBE) Curriculum Model 2024-2028' },
+      { name: 'R22', year: 2022, description: 'Choice Based Credit System (CBCS) Standard Curriculum 2022-2026' },
+      { name: 'R20', year: 2020, description: 'Autonomous Academic Regulations 2020-2024' }
+    ];
+
+    for (const reg of initialRegulations) {
+      await pool.query(
+        `INSERT INTO regulations (name, effective_year, description, status)
+         VALUES (?, ?, ?, 'Active')
+         ON DUPLICATE KEY UPDATE description = VALUES(description)`,
+        [reg.name, reg.year, reg.description]
+      );
+    }
+
+    // 12.d Curriculums Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS curriculums (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        department_id INT NULL,
+        course_id INT NULL,
+        regulation_id INT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        total_credits DECIMAL(5,1) DEFAULT 0,
+        total_subjects INT DEFAULT 0,
+        status ENUM('Active', 'Inactive') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
+      )
+    `);
+
+    // Ensure columns exist on pre-existing curriculums table
+    try {
+      const [currCols] = await pool.query('DESCRIBE curriculums');
+      const currColNames = currCols.map(c => c.Field);
+      if (!currColNames.includes('total_subjects')) {
+        await pool.query('ALTER TABLE curriculums ADD COLUMN total_subjects INT DEFAULT 0');
+      }
+      if (!currColNames.includes('status')) {
+        await pool.query("ALTER TABLE curriculums ADD COLUMN status ENUM('Active', 'Inactive') DEFAULT 'Active'");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on curriculums columns:', colErr.message);
+    }
+
+    // 12.e Curriculum Subjects Mapping Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS curriculum_subjects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        curriculum_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        is_compulsory TINYINT(1) DEFAULT 1,
+        is_elective TINYINT(1) DEFAULT 0,
+        is_lab TINYINT(1) DEFAULT 0,
+        elective_group VARCHAR(100) NULL,
+        credits DECIMAL(3,1) DEFAULT 3.0,
+        status ENUM('Active', 'Inactive') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Ensure columns exist on pre-existing curriculum_subjects table
+    try {
+      const [csCols] = await pool.query('DESCRIBE curriculum_subjects');
+      const csColNames = csCols.map(c => c.Field);
+      if (!csColNames.includes('is_compulsory')) {
+        await pool.query('ALTER TABLE curriculum_subjects ADD COLUMN is_compulsory TINYINT(1) DEFAULT 1');
+      }
+      if (!csColNames.includes('is_elective')) {
+        await pool.query('ALTER TABLE curriculum_subjects ADD COLUMN is_elective TINYINT(1) DEFAULT 0');
+      }
+      if (!csColNames.includes('is_lab')) {
+        await pool.query('ALTER TABLE curriculum_subjects ADD COLUMN is_lab TINYINT(1) DEFAULT 0');
+      }
+      if (!csColNames.includes('elective_group')) {
+        await pool.query('ALTER TABLE curriculum_subjects ADD COLUMN elective_group VARCHAR(100) NULL');
+      }
+      if (!csColNames.includes('credits')) {
+        await pool.query('ALTER TABLE curriculum_subjects ADD COLUMN credits DECIMAL(3,1) DEFAULT 3.0');
+      }
+      if (!csColNames.includes('status')) {
+        await pool.query("ALTER TABLE curriculum_subjects ADD COLUMN status ENUM('Active', 'Inactive') DEFAULT 'Active'");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on curriculum_subjects columns:', colErr.message);
+    }
+
     // 13. Attendance header table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance (
