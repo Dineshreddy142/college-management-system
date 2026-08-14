@@ -198,17 +198,178 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 11.b Subject Categories Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed 7 standard subject categories
+    const initialCategories = [
+      { name: 'FOUNDATION / BASIC', code: 'FOUNDATION', description: 'Basic Sciences, Engineering Mathematics, and Communication Foundation subjects' },
+      { name: 'CORE', code: 'CORE', description: 'Essential core discipline subjects required for the program' },
+      { name: 'PROFESSIONAL / CORE ELECTIVE', code: 'PROFESSIONAL_ELECTIVE', description: 'Specialized departmental elective choices' },
+      { name: 'OPEN ELECTIVE', code: 'OPEN_ELECTIVE', description: 'Interdisciplinary elective subjects offered across departments' },
+      { name: 'LABORATORY / PRACTICAL', code: 'LABORATORY', description: 'Practical, hands-on lab sessions and experimental subjects' },
+      { name: 'PROJECT / INTERNSHIP', code: 'PROJECT', description: 'Mini projects, major capstone projects, and industry internships' },
+      { name: 'VALUE-ADDED / SKILL', code: 'VALUE_ADDED', description: 'Soft skills, aptitude, coding practice, and professional ethics' }
+    ];
+
+    for (const cat of initialCategories) {
+      await pool.query(
+        `INSERT INTO subject_categories (name, code, description)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE description = VALUES(description)`,
+        [cat.name, cat.code, cat.description]
+      );
+    }
+
     // 12. Subjects table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS subjects (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
         code VARCHAR(20) NOT NULL UNIQUE,
+        name VARCHAR(100) NOT NULL,
+        short_name VARCHAR(50) NULL,
+        category_id INT NULL,
         department_id INT NULL,
+        course_id INT NULL,
+        academic_year_id INT NULL,
         semester_id INT NULL,
+        regulation_id INT NULL,
+        regulation VARCHAR(50) NULL,
         credits DECIMAL(3,1) DEFAULT 3.0,
+        lecture_hours INT DEFAULT 3,
+        tutorial_hours INT DEFAULT 0,
+        practical_hours INT DEFAULT 0,
+        theory_hours INT DEFAULT 3,
+        lab_hours INT DEFAULT 0,
+        total_hours INT DEFAULT 3,
+        internal_marks INT DEFAULT 40,
+        external_marks INT DEFAULT 60,
+        total_marks INT DEFAULT 100,
+        passing_marks INT DEFAULT 40,
+        offering_type ENUM('Theory', 'Practical', 'Theory + Practical') DEFAULT 'Theory',
+        elective_group VARCHAR(100) NULL,
+        prerequisite TEXT NULL,
+        description TEXT NULL,
+        status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL,
         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
         FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
+      )
+    `);
+
+    // Ensure columns exist on pre-existing subjects table
+    try {
+      const [sCols] = await pool.query('DESCRIBE subjects');
+      const sColNames = sCols.map(c => c.Field);
+      
+      if (!sColNames.includes('short_name')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN short_name VARCHAR(50) NULL AFTER name');
+      }
+      if (!sColNames.includes('category_id')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN category_id INT NULL AFTER short_name');
+        try {
+          await pool.query('ALTER TABLE subjects ADD CONSTRAINT fk_subjects_category FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL');
+        } catch (e) {}
+      }
+      if (!sColNames.includes('course_id')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN course_id INT NULL AFTER department_id');
+      }
+      if (!sColNames.includes('academic_year_id')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN academic_year_id INT NULL AFTER course_id');
+      }
+      if (!sColNames.includes('regulation_id')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN regulation_id INT NULL AFTER semester_id');
+      }
+      if (!sColNames.includes('regulation')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN regulation VARCHAR(50) NULL AFTER regulation_id');
+      }
+      if (!sColNames.includes('lecture_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN lecture_hours INT DEFAULT 3 AFTER credits');
+      }
+      if (!sColNames.includes('practical_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN practical_hours INT DEFAULT 0 AFTER tutorial_hours');
+      }
+      if (!sColNames.includes('total_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN total_hours INT DEFAULT 3 AFTER practical_hours');
+      }
+      if (!sColNames.includes('internal_marks')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN internal_marks INT DEFAULT 40 AFTER total_hours');
+      }
+      if (!sColNames.includes('external_marks')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN external_marks INT DEFAULT 60 AFTER internal_marks');
+      }
+      if (!sColNames.includes('total_marks')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN total_marks INT DEFAULT 100 AFTER external_marks');
+      }
+      if (!sColNames.includes('passing_marks')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN passing_marks INT DEFAULT 40 AFTER total_marks');
+      }
+      if (!sColNames.includes('offering_type')) {
+        await pool.query("ALTER TABLE subjects ADD COLUMN offering_type ENUM('Theory', 'Practical', 'Theory + Practical') DEFAULT 'Theory' AFTER passing_marks");
+      }
+      if (!sColNames.includes('elective_group')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN elective_group VARCHAR(100) NULL AFTER offering_type');
+      }
+      if (!sColNames.includes('prerequisite')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN prerequisite TEXT NULL AFTER elective_group');
+      }
+
+      // Default category for legacy subjects if missing
+      const [coreCategory] = await pool.query('SELECT id FROM subject_categories WHERE code = "CORE" LIMIT 1');
+      if (coreCategory.length > 0) {
+        await pool.query('UPDATE subjects SET category_id = ? WHERE category_id IS NULL', [coreCategory[0].id]);
+      }
+
+      // Add indexes for performance optimization
+      const indexesToEnsure = [
+        { name: 'idx_subjects_code', col: 'code' },
+        { name: 'idx_subjects_department', col: 'department_id' },
+        { name: 'idx_subjects_course', col: 'course_id' },
+        { name: 'idx_subjects_semester', col: 'semester_id' },
+        { name: 'idx_subjects_category', col: 'category_id' },
+        { name: 'idx_subjects_academic_year', col: 'academic_year_id' }
+      ];
+
+      for (const idx of indexesToEnsure) {
+        try {
+          await pool.query(`CREATE INDEX ${idx.name} ON subjects (${idx.col})`);
+        } catch (e) {}
+      }
+
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on subjects columns:', colErr.message);
+    }
+
+    // 12.b Program Subjects Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS program_subjects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        program_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        semester_id INT NULL,
+        academic_year_id INT NULL,
+        category_id INT NULL,
+        is_elective TINYINT(1) DEFAULT 0,
+        elective_group VARCHAR(100) NULL,
+        status ENUM('Active', 'Inactive') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (program_id) REFERENCES courses(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+        FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL
       )
     `);
 

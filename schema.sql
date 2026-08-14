@@ -138,29 +138,76 @@ CREATE TABLE sections (
     FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
 );
 
+CREATE TABLE subject_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE subjects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
+    short_name VARCHAR(50) NULL,
+    category_id INT NULL,
     department_id INT,
     course_id INT,
     academic_year_id INT,
-    semester_id INT NOT NULL,
-    credits DECIMAL(3,1) DEFAULT 0,
-    theory_hours INT DEFAULT 0,
-    lab_hours INT DEFAULT 0,
+    semester_id INT,
+    regulation_id INT NULL,
+    regulation VARCHAR(50),
+    credits DECIMAL(3,1) DEFAULT 3.0,
+    lecture_hours INT DEFAULT 3,
     tutorial_hours INT DEFAULT 0,
-    regulation VARCHAR(20),
-    batch VARCHAR(20),
+    practical_hours INT DEFAULT 0,
+    theory_hours INT DEFAULT 3,
+    lab_hours INT DEFAULT 0,
+    total_hours INT DEFAULT 3,
+    internal_marks INT DEFAULT 40,
+    external_marks INT DEFAULT 60,
+    total_marks INT DEFAULT 100,
+    passing_marks INT DEFAULT 40,
+    offering_type ENUM('Theory', 'Practical', 'Theory + Practical') DEFAULT 'Theory',
+    elective_group VARCHAR(100) NULL,
+    prerequisite TEXT NULL,
     description TEXT,
     course_outcomes TEXT,
     program_outcomes TEXT,
-    status ENUM('Active', 'Archived') DEFAULT 'Active',
+    status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active',
     subject_type ENUM('Core', 'Elective', 'Lab', 'Mini Project', 'Project', 'Internship', 'Open Elective', 'Skill Development', 'Language') DEFAULT 'Core',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL,
     FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
-    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
+    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+    INDEX idx_subjects_code (code),
+    INDEX idx_subjects_department (department_id),
+    INDEX idx_subjects_course (course_id),
+    INDEX idx_subjects_semester (semester_id),
+    INDEX idx_subjects_category (category_id),
+    INDEX idx_subjects_academic_year (academic_year_id)
+);
+
+CREATE TABLE program_subjects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    program_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    semester_id INT NULL,
+    academic_year_id INT NULL,
+    category_id INT NULL,
+    is_elective TINYINT(1) DEFAULT 0,
+    elective_group VARCHAR(100) NULL,
+    status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (program_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+    FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL
 );
 
 -- 3. Faculty & Classrooms
