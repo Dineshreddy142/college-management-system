@@ -481,6 +481,53 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Note on curriculum_subjects columns:', colErr.message);
     }
 
+    // 12.f Subject Allocations Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_allocations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        department_id INT NULL,
+        course_id INT NULL,
+        regulation_id INT NULL,
+        curriculum_id INT NULL,
+        academic_year_id INT NULL,
+        semester_id INT NULL,
+        section_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        faculty_id INT NOT NULL,
+        weekly_hours INT DEFAULT 3,
+        academic_session VARCHAR(50) NULL,
+        start_date DATE NULL,
+        end_date DATE NULL,
+        status ENUM('Active', 'Pending Approval', 'Archived') DEFAULT 'Active',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE SET NULL,
+        FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE SET NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+        FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Ensure columns exist on pre-existing subject_allocations table
+    try {
+      const [saCols] = await pool.query('DESCRIBE subject_allocations');
+      const saColNames = saCols.map(c => c.Field);
+      if (!saColNames.includes('regulation_id')) {
+        await pool.query('ALTER TABLE subject_allocations ADD COLUMN regulation_id INT NULL AFTER course_id');
+      }
+      if (!saColNames.includes('curriculum_id')) {
+        await pool.query('ALTER TABLE subject_allocations ADD COLUMN curriculum_id INT NULL AFTER regulation_id');
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on subject_allocations columns:', colErr.message);
+    }
+
     // 13. Attendance header table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance (

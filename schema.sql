@@ -317,6 +317,8 @@ CREATE TABLE subject_allocations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     department_id INT,
     course_id INT,
+    regulation_id INT NULL,
+    curriculum_id INT NULL,
     academic_year_id INT,
     semester_id INT,
     section_id INT NOT NULL,
