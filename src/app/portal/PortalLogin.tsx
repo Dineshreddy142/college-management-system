@@ -155,7 +155,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
       if (res.data && res.data.success) {
         const { token, user } = res.data.data;
         login(token, user);
-        handleNavigateDashboard(user.role);
+        handleNavigateDashboard(user.role, user.must_change_password);
       } else {
         setError(res.data?.message || 'Registration failed.');
       }
@@ -173,7 +173,11 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     }
   };
 
-  const handleNavigateDashboard = (userRole: string) => {
+  const handleNavigateDashboard = (userRole: string, mustChangePassword?: boolean) => {
+    if (mustChangePassword) {
+      navigate('/force-change-password');
+      return;
+    }
     const rawRole = (userRole || effectiveRole || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
     const roleMap: Record<string, string> = {
       admin: 'admin',
@@ -195,7 +199,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const handleFaceSuccess = (data: { token: string; user: any }) => {
     login(data.token, data.user);
     setShowFaceAuth(false);
-    handleNavigateDashboard(data.user.role);
+    handleNavigateDashboard(data.user.role, data.user.must_change_password);
   };
 
   // Request Authenticator Code via Email
@@ -256,7 +260,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
         localStorage.setItem('remembered_user', targetIdentifier);
       }
 
-      handleNavigateDashboard(user.role);
+      handleNavigateDashboard(user.role, user.must_change_password);
     } catch (err: any) {
       const errData = err.response?.data || {};
       if (errData.accountLocked) {
@@ -300,7 +304,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
         localStorage.removeItem('remembered_user');
       }
 
-      handleNavigateDashboard(user.role);
+      handleNavigateDashboard(user.role, user.must_change_password);
     } catch (err: any) {
       const errData = err.response?.data || {};
       if (errData.accountLocked) {

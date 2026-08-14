@@ -24,6 +24,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
+  // Force first-time password reset check
+  if (user?.must_change_password && location.pathname !== '/force-change-password') {
+    return <Navigate to="/force-change-password" replace />;
+  }
+
   if (allowedRole && user?.role) {
     const userRoleNorm = user.role.toLowerCase().replace(/[^a-z0-9]/g, '');
     const allowedRoleNorm = allowedRole.toLowerCase().replace(/[^a-z0-9]/g, '');

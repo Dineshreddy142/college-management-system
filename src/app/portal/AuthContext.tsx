@@ -8,6 +8,7 @@ type User = {
   full_name?: string;
   email: string;
   role: string;
+  must_change_password?: boolean;
 };
 
 type AuthContextType = {
@@ -16,6 +17,7 @@ type AuthContextType = {
   settings: Record<string, string>;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (updatedFields: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   refetchSettings: () => Promise<void>;
@@ -79,8 +81,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const updated = { ...prevUser, ...updatedFields };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, settings, login, logout, isAuthenticated: !!user, isLoading, refetchSettings: fetchSettings }}>
+    <AuthContext.Provider value={{ user, token, settings, login, logout, updateUser, isAuthenticated: !!user, isLoading, refetchSettings: fetchSettings }}>
       {children}
     </AuthContext.Provider>
   );

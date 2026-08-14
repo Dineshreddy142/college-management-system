@@ -162,7 +162,8 @@ router.post('/login', async (req, res) => {
                 name: displayName,
                 full_name: displayName,
                 email: user.email, 
-                role: user.role_name 
+                role: user.role_name,
+                must_change_password: Boolean(user.must_change_password)
             } 
         });
     } catch (error) {
@@ -375,7 +376,7 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
         let rows;
         try {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.full_name, u.email, r.name as role_name
+                `SELECT u.id, u.username, u.full_name, u.email, u.must_change_password, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -383,7 +384,7 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
             );
         } catch (colErr) {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.email, r.name as role_name
+                `SELECT u.id, u.username, u.email, u.must_change_password, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -400,11 +401,82 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
                 name: displayName,
                 full_name: displayName,
                 email: user.email, 
-                role: user.role_name 
+                role: user.role_name,
+                must_change_password: Boolean(user.must_change_password)
             } 
         });
     } catch (error) {
          return errorResponse(res, 'Internal Server Error', [error.message], 500);
+    }
+});
+
+// Mandatory / Standard Password Change Endpoint (Logged In User)
+router.post('/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        if (!currentPassword || !newPassword) {
+            return errorResponse(res, 'Current password and new password are required.', [], 400);
+        }
+
+        if (newPassword.length < 6) {
+            return errorResponse(res, 'New password must be at least 6 characters long.', [], 400);
+        }
+
+        if (currentPassword === newPassword) {
+            return errorResponse(res, 'New password must be different from current password.', [], 400);
+        }
+
+        const [rows] = await pool.execute(
+            `SELECT u.id, u.username, u.password, u.email, u.full_name, r.name as role_name
+             FROM users u 
+             JOIN roles r ON u.role_id = r.id 
+             WHERE u.id = ?`, 
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            return errorResponse(res, 'User account not found.', [], 404);
+        }
+
+        const user = rows[0];
+
+        let isCurrentValid = false;
+        if (user.password && user.password.startsWith('$2')) {
+            isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+        } else {
+            isCurrentValid = (user.password === currentPassword);
+        }
+
+        if (!isCurrentValid) {
+            return errorResponse(res, 'Incorrect current password. Please verify and try again.', [], 400);
+        }
+
+        const newHash = await bcrypt.hash(newPassword, 10);
+        await pool.execute(
+            'UPDATE users SET password = ?, must_change_password = 0 WHERE id = ?',
+            [newHash, userId]
+        );
+
+        await logActivity(userId, 'PASSWORD_CHANGE_SUCCESS', 'User updated password successfully.');
+
+        const displayName = user.full_name || user.username || 'User';
+
+        return successResponse(res, 'Password changed successfully. You may now access your dashboard.', {
+            user: {
+                id: user.id,
+                username: user.username,
+                name: displayName,
+                full_name: displayName,
+                email: user.email,
+                role: user.role_name,
+                must_change_password: false
+            }
+        });
+    } catch (error) {
+        console.error('Password change error:', error);
+        return errorResponse(res, 'Internal Server Error while changing password.', [error.message], 500);
     }
 });
 

@@ -152,7 +152,7 @@ app.post('/api/students', authenticateToken, authorizeRole(['Admin', 'HOD']), as
     const roleId = roleRows[0].id;
     
     const [userRes] = await conn.execute(
-      'INSERT INTO users (username, password, email, role_id) VALUES (?, ?, ?, ?)',
+      'INSERT INTO users (username, password, email, role_id, must_change_password) VALUES (?, ?, ?, ?, 1)',
       [admission_number, password || 'Student@123', email, roleId]
     );
     

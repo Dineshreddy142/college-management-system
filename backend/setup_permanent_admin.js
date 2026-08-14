@@ -36,7 +36,7 @@ async function setupPermanentAdmin() {
     console.log(`User exists with ID: ${adminUserId}. Updating to permanent Admin status...`);
     await conn.query(
       `UPDATE users 
-       SET password = ?, role_id = ?, status = 'active', full_name = COALESCE(full_name, ?), email = ?, username = ?
+       SET password = ?, role_id = ?, status = 'active', must_change_password = 0, full_name = COALESCE(full_name, ?), email = ?, username = ?
        WHERE id = ?`,
       [hashedPassword, adminRoleId, adminFullName, adminEmail, adminUsername, adminUserId]
     );
@@ -44,8 +44,8 @@ async function setupPermanentAdmin() {
   } else {
     console.log('User does not exist. Creating new permanent Admin account...');
     const [result] = await conn.query(
-      `INSERT INTO users (username, full_name, email, password, role_id, status)
-       VALUES (?, ?, ?, ?, ?, 'active')`,
+      `INSERT INTO users (username, full_name, email, password, role_id, status, must_change_password)
+       VALUES (?, ?, ?, ?, ?, 'active', 0)`,
       [adminUsername, adminFullName, adminEmail, hashedPassword, adminRoleId]
     );
     adminUserId = result.insertId;

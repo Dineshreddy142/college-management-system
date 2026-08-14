@@ -5,6 +5,7 @@ import { ProtectedRoute } from './portal/ProtectedRoute';
 import { PortalLogin } from './portal/PortalLogin';
 import { PasswordReset } from './portal/PasswordReset';
 import { UpdateEmail } from './portal/UpdateEmail';
+import { ForcePasswordChange } from './portal/ForcePasswordChange';
 import { AccessDenied, NotFound } from './portal/ErrorPages';
 import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
@@ -2141,6 +2142,7 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/:role/update-email" element={<UpdateEmail />} />
           <Route path="/:role/change-email" element={<UpdateEmail />} />
           <Route path="/access-denied" element={<AccessDenied />} />
+          <Route path="/force-change-password" element={<ProtectedRoute><ForcePasswordChange /></ProtectedRoute>} />
           
           {/* Protected Dashboards */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />

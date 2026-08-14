@@ -25,6 +25,7 @@ export async function initializeDatabase() {
         email VARCHAR(100) NOT NULL UNIQUE,
         role_id INT,
         status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+        must_change_password TINYINT(1) DEFAULT 1,
         face_registered TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -32,12 +33,15 @@ export async function initializeDatabase() {
       )
     `);
 
-    // Ensure full_name column exists for pre-existing tables
+    // Ensure full_name and must_change_password columns exist for pre-existing tables
     try {
       const [uCols] = await pool.query('DESCRIBE users');
       const uColNames = uCols.map(c => c.Field);
       if (!uColNames.includes('full_name')) {
         await pool.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER username');
+      }
+      if (!uColNames.includes('must_change_password')) {
+        await pool.query('ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) DEFAULT 1 AFTER status');
       }
     } catch (colErr) {
       console.warn('[DATABASE INIT] Note on users columns:', colErr.message);
