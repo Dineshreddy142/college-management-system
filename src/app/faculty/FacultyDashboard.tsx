@@ -18,6 +18,8 @@ import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { MentorDashboardModule } from "./mentor/MentorDashboardModule";
 import { BulkDataHub } from "../admin/bulk/BulkDataHub";
 
+import { FacultyAttendanceMarking } from "./FacultyAttendanceMarking";
+
 export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
@@ -28,7 +30,7 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "bulk-data": return <BulkDataHub defaultTab="attendance" />;
       case "mentor": return <MentorDashboardModule />;
       case "classes": return <ClassesModule />;
-      case "attendance": return <AttendanceModule />;
+      case "attendance": return <FacultyAttendanceMarking />;
       case "assignments": return <AssignmentsModule />;
       case "exams": return <ExamsModule />;
       case "marks": return <ExamsModule />; // Combined for simplicity

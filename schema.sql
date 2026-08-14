@@ -867,4 +867,63 @@ CREATE TABLE registration_periods (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Attendance Sessions Table
+CREATE TABLE attendance_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timetable_entry_id INT NULL,
+    subject_id INT NOT NULL,
+    faculty_id INT NOT NULL,
+    section_id INT NOT NULL,
+    academic_year_id INT NULL,
+    semester_id INT NULL,
+    date DATE NOT NULL,
+    time_slot_id INT NULL,
+    room_id INT NULL,
+    status ENUM('SCHEDULED', 'OPEN', 'SUBMITTED', 'LOCKED', 'CANCELLED') DEFAULT 'SCHEDULED',
+    cancellation_reason VARCHAR(255) NULL,
+    opened_at DATETIME NULL,
+    submitted_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+);
+
+-- Attendance Records Table
+CREATE TABLE attendance_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    attendance_session_id INT NOT NULL,
+    student_id INT NOT NULL,
+    status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED') DEFAULT 'PRESENT',
+    verification_method ENUM('MANUAL', 'FACE', 'QR', 'OTHER') DEFAULT 'MANUAL',
+    marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    marked_by INT NULL,
+    UNIQUE KEY uq_session_student (attendance_session_id, student_id),
+    FOREIGN KEY (attendance_session_id) REFERENCES attendance_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+-- Attendance Corrections Table
+CREATE TABLE attendance_corrections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    attendance_record_id INT NOT NULL,
+    old_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED'),
+    new_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED'),
+    reason TEXT NOT NULL,
+    changed_by INT NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (attendance_record_id) REFERENCES attendance_records(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Attendance Settings Table
+CREATE TABLE attendance_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    minimum_percentage DECIMAL(5,2) DEFAULT 75.00,
+    warning_threshold DECIMAL(5,2) DEFAULT 80.00,
+    faculty_edit_window_hours INT DEFAULT 48,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 

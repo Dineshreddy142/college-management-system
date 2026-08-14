@@ -9,6 +9,7 @@ import { CurriculumManager } from "./CurriculumManager";
 import { AcademicCalendar } from "./AcademicCalendar";
 import { PromotionSystem } from "./PromotionSystem";
 import { AdminRegistrationControl } from "../registration-control/AdminRegistrationControl";
+import { HODAdminAttendanceDashboard } from "../attendance-dashboard/HODAdminAttendanceDashboard";
 
 export function AcademicManagement() {
   const [activeTab, setActiveTab] = useState("structure");
@@ -18,6 +19,7 @@ export function AcademicManagement() {
       case "structure": return <AcademicStructure />;
       case "curriculum": return <CurriculumManager />;
       case "registration": return <AdminRegistrationControl />;
+      case "attendance-control": return <HODAdminAttendanceDashboard />;
       case "calendar": return <AcademicCalendar />;
       case "promotions": return <PromotionSystem />;
       case "subjects": return <SubjectMaster />;
@@ -34,6 +36,7 @@ export function AcademicManagement() {
           { id: "structure", label: "Academic Structure", icon: <Layers size={16} /> },
           { id: "curriculum", label: "Curriculum", icon: <BookOpen size={16} /> },
           { id: "registration", label: "Student Registration", icon: <UserPlus size={16} /> },
+          { id: "attendance-control", label: "Attendance Control", icon: <BarChart size={16} /> },
           { id: "calendar", label: "Calendar & Events", icon: <CalendarDays size={16} /> },
           { id: "promotions", label: "Promotions", icon: <TrendingUp size={16} /> },
           { id: "subjects", label: "Subject Master", icon: <BookOpen size={16} /> },
