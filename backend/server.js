@@ -27,6 +27,7 @@ import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import curriculumRoutes from './routes/curriculumRoutes.js';
 import facultyAssignmentRoutes from './routes/facultyAssignmentRoutes.js';
+import studentRegistrationRoutes from './routes/studentRegistrationRoutes.js';
 import { initializeDatabase } from './init_db.js';
 
 dotenv.config();
@@ -86,13 +87,14 @@ app.use('/api/parent', authenticateToken, authorizeRole(['Admin', 'Parent']), pa
 // --- MENTOR ROUTES ---
 app.use('/api/mentor', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), mentorRouter);
 
-// --- ACADEMIC, SUBJECT, CURRICULUM & FACULTY ASSIGNMENT ROUTES ---
+// --- ACADEMIC, SUBJECT, CURRICULUM, FACULTY ASSIGNMENT & STUDENT REGISTRATION ROUTES ---
 app.use('/api', subjectRoutes);
 app.use('/api/academic', subjectRoutes);
 app.use('/api', curriculumRoutes);
 app.use('/api/academic', curriculumRoutes);
 app.use('/api', facultyAssignmentRoutes);
 app.use('/api/academic', facultyAssignmentRoutes);
+app.use('/api', studentRegistrationRoutes);
 app.use('/api/academic', authenticateToken, authorizeRole(['Admin', 'HOD']), academicRouter);
 
 // --- TIMETABLE ROUTES ---

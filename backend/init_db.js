@@ -120,6 +120,12 @@ export async function initializeDatabase() {
       if (!stColNames.includes('academic_year_id')) {
         await pool.query('ALTER TABLE students ADD COLUMN academic_year_id INT NULL AFTER section_id');
       }
+      if (!stColNames.includes('department_id')) {
+        await pool.query('ALTER TABLE students ADD COLUMN department_id INT NULL AFTER last_name');
+      }
+      if (!stColNames.includes('semester')) {
+        await pool.query('ALTER TABLE students ADD COLUMN semester INT DEFAULT 1 AFTER department_id');
+      }
     } catch (colErr) {
       console.warn('[DATABASE INIT] Note on students columns:', colErr.message);
     }
@@ -526,6 +532,55 @@ export async function initializeDatabase() {
       }
     } catch (colErr) {
       console.warn('[DATABASE INIT] Note on subject_allocations columns:', colErr.message);
+    }
+
+    // 12.g Student Subject Registrations Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_subject_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        curriculum_id INT NULL,
+        semester_id INT NULL,
+        academic_year_id INT NULL,
+        section_id INT NULL,
+        registration_type ENUM('MANDATORY', 'ELECTIVE', 'LABORATORY', 'PROJECT', 'INTERNSHIP', 'SKILL') DEFAULT 'MANDATORY',
+        elective_group VARCHAR(100) NULL,
+        status ENUM('REGISTERED', 'DROPPED', 'CANCELLED', 'COMPLETED') DEFAULT 'REGISTERED',
+        registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_student_subject_sem (student_id, subject_id, semester_id, academic_year_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE SET NULL,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
+        FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 12.h Registration Periods Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS registration_periods (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        department_id INT NULL,
+        course_id INT NULL,
+        regulation_id INT NULL,
+        semester_id INT NULL,
+        academic_year_id INT NULL,
+        status ENUM('NOT_OPEN', 'OPEN', 'CLOSED') DEFAULT 'OPEN',
+        start_date DATE NULL,
+        end_date DATE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed default open registration period if table is empty
+    const [regPeriods] = await pool.query('SELECT id FROM registration_periods LIMIT 1');
+    if (regPeriods.length === 0) {
+      await pool.query(
+        "INSERT INTO registration_periods (status, start_date, end_date) VALUES ('OPEN', CURRENT_DATE(), DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY))"
+      );
     }
 
     // 13. Attendance header table

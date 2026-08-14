@@ -44,6 +44,7 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "dashboard": return <DashboardHome />;
       case "profile": return <ProfileModule />;
       case "attendance": return <AttendanceModule />;
+      case "my-subjects": return <AcademicsModule />;
       case "academics": return <AcademicsModule />;
       case "timetable": return <TimetableModule />;
       case "assignments": return <AssignmentsModule />;
