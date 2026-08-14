@@ -1194,6 +1194,347 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 20.a Library Branches Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_branches (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL UNIQUE,
+        location VARCHAR(200) NULL,
+        building VARCHAR(100) NULL,
+        floor VARCHAR(50) NULL,
+        contact VARCHAR(50) NULL,
+        opening_time TIME DEFAULT '08:00:00',
+        closing_time TIME DEFAULT '20:00:00',
+        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'
+      )
+    `);
+
+    const [lBranches] = await pool.query('SELECT id FROM library_branches LIMIT 1');
+    if (lBranches.length === 0) {
+      await pool.query(`
+        INSERT INTO library_branches (name, location, building, floor, contact) VALUES
+        ('Central Library', 'Main Campus Ground Floor', 'Main Academic Building', 'Ground Floor', '+91-9876543210'),
+        ('Central Digital Library', 'Tech Block 2nd Floor', 'Science & Tech Block', '2nd Floor', '+91-9876543211'),
+        ('CSE Department Library', 'CSE Wing 3rd Floor', 'Engineering Block A', '3rd Floor', '+91-9876543212')
+      `);
+    }
+
+    // 20.b Library Sections Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_sections (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        branch_id INT NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        code VARCHAR(50) NOT NULL,
+        FOREIGN KEY (branch_id) REFERENCES library_branches(id) ON DELETE CASCADE
+      )
+    `);
+
+    const [lSecs] = await pool.query('SELECT id FROM library_sections LIMIT 1');
+    if (lSecs.length === 0) {
+      const [b1] = await pool.query('SELECT id FROM library_branches ORDER BY id ASC LIMIT 1');
+      const branchId = b1[0]?.id || 1;
+      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (1, ?, "Computer Science", "SEC-CSE")', [branchId]);
+      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (2, ?, "Electronics & Tech", "SEC-ECE")', [branchId]);
+      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (3, ?, "General Reference", "SEC-REF")', [branchId]);
+    }
+
+    // 20.c Library Shelves Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_shelves (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        section_id INT NOT NULL,
+        shelf_code VARCHAR(50) NOT NULL UNIQUE,
+        shelf_name VARCHAR(100) NOT NULL,
+        capacity INT DEFAULT 150,
+        FOREIGN KEY (section_id) REFERENCES library_sections(id) ON DELETE CASCADE
+      )
+    `);
+
+    const [lShelves] = await pool.query('SELECT id FROM library_shelves LIMIT 1');
+    if (lShelves.length === 0) {
+      const [s1] = await pool.query('SELECT id FROM library_sections ORDER BY id ASC LIMIT 1');
+      const secId = s1[0]?.id || 1;
+      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (1, ?, "CSE-A-12", "Database & OS Shelf", 150)', [secId]);
+      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (2, ?, "CSE-B-04", "Programming & Algorithms Shelf", 150)', [secId]);
+      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (3, ?, "ECE-A-01", "Digital Electronics Shelf", 150)', [secId]);
+    }
+
+    // 20.d Book Categories Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS book_categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        code VARCHAR(50) NULL,
+        description TEXT NULL
+      )
+    `);
+
+    try {
+      const [catCols] = await pool.query('DESCRIBE book_categories');
+      const catNames = catCols.map(c => c.Field);
+      if (!catNames.includes('code')) {
+        await pool.query('ALTER TABLE book_categories ADD COLUMN code VARCHAR(50) NULL AFTER name');
+      }
+      if (!catNames.includes('description')) {
+        await pool.query('ALTER TABLE book_categories ADD COLUMN description TEXT NULL AFTER code');
+      }
+    } catch (cErr) {}
+
+    const [bCats] = await pool.query('SELECT id FROM book_categories LIMIT 1');
+    if (bCats.length === 0) {
+      await pool.query(`
+        INSERT INTO book_categories (name, code, description) VALUES
+        ('Computer Science', 'CS', 'Computer Science & Software Engineering'),
+        ('Database Management', 'DBMS', 'Database Systems & Data Modeling'),
+        ('Operating Systems', 'OS', 'OS Design & Kernel Systems'),
+        ('Artificial Intelligence', 'AI', 'Machine Learning & Neural Networks'),
+        ('Electronics & Hardware', 'ECE', 'Digital Circuits & Microprocessors')
+      `);
+    }
+
+    // 20.e Authors Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS authors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        biography TEXT NULL,
+        country VARCHAR(100) NULL
+      )
+    `);
+
+    const [bAuths] = await pool.query('SELECT id FROM authors LIMIT 1');
+    if (bAuths.length === 0) {
+      await pool.query(`
+        INSERT INTO authors (name, biography, country) VALUES
+        ('Abraham Silberschatz', 'Co-author of Database System Concepts & OS Concepts', 'USA'),
+        ('Henry F. Korth', 'Professor of CS at Lehigh University', 'USA'),
+        ('S. Sudarshan', 'Professor of CS at IIT Bombay', 'India'),
+        ('Robert C. Martin', 'Author of Clean Code and Agile Principles', 'USA')
+      `);
+    }
+
+    // 20.f Publishers Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS publishers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL UNIQUE,
+        contact VARCHAR(100) NULL,
+        website VARCHAR(200) NULL
+      )
+    `);
+
+    const [bPubs] = await pool.query('SELECT id FROM publishers LIMIT 1');
+    if (bPubs.length === 0) {
+      await pool.query(`
+        INSERT INTO publishers (name, contact, website) VALUES
+        ('McGraw-Hill Education', 'contact@mcgraw-hill.com', 'https://www.mheducation.com'),
+        ('Prentice Hall / Pearson', 'info@pearson.com', 'https://www.pearson.com'),
+        ('O Reilly Media', 'support@oreilly.com', 'https://www.oreilly.com')
+      `);
+    }
+
+    // 20.g Books Table (Bibliographic Entry)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS books (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        isbn VARCHAR(50) NOT NULL UNIQUE,
+        title VARCHAR(255) NOT NULL,
+        subtitle VARCHAR(255) NULL,
+        edition VARCHAR(50) NULL,
+        language VARCHAR(50) DEFAULT 'English',
+        category_id INT NOT NULL,
+        publisher_id INT NULL,
+        publication_year INT NULL,
+        pages INT NULL,
+        description TEXT NULL,
+        shelf_id INT NULL,
+        branch_id INT NULL,
+        status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES book_categories(id),
+        FOREIGN KEY (publisher_id) REFERENCES publishers(id),
+        FOREIGN KEY (shelf_id) REFERENCES library_shelves(id),
+        FOREIGN KEY (branch_id) REFERENCES library_branches(id)
+      )
+    `);
+
+    try {
+      const [bkCols] = await pool.query('DESCRIBE books');
+      const bkNames = bkCols.map(c => c.Field);
+      if (!bkNames.includes('subtitle')) {
+        await pool.query('ALTER TABLE books ADD COLUMN subtitle VARCHAR(255) NULL AFTER title');
+      }
+      if (!bkNames.includes('edition')) {
+        await pool.query('ALTER TABLE books ADD COLUMN edition VARCHAR(50) NULL AFTER subtitle');
+      }
+      if (!bkNames.includes('language')) {
+        await pool.query("ALTER TABLE books ADD COLUMN language VARCHAR(50) DEFAULT 'English' AFTER edition");
+      }
+      if (!bkNames.includes('publisher_id')) {
+        await pool.query('ALTER TABLE books ADD COLUMN publisher_id INT NULL AFTER category_id');
+      }
+      if (!bkNames.includes('publication_year')) {
+        await pool.query('ALTER TABLE books ADD COLUMN publication_year INT NULL AFTER publisher_id');
+      }
+      if (!bkNames.includes('pages')) {
+        await pool.query('ALTER TABLE books ADD COLUMN pages INT NULL AFTER publication_year');
+      }
+      if (!bkNames.includes('description')) {
+        await pool.query('ALTER TABLE books ADD COLUMN description TEXT NULL AFTER pages');
+      }
+      if (!bkNames.includes('shelf_id')) {
+        await pool.query('ALTER TABLE books ADD COLUMN shelf_id INT NULL AFTER description');
+      }
+      if (!bkNames.includes('branch_id')) {
+        await pool.query('ALTER TABLE books ADD COLUMN branch_id INT NULL AFTER shelf_id');
+      }
+      if (!bkNames.includes('status')) {
+        await pool.query("ALTER TABLE books ADD COLUMN status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE' AFTER branch_id");
+      }
+      await pool.query('ALTER TABLE books MODIFY COLUMN author VARCHAR(100) NULL');
+    } catch (bkErr) {
+      console.error('Migration error for books:', bkErr);
+    }
+
+    // 20.h Book Authors Table (Many-to-Many)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS book_authors (
+        book_id INT NOT NULL,
+        author_id INT NOT NULL,
+        PRIMARY KEY (book_id, author_id),
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 20.i Book Copies Table (Physical Copies)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS book_copies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        book_id INT NOT NULL,
+        accession_number VARCHAR(100) NOT NULL UNIQUE,
+        barcode VARCHAR(100) NOT NULL UNIQUE,
+        branch_id INT NOT NULL,
+        shelf_id INT NULL,
+        purchase_date DATE NULL,
+        purchase_price DECIMAL(10,2) NULL,
+        item_condition ENUM('NEW', 'GOOD', 'FAIR', 'DAMAGED', 'LOST') DEFAULT 'GOOD',
+        status ENUM('AVAILABLE', 'ISSUED', 'RESERVED', 'LOST', 'DAMAGED', 'MAINTENANCE', 'WITHDRAWN') DEFAULT 'AVAILABLE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (branch_id) REFERENCES library_branches(id),
+        FOREIGN KEY (shelf_id) REFERENCES library_shelves(id)
+      )
+    `);
+
+    const [bBooks] = await pool.query('SELECT id FROM books LIMIT 1');
+    if (bBooks.length === 0) {
+      const [insB1] = await pool.query(`
+        INSERT INTO books (isbn, title, subtitle, edition, category_id, publisher_id, publication_year, shelf_id, branch_id, description)
+        VALUES ('978-0078022159', 'Database System Concepts', '7th Edition', '7th', 2, 1, 2019, 1, 1, 'Comprehensive reference for relational databases, SQL, and indexing.')
+      `);
+      const book1Id = insB1.insertId;
+      await pool.query('INSERT IGNORE INTO book_authors (book_id, author_id) VALUES (?, 1), (?, 2), (?, 3)', [book1Id, book1Id, book1Id]);
+
+      await pool.query(`
+        INSERT INTO book_copies (book_id, accession_number, barcode, branch_id, shelf_id, status) VALUES
+        (?, 'DBMS-001', 'BC-DBMS-001', 1, 1, 'AVAILABLE'),
+        (?, 'DBMS-002', 'BC-DBMS-002', 1, 1, 'AVAILABLE'),
+        (?, 'DBMS-003', 'BC-DBMS-003', 1, 1, 'AVAILABLE')
+      `, [book1Id, book1Id, book1Id]);
+
+      const [insB2] = await pool.query(`
+        INSERT INTO books (isbn, title, subtitle, edition, category_id, publisher_id, publication_year, shelf_id, branch_id, description)
+        VALUES ('978-0132350884', 'Clean Code: A Handbook of Agile Software Craftsmanship', '1st Edition', '1st', 1, 2, 2008, 2, 1, 'Agile software development principles and clean code practices.')
+      `);
+      const book2Id = insB2.insertId;
+      await pool.query('INSERT IGNORE INTO book_authors (book_id, author_id) VALUES (?, 4)', [book2Id]);
+
+      await pool.query(`
+        INSERT INTO book_copies (book_id, accession_number, barcode, branch_id, shelf_id, status) VALUES
+        (?, 'CC-001', 'BC-CC-001', 1, 2, 'AVAILABLE'),
+        (?, 'CC-002', 'BC-CC-002', 1, 2, 'AVAILABLE')
+      `, [book2Id, book2Id]);
+    }
+
+    // 20.j Library Members Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_members (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        member_type ENUM('STUDENT', 'FACULTY', 'STAFF') DEFAULT 'STUDENT',
+        issue_limit INT DEFAULT 5,
+        loan_period_days INT DEFAULT 14,
+        status ENUM('ACTIVE', 'SUSPENDED', 'EXPIRED') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 20.k Library Issues Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_issues (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        copy_id INT NOT NULL,
+        book_id INT NOT NULL,
+        member_id INT NOT NULL,
+        user_id INT NOT NULL,
+        issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        due_date DATETIME NOT NULL,
+        return_date DATETIME NULL,
+        issued_by INT NULL,
+        returned_by INT NULL,
+        renew_count INT DEFAULT 0,
+        fine_amount DECIMAL(10,2) DEFAULT 0.00,
+        status ENUM('ISSUED', 'RETURNED', 'OVERDUE', 'LOST') DEFAULT 'ISSUED',
+        FOREIGN KEY (copy_id) REFERENCES book_copies(id),
+        FOREIGN KEY (book_id) REFERENCES books(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // 20.l Library Reservations Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS library_reservations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        book_id INT NOT NULL,
+        user_id INT NOT NULL,
+        request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expiry_date DATETIME NULL,
+        queue_position INT DEFAULT 1,
+        status ENUM('WAITING', 'READY', 'FULFILLED', 'CANCELLED', 'EXPIRED') DEFAULT 'WAITING',
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 20.m Digital Resources Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS digital_resources (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        resource_type ENUM('EBOOK', 'RESEARCH_PAPER', 'JOURNAL', 'PDF', 'VIDEO', 'ONLINE') DEFAULT 'EBOOK',
+        author VARCHAR(150) NULL,
+        publisher VARCHAR(150) NULL,
+        url_or_file VARCHAR(500) NOT NULL,
+        category_id INT NULL,
+        description TEXT NULL,
+        access_level ENUM('PUBLIC', 'STUDENT', 'FACULTY', 'STAFF', 'ADMIN') DEFAULT 'STUDENT',
+        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const [dRes] = await pool.query('SELECT id FROM digital_resources LIMIT 1');
+    if (dRes.length === 0) {
+      await pool.query(`
+        INSERT INTO digital_resources (title, resource_type, author, url_or_file, description, access_level) VALUES
+        ('Introduction to Algorithms & Data Structures E-Book', 'EBOOK', 'Thomas H. Cormen', 'https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/', 'Complete open courseware & textbook reference for algorithms.', 'STUDENT'),
+        ('Distributed Systems Architecture Research Paper', 'RESEARCH_PAPER', 'Leslie Lamport', 'https://lamport.azurewebsites.net/pubs/time-clocks.pdf', 'Foundational paper on logical clocks and process ordering.', 'FACULTY')
+      `);
+    }
+
     // 8. Face Embeddings table (AES-256-GCM Secure Storage)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS face_embeddings (

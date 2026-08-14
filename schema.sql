@@ -1220,6 +1220,173 @@ CREATE TABLE fines (
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
+-- Library Branches Table
+CREATE TABLE library_branches (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    location VARCHAR(200) NULL,
+    building VARCHAR(100) NULL,
+    floor VARCHAR(50) NULL,
+    contact VARCHAR(50) NULL,
+    opening_time TIME DEFAULT '08:00:00',
+    closing_time TIME DEFAULT '20:00:00',
+    status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'
+);
+
+-- Library Sections Table
+CREATE TABLE library_sections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    branch_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    FOREIGN KEY (branch_id) REFERENCES library_branches(id) ON DELETE CASCADE
+);
+
+-- Library Shelves Table
+CREATE TABLE library_shelves (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    section_id INT NOT NULL,
+    shelf_code VARCHAR(50) NOT NULL UNIQUE,
+    shelf_name VARCHAR(100) NOT NULL,
+    capacity INT DEFAULT 150,
+    FOREIGN KEY (section_id) REFERENCES library_sections(id) ON DELETE CASCADE
+);
+
+-- Book Categories Table
+CREATE TABLE book_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT NULL
+);
+
+-- Authors Table
+CREATE TABLE authors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    biography TEXT NULL,
+    country VARCHAR(100) NULL
+);
+
+-- Publishers Table
+CREATE TABLE publishers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    contact VARCHAR(100) NULL,
+    website VARCHAR(200) NULL
+);
+
+-- Books Table (Bibliographic Entry)
+CREATE TABLE books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    isbn VARCHAR(50) NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    subtitle VARCHAR(255) NULL,
+    edition VARCHAR(50) NULL,
+    language VARCHAR(50) DEFAULT 'English',
+    category_id INT NOT NULL,
+    publisher_id INT NULL,
+    publication_year INT NULL,
+    pages INT NULL,
+    description TEXT NULL,
+    shelf_id INT NULL,
+    branch_id INT NULL,
+    status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES book_categories(id),
+    FOREIGN KEY (publisher_id) REFERENCES publishers(id),
+    FOREIGN KEY (shelf_id) REFERENCES library_shelves(id),
+    FOREIGN KEY (branch_id) REFERENCES library_branches(id)
+);
+
+-- Book Authors Table (Many-to-Many)
+CREATE TABLE book_authors (
+    book_id INT NOT NULL,
+    author_id INT NOT NULL,
+    PRIMARY KEY (book_id, author_id),
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE
+);
+
+-- Book Copies Table (Physical Copies)
+CREATE TABLE book_copies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+    accession_number VARCHAR(100) NOT NULL UNIQUE,
+    barcode VARCHAR(100) NOT NULL UNIQUE,
+    branch_id INT NOT NULL,
+    shelf_id INT NULL,
+    purchase_date DATE NULL,
+    purchase_price DECIMAL(10,2) NULL,
+    item_condition ENUM('NEW', 'GOOD', 'FAIR', 'DAMAGED', 'LOST') DEFAULT 'GOOD',
+    status ENUM('AVAILABLE', 'ISSUED', 'RESERVED', 'LOST', 'DAMAGED', 'MAINTENANCE', 'WITHDRAWN') DEFAULT 'AVAILABLE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    FOREIGN KEY (branch_id) REFERENCES library_branches(id),
+    FOREIGN KEY (shelf_id) REFERENCES library_shelves(id)
+);
+
+-- Library Members Table
+CREATE TABLE library_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    member_type ENUM('STUDENT', 'FACULTY', 'STAFF') DEFAULT 'STUDENT',
+    issue_limit INT DEFAULT 5,
+    loan_period_days INT DEFAULT 14,
+    status ENUM('ACTIVE', 'SUSPENDED', 'EXPIRED') DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Library Issues Table
+CREATE TABLE library_issues (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    copy_id INT NOT NULL,
+    book_id INT NOT NULL,
+    member_id INT NOT NULL,
+    user_id INT NOT NULL,
+    issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    due_date DATETIME NOT NULL,
+    return_date DATETIME NULL,
+    issued_by INT NULL,
+    returned_by INT NULL,
+    renew_count INT DEFAULT 0,
+    fine_amount DECIMAL(10,2) DEFAULT 0.00,
+    status ENUM('ISSUED', 'RETURNED', 'OVERDUE', 'LOST') DEFAULT 'ISSUED',
+    FOREIGN KEY (copy_id) REFERENCES book_copies(id),
+    FOREIGN KEY (book_id) REFERENCES books(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Library Reservations Table
+CREATE TABLE library_reservations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+    user_id INT NOT NULL,
+    request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expiry_date DATETIME NULL,
+    queue_position INT DEFAULT 1,
+    status ENUM('WAITING', 'READY', 'FULFILLED', 'CANCELLED', 'EXPIRED') DEFAULT 'WAITING',
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Digital Resources Table
+CREATE TABLE digital_resources (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    resource_type ENUM('EBOOK', 'RESEARCH_PAPER', 'JOURNAL', 'PDF', 'VIDEO', 'ONLINE') DEFAULT 'EBOOK',
+    author VARCHAR(150) NULL,
+    publisher VARCHAR(150) NULL,
+    url_or_file VARCHAR(500) NOT NULL,
+    category_id INT NULL,
+    description TEXT NULL,
+    access_level ENUM('PUBLIC', 'STUDENT', 'FACULTY', 'STAFF', 'ADMIN') DEFAULT 'STUDENT',
+    status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 
 
 

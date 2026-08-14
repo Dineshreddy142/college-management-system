@@ -12,6 +12,7 @@ import { AdminRegistrationControl } from "../registration-control/AdminRegistrat
 import { HODAdminAttendanceDashboard } from "../attendance-dashboard/HODAdminAttendanceDashboard";
 import { AdminExamResultsManagement } from "../exam-management/AdminExamResultsManagement";
 import { AdminFinanceManagement } from "../finance/AdminFinanceManagement";
+import { AdminLibraryManagement } from "../library/AdminLibraryManagement";
 
 export function AcademicManagement() {
   const [activeTab, setActiveTab] = useState("structure");
@@ -24,6 +25,7 @@ export function AcademicManagement() {
       case "attendance-control": return <HODAdminAttendanceDashboard />;
       case "exam-results": return <AdminExamResultsManagement />;
       case "fees": return <AdminFinanceManagement />;
+      case "library": return <AdminLibraryManagement />;
       case "calendar": return <AcademicCalendar />;
       case "promotions": return <PromotionSystem />;
       case "subjects": return <SubjectMaster />;
@@ -43,6 +45,7 @@ export function AcademicManagement() {
           { id: "attendance-control", label: "Attendance Control", icon: <BarChart size={16} /> },
           { id: "exam-results", label: "Exam & Results", icon: <BarChart size={16} /> },
           { id: "fees", label: "Fee & Finance", icon: <BarChart size={16} /> },
+          { id: "library", label: "Library Management", icon: <BookOpen size={16} /> },
           { id: "calendar", label: "Calendar & Events", icon: <CalendarDays size={16} /> },
           { id: "promotions", label: "Promotions", icon: <TrendingUp size={16} /> },
           { id: "subjects", label: "Subject Master", icon: <BookOpen size={16} /> },
