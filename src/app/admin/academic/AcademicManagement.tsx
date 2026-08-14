@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, UserPlus, BarChart, Structure, CalendarDays, TrendingUp, Layers } from "lucide-react";
+import { BookOpen, UserPlus, BarChart, CalendarDays, TrendingUp, Layers } from "lucide-react";
 import { cn } from "../../App";
 import { SubjectMaster } from "./SubjectMaster";
 import { AllocationManager } from "./AllocationManager";

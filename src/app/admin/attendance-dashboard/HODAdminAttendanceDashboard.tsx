@@ -189,7 +189,7 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
             Attendance Administration & Shortage Control
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Department attendance overview, shortage list (< 75%), session cancellations, and authorized corrections audit.
+            Department attendance overview, shortage list (&lt; 75%), session cancellations, and authorized corrections audit.
           </p>
         </div>
 
