@@ -35,6 +35,13 @@ async function updateSchema() {
     await conn.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER username;');
   }
 
+  // Add must_change_password if missing
+  const hasMustChangePass = cols.some(c => c.Field === 'must_change_password');
+  if (!hasMustChangePass) {
+    console.log('Adding must_change_password column to users...');
+    await conn.query('ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) DEFAULT 1 AFTER status;');
+  }
+
   console.log('Updated columns:');
   const [updatedCols] = await conn.query('DESCRIBE users;');
   console.table(updatedCols);

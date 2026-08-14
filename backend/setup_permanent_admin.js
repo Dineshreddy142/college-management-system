@@ -27,6 +27,20 @@ async function setupPermanentAdmin() {
   const hashedPassword = await bcrypt.hash(adminRawPassword, 10);
   console.log('✔ Password hashed successfully (Bcrypt starting with $2)');
 
+  // Ensure columns exist on TiDB database
+  try {
+    const [uCols] = await conn.query('DESCRIBE users');
+    const uColNames = uCols.map(c => c.Field);
+    if (!uColNames.includes('full_name')) {
+      await conn.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER username');
+    }
+    if (!uColNames.includes('must_change_password')) {
+      await conn.query('ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) DEFAULT 1 AFTER status');
+    }
+  } catch (colErr) {
+    console.warn('Note on users table schema:', colErr.message);
+  }
+
   console.log(`3. Checking if ${adminEmail} already exists...`);
   const [existing] = await conn.query('SELECT id, username, email, role_id, status FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?', [adminEmail.toLowerCase(), adminUsername.toLowerCase()]);
 
