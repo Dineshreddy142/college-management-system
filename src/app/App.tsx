@@ -14,6 +14,7 @@ import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
 import { IndoorMapModule } from "./admin/indoor-map/IndoorMapModule";
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
+import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, DollarSign,
@@ -773,15 +774,55 @@ function AdminMentorManagement() {
 }
 
 function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [liveFaculty, setLiveFaculty] = useState<any[]>([]);
+
+  const fetchFaculty = useCallback(async () => {
+    try {
+      const res = await client.get('/academic/available-faculty');
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setLiveFaculty(res.data.data);
+      }
+    } catch (e) {
+      console.warn("Could not fetch live faculty:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFaculty();
+  }, [fetchFaculty]);
+
+  const displayList = liveFaculty.length > 0
+    ? liveFaculty.map(f => ({
+        id: f.id || f.employee_id,
+        name: f.name || f.full_name,
+        designation: f.designation || 'Faculty Member',
+        dept: f.department_name || f.dept || 'Engineering',
+        status: f.status || 'Active',
+        experience: f.experience || 5,
+        subjects: f.subjects || ['Core Academics']
+      }))
+    : FACULTY;
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Faculty" value="142" change="+5 this year" changeType="up" icon={<Users size={19} />} color="blue" />
+        <StatCard title="Total Faculty" value={String(displayList.length)} change="+5 this year" changeType="up" icon={<Users size={19} />} color="blue" />
         <StatCard title="Departments" value="12" subtitle="Across all schools" icon={<Building size={19} />} color="indigo" />
         <StatCard title="On Leave" value="8" subtitle="5.6% of total" icon={<Clock size={19} />} color="amber" />
         <StatCard title="Avg Experience" value="11.4 yrs" subtitle="Per faculty member" icon={<Award size={19} />} color="green" />
       </div>
+
       <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setIsBulkModalOpen(true)}
+          className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+        >
+          <FileSpreadsheet size={14} />
+          <span>Bulk Upload Faculty (.XLSX)</span>
+        </button>
+
         {onGoBulk && (
           <button
             type="button"
@@ -789,12 +830,13 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
             className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
           >
             <FileSpreadsheet size={14} />
-            <span>Bulk Faculty Onboarding (.XLSX)</span>
+            <span>Open Bulk Data Hub</span>
           </button>
         )}
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FACULTY.map(f => (
+        {displayList.map(f => (
           <Card key={f.id} className="p-5" hover>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -814,7 +856,7 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
                 <Award size={11} /><span>{f.experience} years experience</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <BookOpen size={11} /><span className="truncate">{f.subjects.join(", ")}</span>
+                <BookOpen size={11} /><span className="truncate">{Array.isArray(f.subjects) ? f.subjects.join(", ") : f.subjects}</span>
               </div>
             </div>
             <div className="flex gap-2 mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
@@ -825,6 +867,14 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
           </Card>
         ))}
       </div>
+
+      <FacultyBulkUploadModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={() => {
+          fetchFaculty();
+        }}
+      />
     </div>
   );
 }
