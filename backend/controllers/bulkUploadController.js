@@ -53,15 +53,40 @@ async function getStudentsColumns(conn) {
 /**
  * Helper to ensure department, academic_year, course, semester and section records exist
  */
-async function ensureAcademicHierarchy(conn, deptName = 'Computer Science', semNumber = 1) {
   // 1. Ensure Department
-  let [deptRows] = await conn.query('SELECT id FROM departments WHERE LOWER(name) = ? OR LOWER(code) = ?', [deptName.toLowerCase(), deptName.toLowerCase()]);
+  const cleanedDeptName = (deptName || 'Computer Science').trim();
+  const searchPattern = `%${cleanedDeptName.toLowerCase()}%`;
+
+  let [deptRows] = await conn.query(
+    `SELECT id FROM departments
+     WHERE LOWER(name) = ? OR LOWER(code) = ? OR LOWER(name) LIKE ? OR ? LIKE CONCAT('%', LOWER(code), '%')
+     ORDER BY id ASC LIMIT 1`,
+    [cleanedDeptName.toLowerCase(), cleanedDeptName.toLowerCase(), searchPattern, cleanedDeptName.toLowerCase()]
+  );
+
   let deptId;
   if (deptRows.length > 0) {
     deptId = deptRows[0].id;
   } else {
-    const code = deptName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 5) || 'CSE';
-    const [newDept] = await conn.query('INSERT INTO departments (name, code) VALUES (?, ?)', [deptName, code]);
+    // Generate guaranteed unique department code
+    let baseCode = cleanedDeptName
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .split(' ')
+      .filter(Boolean)
+      .map(w => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 10) || 'DEPT';
+
+    let code = baseCode;
+    let counter = 1;
+    while (true) {
+      const [cCheck] = await conn.query('SELECT id FROM departments WHERE LOWER(code) = ?', [code.toLowerCase()]);
+      if (cCheck.length === 0) break;
+      code = `${baseCode}${counter++}`;
+    }
+
+    const [newDept] = await conn.query('INSERT INTO departments (name, code) VALUES (?, ?)', [cleanedDeptName, code]);
     deptId = newDept.insertId;
   }
 
