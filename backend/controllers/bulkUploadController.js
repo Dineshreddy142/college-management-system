@@ -673,7 +673,7 @@ export async function importFaculty(req, res) {
       } else {
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const [newUser] = await conn.query(
-          'INSERT INTO users (username, full_name, email, password, role_id, status, must_change_password) VALUES (?, ?, ?, ?, ?, "active", 1)',
+          'INSERT INTO users (username, full_name, email, password, role_id, status) VALUES (?, ?, ?, ?, ?, "active")',
           [empId.toLowerCase(), fullName, email, hashedPassword, facultyRoleId]
         );
         userId = newUser.insertId;

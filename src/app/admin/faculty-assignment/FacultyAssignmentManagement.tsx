@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserCheck, Plus, RefreshCw, CheckCircle2, AlertCircle, Clock, BookOpen, Layers, ShieldCheck } from 'lucide-react';
+import { UserCheck, Plus, RefreshCw, CheckCircle2, AlertCircle, Clock, BookOpen, Layers, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 import client from '../../../api/client';
 import { FacultyAssignmentFilters } from './FacultyAssignmentFilters';
 import { FacultyAssignmentList, AssignmentItem } from './FacultyAssignmentList';
 import { FacultyAssignmentModal } from './FacultyAssignmentModal';
+import { FacultyBulkUploadModal } from './FacultyBulkUploadModal';
 
 export const FacultyAssignmentManagement: React.FC = () => {
   const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
@@ -28,6 +29,7 @@ export const FacultyAssignmentManagement: React.FC = () => {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<AssignmentItem | null>(null);
 
   // Toast state
@@ -238,6 +240,15 @@ export const FacultyAssignmentManagement: React.FC = () => {
             <RefreshCw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Refresh</span>
           </button>
+
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Bulk Upload Faculty</span>
+          </button>
+
           <button
             onClick={handleOpenAddModal}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20"
@@ -319,6 +330,16 @@ export const FacultyAssignmentManagement: React.FC = () => {
         semesters={semesters}
         sections={sections}
         faculties={faculties}
+      />
+
+      {/* Bulk Upload Modal */}
+      <FacultyBulkUploadModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={() => {
+          showToast('Faculty bulk import completed successfully.');
+          fetchAvailableFaculty();
+        }}
       />
 
     </div>
