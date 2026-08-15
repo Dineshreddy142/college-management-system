@@ -76,7 +76,25 @@ export function BulkDataHub({ defaultTab = "students" }: { defaultTab?: TabType 
         const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
         if (json.length > 0) {
-          setHeaders(Object.keys(json[0]));
+          const rawHeaders = Object.keys(json[0]);
+          const normHeaders = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+          // Check mismatch between active tab and uploaded sheet content
+          const isFacultySheet = normHeaders.some(h => h.includes('employeeid') || h.includes('empid') || h.includes('designation')) ||
+            json.some((r: any) => {
+              const roleVal = String(r.role || r.Role || r.ROLE || r.designation || r.Designation || '').toLowerCase();
+              return roleVal.includes('faculty') || roleVal.includes('hod') || roleVal.includes('professor');
+            });
+
+          const isStudentSheet = normHeaders.some(h => h.includes('rollnumber') || h.includes('rollno') || h.includes('semester')) && !normHeaders.some(h => h.includes('employeeid') || h.includes('empid'));
+
+          if (activeTab === 'students' && isFacultySheet) {
+            setUploadError("Invalid File: You uploaded a Faculty/HOD spreadsheet under the 'Student Onboarding & Logins' tab. Please switch to the 'Faculty & Allocations' tab to import faculty.");
+          } else if (activeTab === 'faculty' && isStudentSheet) {
+            setUploadError("Invalid File: You uploaded a Student spreadsheet under the 'Faculty & Allocations' tab. Please switch to the 'Student Onboarding & Logins' tab to import students.");
+          }
+
+          setHeaders(rawHeaders);
           setPreviewRows(json.slice(0, 8)); // First 8 rows for preview
           setTotalRows(json.length);
         } else {
@@ -99,6 +117,10 @@ export function BulkDataHub({ defaultTab = "students" }: { defaultTab?: TabType 
   const handleUploadSubmit = async () => {
     if (!file) {
       setUploadError("Please choose an Excel file to import.");
+      return;
+    }
+
+    if (uploadError && uploadError.startsWith('Invalid File:')) {
       return;
     }
 

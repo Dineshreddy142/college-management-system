@@ -160,6 +160,27 @@ export async function importStudents(req, res) {
       return errorResponse(res, 'The uploaded Excel sheet is empty.', [], 400);
     }
 
+    // Strict validation: Reject Faculty/HOD spreadsheets uploaded under Students endpoint
+    const firstRowKeys = Object.keys(rawData[0] || {}).map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const isFacultySheet = firstRowKeys.some(k => k.includes('employeeid') || k.includes('empid') || k.includes('designation')) ||
+      rawData.some(r => {
+        const roleVal = String(r.role || r.Role || r.ROLE || r.designation || r.Designation || '').toLowerCase();
+        return roleVal.includes('faculty') || roleVal.includes('hod') || roleVal.includes('professor');
+      });
+
+    if (isFacultySheet) {
+      return errorResponse(res, 'Invalid File: This spreadsheet contains Faculty/HOD data, not Student data. Please switch to the "Faculty & Allocations" tab to import faculty.', [], 400);
+    }
+
+    const hasStudentIdentifier = rawData.some(r => {
+      const row = normalizeRow(r);
+      return row.roll_number || row.roll_no || row.rollno || row.admission_number || row.student_id;
+    });
+
+    if (!hasStudentIdentifier) {
+      return errorResponse(res, 'Invalid Student Roster file. Could not find Roll Number or Student ID column in the uploaded sheet.', [], 400);
+    }
+
     // Inspect columns of students table
     const stCols = await getStudentsColumns(conn);
 
@@ -652,6 +673,23 @@ export async function importFaculty(req, res) {
 
     if (rawData.length === 0) {
       return errorResponse(res, 'The uploaded faculty sheet is empty.', [], 400);
+    }
+
+    // Strict validation: Reject Student spreadsheets uploaded under Faculty endpoint
+    const firstRowKeys = Object.keys(rawData[0] || {}).map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const isStudentSheet = (firstRowKeys.some(k => k.includes('rollnumber') || k.includes('rollno') || k.includes('semester')) && !firstRowKeys.some(k => k.includes('employeeid') || k.includes('empid')));
+
+    if (isStudentSheet) {
+      return errorResponse(res, 'Invalid File: This spreadsheet contains Student data, not Faculty data. Please switch to the "Student Onboarding & Logins" tab to import students.', [], 400);
+    }
+
+    const hasFacultyIdentifier = rawData.some(r => {
+      const row = normalizeRow(r);
+      return row.employee_id || row.emp_id || row.faculty_id;
+    });
+
+    if (!hasFacultyIdentifier) {
+      return errorResponse(res, 'Invalid Faculty Roster file. Could not find Employee ID column in the uploaded sheet.', [], 400);
     }
 
     const [roleRows] = await conn.query('SELECT id FROM roles WHERE LOWER(name) = "faculty"');
