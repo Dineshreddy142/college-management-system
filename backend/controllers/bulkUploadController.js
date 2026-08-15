@@ -53,6 +53,7 @@ async function getStudentsColumns(conn) {
 /**
  * Helper to ensure department, academic_year, course, semester and section records exist
  */
+async function ensureAcademicHierarchy(conn, deptName = 'Computer Science', semNumber = 1) {
   // 1. Ensure Department
   const cleanedDeptName = (deptName || 'Computer Science').trim();
   const searchPattern = `%${cleanedDeptName.toLowerCase()}%`;
