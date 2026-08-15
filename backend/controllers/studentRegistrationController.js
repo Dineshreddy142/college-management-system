@@ -133,7 +133,7 @@ export const getStudentCurriculumSubjects = async (req, res) => {
     const electiveSubjects = mappedSubjects.filter(s => s.is_elective);
 
     // Group electives by group name
-    const electiveGroupsMap: Record<string, any> = {};
+    const electiveGroupsMap = {};
     electiveSubjects.forEach(sub => {
       const groupName = sub.elective_group || 'Professional Elective I';
       if (!electiveGroupsMap[groupName]) {
@@ -231,7 +231,7 @@ export const validateElectiveSelection = async (req, res) => {
     `);
 
     // Enforce group validation (1 selection per group)
-    const groups: Record<string, number> = {};
+    const groups = {};
     selectedIds.forEach(id => {
       const el = electives.find(e => e.subject_id === Number(id));
       const groupName = el?.elective_group || 'Default Elective Group';
