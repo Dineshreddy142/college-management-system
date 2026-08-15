@@ -110,21 +110,23 @@ const BOOKS = [
 // DESIGN SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────
 
-type BadgeVariant = "default" | "success" | "warning" | "danger" | "info" | "indigo";
+type BadgeVariant = "default" | "success" | "warning" | "danger" | "error" | "info" | "indigo" | "purple";
 
-export function Badge({ children, variant = "default", size = "md" }: {
-  children: React.ReactNode; variant?: BadgeVariant; size?: "sm" | "md";
+export function Badge({ children, variant = "default", size = "md", className = "" }: {
+  children: React.ReactNode; variant?: BadgeVariant; size?: "sm" | "md"; className?: string;
 }) {
   const v = {
     default: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
     success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     warning: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     danger: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    error: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     info: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+    purple: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   };
   const s = { sm: "px-1.5 py-0.5 text-xs rounded-md", md: "px-2.5 py-0.5 text-xs rounded-lg" };
-  return <span className={cn("inline-flex items-center font-medium", v[variant], s[size])}>{children}</span>;
+  return <span className={cn("inline-flex items-center font-medium", v[variant] || v.default, s[size], className)}>{children}</span>;
 }
 
 export function Card({ children, className = "", hover = false, onClick }: {
@@ -149,7 +151,7 @@ export function Avatar({ name, size = "md" }: { name: string; size?: "xs" | "sm"
   );
 }
 
-export type StatColor = "blue" | "green" | "amber" | "red" | "indigo" | "cyan";
+export type StatColor = "blue" | "green" | "emerald" | "amber" | "red" | "indigo" | "cyan" | "purple";
 
 export function StatCard({ title, value, change, changeType, icon, color = "blue", subtitle }: {
   title: string; value: string | number; change?: string; changeType?: "up" | "down";
@@ -158,28 +160,32 @@ export function StatCard({ title, value, change, changeType, icon, color = "blue
   const colors: Record<StatColor, { bg: string; ic: string }> = {
     blue: { bg: "bg-blue-50 dark:bg-blue-900/20", ic: "text-blue-600 dark:text-blue-400" },
     green: { bg: "bg-emerald-50 dark:bg-emerald-900/20", ic: "text-emerald-600 dark:text-emerald-400" },
+    emerald: { bg: "bg-emerald-50 dark:bg-emerald-900/20", ic: "text-emerald-600 dark:text-emerald-400" },
     amber: { bg: "bg-amber-50 dark:bg-amber-900/20", ic: "text-amber-600 dark:text-amber-400" },
     red: { bg: "bg-red-50 dark:bg-red-900/20", ic: "text-red-600 dark:text-red-400" },
     indigo: { bg: "bg-indigo-50 dark:bg-indigo-900/20", ic: "text-indigo-600 dark:text-indigo-400" },
     cyan: { bg: "bg-cyan-50 dark:bg-cyan-900/20", ic: "text-cyan-600 dark:text-cyan-400" },
+    purple: { bg: "bg-purple-50 dark:bg-purple-900/20", ic: "text-purple-600 dark:text-purple-400" },
   };
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{title}</p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1 truncate">{value}</p>
-          {subtitle && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{subtitle}</p>}
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-1">{value}</h3>
+          {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
           {change && (
-            <div className={cn("flex items-center gap-1 mt-1.5 text-xs font-medium",
-              changeType === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-              {changeType === "up" ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-              {change}
+            <div className="flex items-center gap-1 mt-2">
+              {changeType === "up" ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center gap-0.5">▲ {change}</span>
+              ) : (
+                <span className="text-rose-600 dark:text-rose-400 font-semibold text-xs flex items-center gap-0.5">▼ {change}</span>
+              )}
             </div>
           )}
         </div>
-        <div className={cn("p-3 rounded-2xl flex-shrink-0", colors[color].bg)}>
-          <div className={colors[color].ic}>{icon}</div>
+        <div className={cn("p-3 rounded-2xl flex-shrink-0", (colors[color] || colors.blue).bg)}>
+          <div className={(colors[color] || colors.blue).ic}>{icon}</div>
         </div>
       </div>
     </Card>
@@ -189,8 +195,8 @@ export function StatCard({ title, value, change, changeType, icon, color = "blue
 export function PBar({ value, max = 100, color = "blue" }: { value: number; max?: number; color?: StatColor }) {
   const pct = Math.min((value / max) * 100, 100);
   const colors: Record<StatColor, string> = {
-    blue: "bg-blue-600", green: "bg-emerald-500", amber: "bg-amber-500",
-    red: "bg-red-500", indigo: "bg-indigo-500", cyan: "bg-cyan-500",
+    blue: "bg-blue-600", green: "bg-emerald-500", emerald: "bg-emerald-500", amber: "bg-amber-500",
+    red: "bg-red-500", indigo: "bg-indigo-500", cyan: "bg-cyan-500", purple: "bg-purple-500",
   };
   return (
     <div className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">

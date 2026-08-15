@@ -352,7 +352,9 @@ export const StudentMySubjects: React.FC = () => {
                     <p className="font-bold text-slate-900 dark:text-white text-xs">{sub.subject_name}</p>
                     <p className="text-[10px] text-slate-500">{sub.mapped_credits} Credits • {sub.is_lab ? 'Laboratory' : 'Core Theory'}</p>
                   </div>
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" title="Automatically Required" />
+                  <span title="Automatically Required">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  </span>
                 </div>
               ))}
             </div>
