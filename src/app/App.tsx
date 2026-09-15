@@ -1535,6 +1535,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
+      case "campus-map": return <CampusMap isAdmin={true} theme={theme as any} onToggleTheme={toggleTheme} onBackToDashboard={() => setMod("dashboard")} />;
 
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
@@ -1547,7 +1548,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       <Sidebar active={mod} onChange={setMod} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onNav={onNav} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopNav module={mod} theme={theme} toggleTheme={toggleTheme} collapsed={collapsed} onToggleSidebar={() => setCollapsed(!collapsed)} />
-        <main className="flex-1 overflow-y-auto p-5">{render()}</main>
+        <main className={cn("flex-1 min-w-0", mod === "campus-map" ? "overflow-hidden p-0" : "overflow-y-auto p-5")}>{render()}</main>
       </div>
     </div>
   );
