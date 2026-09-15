@@ -25,6 +25,7 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "documents", label: "Documents", icon: Folder, badge: null },
   { id: "complaints", label: "Complaints", icon: AlertCircle, badge: null },
   { id: "analytics", label: "Analytics", icon: TrendingUp, badge: null },
+  { id: "campus-map", label: "Campus Map", icon: Map, badge: "Virtual" },
   { id: "ai", label: "AI Assistant", icon: Zap, badge: "Beta" },
 ];
 

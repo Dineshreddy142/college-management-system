@@ -12,6 +12,8 @@ import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
+import { CampusMapEditor } from "./admin/campus-map/CampusMapEditor";
+import { CampusMap } from "./campus-map/CampusMap";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
@@ -250,6 +252,7 @@ const SIDEBAR_ITEMS = [
   { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: BookOpen, badge: null },
   { id: "placement", label: "Placement", icon: Briefcase, badge: "New" },
+  { id: "campus-map", label: "Campus Map", icon: Map, badge: "Editor" },
 
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
   { id: "settings", label: "Settings", icon: Settings, badge: null },
@@ -268,6 +271,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav }: {
     if (user?.role === 'Accountant') return ['dashboard', 'fees', 'reports', 'settings'].includes(item.id);
     if (user?.role === 'Librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (user?.role === 'Placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
+    // Campus Map is Admin-only (not included for other roles above)
     return true; // Default to all if unknown
   });
   return (
@@ -2191,6 +2195,8 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/:role/login" element={<PortalLogin />} />
           <Route path="/login/:role" element={<PortalLogin />} />
           <Route path="/login" element={<PortalLogin />} />
+          <Route path="/campus-map" element={<CampusMap isAdmin={false} theme={theme as any} onToggleTheme={toggleTheme} />} />
+          <Route path="/map" element={<Navigate to="/campus-map" replace />} />
           <Route path="/forgot-password" element={<PasswordReset />} />
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/update-email" element={<UpdateEmail />} />
