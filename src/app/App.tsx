@@ -12,7 +12,7 @@ import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
-import { IndoorMapModule } from "./admin/indoor-map/IndoorMapModule";
+
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
@@ -250,7 +250,7 @@ const SIDEBAR_ITEMS = [
   { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: BookOpen, badge: null },
   { id: "placement", label: "Placement", icon: Briefcase, badge: "New" },
-  { id: "indoor-map", label: "Indoor Floor Map", icon: Map, badge: "CAD" },
+
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
   { id: "settings", label: "Settings", icon: Settings, badge: null },
 ];
@@ -1531,7 +1531,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
-      case "indoor-map": return <IndoorMapModule />;
+
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
       default: return <DashboardHome />;

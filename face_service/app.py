@@ -107,7 +107,7 @@ def health_check():
         "model_version": MODEL_VERSION,
         "embedding_dim": EMBEDDING_DIM,
         "cached_vectors": len(IN_MEMORY_EMBEDDINGS),
-        "threshold": MATCH_THRESHOLD
+        "threshold": BIOMETRIC_MATCH_THRESHOLD
     }), 200
 
 @app.route('/liveness/challenge', methods=['POST', 'GET'])
