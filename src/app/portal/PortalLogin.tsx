@@ -325,13 +325,11 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <span>{config.icon}</span>
-                <span>{isRegisterMode ? `Create ${config.title.replace(' Login', '')} Account` : config.title}</span>
+                <span>{config.title}</span>
               </h2>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              {isRegisterMode
-                ? `Sign up with your credentials to access the ${config.title.replace(' Login', '')} portal.`
-                : 'Sign in with your password or use instant Face Biometrics.'}
+              Sign in with your password or use instant Face Biometrics.
             </p>
           </div>
 
