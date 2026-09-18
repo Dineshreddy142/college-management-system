@@ -142,9 +142,9 @@ export const UserControlModule: React.FC = () => {
             <Shield size={16} />
             <span>Security & Access Control</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Access & Biometrics Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Access Control</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Control user login permissions, block/unblock accounts, and manage 3D Face Biometric registrations.
+            Control user login permissions, block/unblock accounts, and manage institutional user security.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export const UserControlModule: React.FC = () => {
       </div>
 
       {/* Quick Summary Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Accounts</p>
@@ -187,16 +187,6 @@ export const UserControlModule: React.FC = () => {
           </div>
           <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
             <UserX size={20} />
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Face Biometrics Active</p>
-            <p className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">{faceRegisteredCount}</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-            <ScanFace size={20} />
           </div>
         </div>
       </div>
@@ -258,21 +248,10 @@ export const UserControlModule: React.FC = () => {
             <option value="active">Active Only</option>
             <option value="blocked">Blocked Only</option>
           </select>
-
-          {/* Face Biometrics Filter */}
-          <select
-            value={faceFilter}
-            onChange={e => setFaceFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">All Face Statuses</option>
-            <option value="registered">Face Registered</option>
-            <option value="none">Not Registered</option>
-          </select>
         </div>
       </div>
 
-      {/* User Records Table Container */}
+          {/* User Records Table Container */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto min-w-[700px]">
           <table className="w-full text-left border-collapse">
@@ -282,14 +261,13 @@ export const UserControlModule: React.FC = () => {
                 <th className="py-3.5 px-5">User / Account</th>
                 <th className="py-3.5 px-5">Role</th>
                 <th className="py-3.5 px-5">Login Access Status</th>
-                <th className="py-3.5 px-5">3D Face Biometrics</th>
                 <th className="py-3.5 px-5 text-right">Admin Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 size={24} className="animate-spin text-indigo-600" />
                       <span>Loading user security records...</span>
@@ -298,14 +276,13 @@ export const UserControlModule: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     No user accounts found matching your filters.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map(u => {
                   const isBlocked = u.status === 'blocked';
-                  const isFaceReg = u.face_registered === 1;
                   const isProcessingThis = actionUserId === u.id;
 
                   return (
@@ -338,20 +315,6 @@ export const UserControlModule: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Face Biometrics Badge */}
-                      <td className="py-4 px-5">
-                        {isFaceReg ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
-                            <ScanFace size={13} />
-                            <span>Registered</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400">
-                            <span>Not Enrolled</span>
-                          </span>
-                        )}
-                      </td>
-
                       {/* Admin Action Buttons */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -377,23 +340,6 @@ export const UserControlModule: React.FC = () => {
                               <>
                                 <Lock size={13} />
                                 <span>Block User</span>
-                              </>
-                            )}
-                          </button>
-
-                          {/* Reset Face Data Button */}
-                          <button
-                            onClick={() => handleResetFaceData(u)}
-                            disabled={isProcessingThis || !isFaceReg}
-                            className="px-3 py-1.5 rounded-xl font-semibold text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer"
-                            title={isFaceReg ? 'Reset stored face vector for this account' : 'No face template registered'}
-                          >
-                            {isProcessingThis && actionType === 'face' ? (
-                              <Loader2 size={13} className="animate-spin" />
-                            ) : (
-                              <>
-                                <RotateCcw size={13} />
-                                <span>Reset Face</span>
                               </>
                             )}
                           </button>

@@ -241,9 +241,9 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 
 const SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { id: "users", label: "User Access Control", icon: Shield, badge: "Block/Face" },
+  { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
   { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
-  { id: "profile", label: "Security & Face ID", icon: UserCheck, badge: "Biometrics" },
+  { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
   { id: "academic", label: "Academic & Subjects", icon: BookOpen, badge: "New" },
   { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
   { id: "faculty", label: "Faculty", icon: Users, badge: null },
@@ -544,7 +544,7 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">Active</span>
             </h2>
             <p className="text-xs text-indigo-200/80 mt-0.5">
-              Manage account login status, block/unblock users, and reset 3D Face Biometrics.
+              Manage account login status, block/unblock users, and control institutional user access.
             </p>
           </div>
         </div>

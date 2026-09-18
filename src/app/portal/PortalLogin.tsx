@@ -389,181 +389,75 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
           )}
 
           {/* Primary / Secondary Method Tabs — Show Face Biometrics ONLY on Mobile */}
-          {/* Primary / Secondary Method Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-6">
-            {/* Passkey Biometrics Tab */}
-            <button
-              type="button"
-              onClick={() => setLoginMethod('face')}
-              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                loginMethod === 'face'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ScanFace size={16} />
-              <span>Face / Biometric</span>
-            </button>
+          {/* Standard Password Login Form */}
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+              <input
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={config.placeholder}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                required
+              />
+            </div>
 
-            {/* Password Login Tab */}
-            <button
-              type="button"
-              onClick={() => setLoginMethod('password')}
-              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                loginMethod === 'password'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <KeyRound size={16} />
-              <span>Password</span>
-            </button>
-          </div>
-
-          {/* ============================================================ */}
-          {/* FACE / BIOMETRIC PASSKEY HERO CARD                           */}
-          {/* ============================================================ */}
-          {loginMethod === 'face' && (
-            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/60 to-blue-50/40 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 shadow-inner">
-                  <ScanFace size={36} />
-                </div>
-
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Passkey Biometric Sign-In
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
-                  Sign in instantly using your device native Face ID, Touch ID, Fingerprint, or PIN hardware.
-                </p>
-
-                <div className="w-full mt-4 text-left">
-                  <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
-                    College ID / Roll No / Email
-                  </label>
-                  <input
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={config.placeholder}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="w-full mt-5">
-                  <button
-                    type="button"
-                    onClick={() => setShowFaceAuth(true)}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2.5 cursor-pointer"
-                  >
-                    <ScanFace size={20} />
-                    <span>Login with Face / Biometric</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center text-xs">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                  required
+                />
                 <button
                   type="button"
-                  onClick={() => setLoginMethod('password')}
-                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  Sign in with standard password &rarr;
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-          )}
 
-          {/* ============================================================ */}
-          {/* ALTERNATIVE METHOD: PASSWORD LOGIN FORM                      */}
-          {/* ============================================================ */}
-          {loginMethod === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
-                <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={config.placeholder}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
-                  required
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
                 />
-              </div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
+              </label>
+              <Link 
+                to={`/forgot-password?role=${effectiveRole}`} 
+                className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
-                  />
-                  <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
-                </label>
-                <Link 
-                  to={`/forgot-password?role=${effectiveRole}`} 
-                  className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In with Password'}
-                </button>
-              </div>
-            </form>
-          )}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
+              </button>
+            </div>
+          </form>
 
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
             &copy; {new Date().getFullYear()} College Management System. All rights reserved.
           </div>
         </div>
       </div>
-
-      {/* SECURE WEBAUTHN PASSKEY BIOMETRIC MODAL */}
-      <PasskeyAuthModal
-        isOpen={showFaceAuth}
-        onClose={() => setShowFaceAuth(false)}
-        mode="login"
-        identifier={identifier}
-        onSuccess={(data) => {
-          login(data.token, data.user);
-          setShowFaceAuth(false);
-          handleNavigateDashboard(data.user.role, data.user.must_change_password);
-        }}
-        onFallbackToPassword={() => {
-          setShowFaceAuth(false);
-          setLoginMethod('password');
-        }}
-      />
     </div>
   );
 };
