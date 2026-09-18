@@ -20,20 +20,59 @@ async function seedBuildingsIfEmpty() {
     // Ensure display_order column exists on campus_floors
     try {
       await pool.execute('ALTER TABLE campus_floors ADD COLUMN display_order INT DEFAULT 0');
+    } catch (e) {}
+
+    // Ensure columns exist on campus_rooms
+    try {
+      await pool.execute('ALTER TABLE campus_rooms ADD COLUMN room_type VARCHAR(50) DEFAULT "Classroom"');
+    } catch (e) {}
+    try {
+      await pool.execute('ALTER TABLE campus_rooms ADD COLUMN shape VARCHAR(30) DEFAULT "rectangle"');
+    } catch (e) {}
+
+    // Ensure campus_room_types has at least one fallback entry
+    try {
+      const [typeRows] = await pool.execute('SELECT id FROM campus_room_types LIMIT 1');
+      if (typeRows.length === 0) {
+        await pool.execute(
+          'INSERT INTO campus_room_types (id, name, color, icon) VALUES (1, "Classroom", "#3B82F6", "book-open")'
+        );
+      }
+    } catch (e) {}
+
+    // Ensure floor_plan_objects table exists
+    try {
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS floor_plan_objects (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          floor_id INT NOT NULL,
+          object_type VARCHAR(100) NOT NULL,
+          name VARCHAR(150) NOT NULL,
+          x FLOAT NOT NULL DEFAULT 100,
+          y FLOAT NOT NULL DEFAULT 100,
+          width FLOAT NOT NULL DEFAULT 120,
+          height FLOAT NOT NULL DEFAULT 100,
+          rotation FLOAT NOT NULL DEFAULT 0,
+          shape VARCHAR(50) DEFAULT 'rectangle',
+          metadata JSON NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
+        )
+      `);
     } catch (e) {
-      // Column may already exist, ignore error
+      console.error('Error initializing floor_plan_objects table:', e.message);
     }
 
     const [rows] = await pool.execute('SELECT COUNT(*) as count FROM campus_buildings');
     if (rows[0].count === 0) {
-      console.log('Seeding initial campus buildings...');
+      console.log('Seeding initial campus buildings & floors...');
       for (const b of INITIAL_BUILDINGS) {
         const [res] = await pool.execute(
           'INSERT INTO campus_buildings (name, code, description, total_floors, status) VALUES (?, ?, ?, ?, ?)',
           [b.name, b.code, b.description, b.total_floors, b.status]
         );
         const bId = res.insertId;
-        // Generate floors for each building
         for (let i = 1; i <= b.total_floors; i++) {
           const floorName = i === 1 ? 'Ground Floor' : `${i - 1}${i === 2 ? 'st' : i === 3 ? 'nd' : i === 4 ? 'rd' : 'th'} Floor`;
           await pool.execute(
@@ -81,7 +120,6 @@ router.get('/buildings/:id', async (req, res) => {
     const [rows] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Building not found' });
     
-    // Also fetch floors for this building
     const [floors] = await pool.execute('SELECT * FROM campus_floors WHERE building_id = ? ORDER BY floor_number ASC', [id]);
     res.json({ ...rows[0], floors });
   } catch (err) {
@@ -101,7 +139,6 @@ router.post('/buildings', async (req, res) => {
     const numFloors = parseInt(total_floors) || 1;
     const bStatus = status || 'Active';
 
-    // Insert building
     const [result] = await pool.execute(
       'INSERT INTO campus_buildings (name, code, description, total_floors, status) VALUES (?, ?, ?, ?, ?)',
       [name, code.toUpperCase(), description || '', numFloors, bStatus]
@@ -109,7 +146,6 @@ router.post('/buildings', async (req, res) => {
 
     const buildingId = result.insertId;
 
-    // Create corresponding floor entries for this building
     for (let i = 1; i <= numFloors; i++) {
       const floorName = i === 1 ? 'Ground Floor' : `${i - 1}${i === 2 ? 'st' : i === 3 ? 'nd' : i === 4 ? 'rd' : 'th'} Floor`;
       await pool.execute(
@@ -202,7 +238,6 @@ router.post('/floors', async (req, res) => {
     const bId = parseInt(buildingId);
     const numFloor = parseInt(floorNumber);
 
-    // Validation: prevent duplicate floorNumber inside same building
     const [existing] = await pool.execute(
       'SELECT id FROM campus_floors WHERE building_id = ? AND floor_number = ?',
       [bId, numFloor]
@@ -243,7 +278,6 @@ router.put('/floors/:id', async (req, res) => {
     const bId = buildingId ? parseInt(buildingId) : existing[0].building_id;
     const newFloorNum = floorNumber !== undefined ? parseInt(floorNumber) : existing[0].floor_number;
 
-    // Check duplicate floor number if floor number changed
     if (newFloorNum !== existing[0].floor_number) {
       const [dups] = await pool.execute(
         'SELECT id FROM campus_floors WHERE building_id = ? AND floor_number = ? AND id != ?',
@@ -279,8 +313,6 @@ router.post('/floors/:id/duplicate', async (req, res) => {
     if (existing.length === 0) return res.status(404).json({ error: 'Floor to duplicate not found' });
 
     const original = existing[0];
-    
-    // Find next available floor number for this building
     const [maxFloor] = await pool.execute(
       'SELECT MAX(floor_number) as maxNum FROM campus_floors WHERE building_id = ?',
       [original.building_id]
@@ -317,6 +349,448 @@ router.delete('/floors/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting floor:', err);
     res.status(500).json({ error: 'Failed to delete floor: ' + err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOM MANAGEMENT ROUTES & PERSISTENCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/campus/floors/:floorId/rooms - Fetch rooms for floor
+router.get('/floors/:floorId/rooms', async (req, res) => {
+  try {
+    await seedBuildingsIfEmpty();
+    const { floorId } = req.params;
+    const [rooms] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        building_id as buildingId,
+        room_number as roomNumber, 
+        room_name as roomName, 
+        room_type as roomType, 
+        capacity, 
+        department, 
+        description, 
+        status, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM campus_rooms 
+      WHERE floor_id = ? 
+      ORDER BY id ASC
+    `, [floorId]);
+
+    res.json(rooms);
+  } catch (err) {
+    console.error('Error fetching rooms for floor:', err);
+    res.status(500).json({ error: 'Failed to fetch rooms' });
+  }
+});
+
+// POST /api/campus/floors/:floorId/rooms - Add new room to floor
+router.post('/floors/:floorId/rooms', async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const {
+      buildingId,
+      roomNumber,
+      roomName,
+      roomType,
+      capacity,
+      department,
+      description,
+      status,
+      x,
+      y,
+      width,
+      height,
+      rotation,
+      shape
+    } = req.body;
+
+    if (!roomNumber) {
+      return res.status(400).json({ error: 'Room Number is required' });
+    }
+
+    const fId = parseInt(floorId);
+    let bId = parseInt(buildingId);
+
+    // If buildingId not provided, lookup building_id from campus_floors
+    if (!bId) {
+      const [fRows] = await pool.execute('SELECT building_id FROM campus_floors WHERE id = ?', [fId]);
+      if (fRows.length > 0) bId = fRows[0].building_id;
+    }
+
+    const [resInsert] = await pool.execute(`
+      INSERT INTO campus_rooms (
+        building_id, floor_id, room_type_id, room_number, room_name, room_type, 
+        capacity, department, description, status, x, y, width, height, rotation, shape
+      ) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      bId || 1,
+      fId,
+      roomNumber.trim(),
+      (roomName || roomNumber).trim(),
+      roomType || 'Classroom',
+      parseInt(capacity) || 30,
+      department || 'General',
+      description || '',
+      status || 'Available',
+      parseFloat(x) || 40,
+      parseFloat(y) || 40,
+      parseFloat(width) || 200,
+      parseFloat(height) || 150,
+      parseFloat(rotation) || 0,
+      shape || 'rectangle'
+    ]);
+
+    const [newRoom] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        building_id as buildingId,
+        room_number as roomNumber, 
+        room_name as roomName, 
+        room_type as roomType, 
+        capacity, 
+        department, 
+        description, 
+        status, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM campus_rooms 
+      WHERE id = ?
+    `, [resInsert.insertId]);
+
+    res.status(201).json({ message: 'Room created successfully', room: newRoom[0] });
+  } catch (err) {
+    console.error('Error creating room:', err);
+    res.status(500).json({ error: 'Failed to create room: ' + err.message });
+  }
+});
+
+// PUT /api/campus/rooms/:id - Update existing room details and position
+router.put('/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      roomNumber,
+      roomName,
+      roomType,
+      capacity,
+      department,
+      description,
+      status,
+      x,
+      y,
+      width,
+      height,
+      rotation,
+      shape
+    } = req.body;
+
+    const [existing] = await pool.execute('SELECT * FROM campus_rooms WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Room not found' });
+
+    const cur = existing[0];
+
+    await pool.execute(`
+      UPDATE campus_rooms 
+      SET 
+        room_number = ?, 
+        room_name = ?, 
+        room_type = ?, 
+        capacity = ?, 
+        department = ?, 
+        description = ?, 
+        status = ?, 
+        x = ?, 
+        y = ?, 
+        width = ?, 
+        height = ?, 
+        rotation = ?, 
+        shape = ?
+      WHERE id = ?
+    `, [
+      roomNumber !== undefined ? String(roomNumber).trim() : cur.room_number,
+      roomName !== undefined ? String(roomName).trim() : cur.room_name,
+      roomType !== undefined ? String(roomType) : (cur.room_type || 'Classroom'),
+      capacity !== undefined ? parseInt(capacity) : cur.capacity,
+      department !== undefined ? String(department) : cur.department,
+      description !== undefined ? String(description) : cur.description,
+      status !== undefined ? String(status) : cur.status,
+      x !== undefined ? parseFloat(x) : cur.x,
+      y !== undefined ? parseFloat(y) : cur.y,
+      width !== undefined ? parseFloat(width) : cur.width,
+      height !== undefined ? parseFloat(height) : cur.height,
+      rotation !== undefined ? parseFloat(rotation) : cur.rotation,
+      shape !== undefined ? String(shape) : (cur.shape || 'rectangle'),
+      id
+    ]);
+
+    const [updated] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        building_id as buildingId,
+        room_number as roomNumber, 
+        room_name as roomName, 
+        room_type as roomType, 
+        capacity, 
+        department, 
+        description, 
+        status, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM campus_rooms 
+      WHERE id = ?
+    `, [id]);
+
+    res.json({ message: 'Room updated successfully', room: updated[0] });
+  } catch (err) {
+    console.error('Error updating room:', err);
+    res.status(500).json({ error: 'Failed to update room' });
+  }
+});
+
+// DELETE /api/campus/rooms/:id - Delete room
+router.delete('/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [existing] = await pool.execute('SELECT * FROM campus_rooms WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Room not found' });
+
+    await pool.execute('DELETE FROM campus_rooms WHERE id = ?', [id]);
+    res.json({ message: 'Room deleted successfully', id: parseInt(id) });
+  } catch (err) {
+    console.error('Error deleting room:', err);
+    res.status(500).json({ error: 'Failed to delete room: ' + err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FACILITY OBJECT ROUTES (FloorPlanObjects)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/campus/floors/:floorId/objects - List facility objects for a floor
+router.get('/floors/:floorId/objects', async (req, res) => {
+  try {
+    await seedBuildingsIfEmpty();
+    const { floorId } = req.params;
+    const [objects] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        object_type as objectType, 
+        name, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        metadata,
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM floor_plan_objects 
+      WHERE floor_id = ? 
+      ORDER BY id ASC
+    `, [floorId]);
+
+    const formatted = objects.map(o => ({
+      ...o,
+      metadata: typeof o.metadata === 'string' ? JSON.parse(o.metadata) : (o.metadata || {})
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error('Error fetching floor plan objects:', err);
+    res.status(500).json({ error: 'Failed to fetch floor plan objects' });
+  }
+});
+
+// POST /api/campus/floors/:floorId/objects - Add facility object to floor
+router.post('/floors/:floorId/objects', async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const {
+      objectType,
+      name,
+      x,
+      y,
+      width,
+      height,
+      rotation,
+      shape,
+      metadata
+    } = req.body;
+
+    if (!name || !objectType) {
+      return res.status(400).json({ error: 'Name and Object Type are required' });
+    }
+
+    const fId = parseInt(floorId);
+    const metaStr = typeof metadata === 'object' ? JSON.stringify(metadata) : (metadata || JSON.stringify({ status: 'Active', description: '' }));
+
+    const [resInsert] = await pool.execute(`
+      INSERT INTO floor_plan_objects (
+        floor_id, object_type, name, x, y, width, height, rotation, shape, metadata
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      fId,
+      objectType.trim(),
+      name.trim(),
+      parseFloat(x) || 100,
+      parseFloat(y) || 100,
+      parseFloat(width) || 140,
+      parseFloat(height) || 100,
+      parseFloat(rotation) || 0,
+      shape || 'rectangle',
+      metaStr
+    ]);
+
+    const [newObj] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        object_type as objectType, 
+        name, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        metadata,
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM floor_plan_objects 
+      WHERE id = ?
+    `, [resInsert.insertId]);
+
+    const retObj = {
+      ...newObj[0],
+      metadata: typeof newObj[0].metadata === 'string' ? JSON.parse(newObj[0].metadata) : (newObj[0].metadata || {})
+    };
+
+    res.status(201).json({ message: 'Facility object created successfully', object: retObj });
+  } catch (err) {
+    console.error('Error creating floor plan object:', err);
+    res.status(500).json({ error: 'Failed to create floor plan object: ' + err.message });
+  }
+});
+
+// PUT /api/campus/objects/:id - Update facility object
+router.put('/objects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      objectType,
+      name,
+      x,
+      y,
+      width,
+      height,
+      rotation,
+      shape,
+      metadata
+    } = req.body;
+
+    const [existing] = await pool.execute('SELECT * FROM floor_plan_objects WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Object not found' });
+
+    const cur = existing[0];
+    const metaStr = metadata !== undefined 
+      ? (typeof metadata === 'object' ? JSON.stringify(metadata) : String(metadata))
+      : cur.metadata;
+
+    await pool.execute(`
+      UPDATE floor_plan_objects 
+      SET 
+        object_type = ?, 
+        name = ?, 
+        x = ?, 
+        y = ?, 
+        width = ?, 
+        height = ?, 
+        rotation = ?, 
+        shape = ?, 
+        metadata = ?
+      WHERE id = ?
+    `, [
+      objectType !== undefined ? String(objectType).trim() : cur.object_type,
+      name !== undefined ? String(name).trim() : cur.name,
+      x !== undefined ? parseFloat(x) : cur.x,
+      y !== undefined ? parseFloat(y) : cur.y,
+      width !== undefined ? parseFloat(width) : cur.width,
+      height !== undefined ? parseFloat(height) : cur.height,
+      rotation !== undefined ? parseFloat(rotation) : cur.rotation,
+      shape !== undefined ? String(shape) : cur.shape,
+      metaStr,
+      id
+    ]);
+
+    const [updated] = await pool.execute(`
+      SELECT 
+        id, 
+        floor_id as floorId, 
+        object_type as objectType, 
+        name, 
+        x, 
+        y, 
+        width, 
+        height, 
+        rotation, 
+        shape, 
+        metadata,
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM floor_plan_objects 
+      WHERE id = ?
+    `, [id]);
+
+    const retObj = {
+      ...updated[0],
+      metadata: typeof updated[0].metadata === 'string' ? JSON.parse(updated[0].metadata) : (updated[0].metadata || {})
+    };
+
+    res.json({ message: 'Facility object updated successfully', object: retObj });
+  } catch (err) {
+    console.error('Error updating floor plan object:', err);
+    res.status(500).json({ error: 'Failed to update floor plan object' });
+  }
+});
+
+// DELETE /api/campus/objects/:id - Delete facility object
+router.delete('/objects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [existing] = await pool.execute('SELECT * FROM floor_plan_objects WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Object not found' });
+
+    await pool.execute('DELETE FROM floor_plan_objects WHERE id = ?', [id]);
+    res.json({ message: 'Object deleted successfully', id: parseInt(id) });
+  } catch (err) {
+    console.error('Error deleting floor plan object:', err);
+    res.status(500).json({ error: 'Failed to delete object: ' + err.message });
   }
 });
 

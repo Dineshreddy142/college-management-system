@@ -6,7 +6,7 @@ import {
   ChevronDown, RefreshCw, X, AlertTriangle, ArrowUp, ArrowDown, Copy,
   Compass, MousePointer, Move, RotateCw, Maximize, Minimize, Utensils,
   Coffee, LogIn, LogOut, ArrowRight, CornerDownRight, Square, SlidersHorizontal,
-  Flame, LayoutGrid
+  Flame, LayoutGrid, Info, Calendar, FileText, Shield, Box, Droplets, UserCheck, Car
 } from 'lucide-react';
 import { cn } from '../../../components/ui/Btn';
 import client from '../../../api/client';
@@ -41,41 +41,115 @@ export interface FloorInfo {
   updatedAt?: string;
 }
 
-export type ObjectCategory = 
-  | 'room' 
-  | 'classroom' 
-  | 'lab' 
-  | 'office' 
-  | 'library' 
-  | 'seminar' 
-  | 'cafeteria' 
-  | 'corridor' 
-  | 'stairs' 
-  | 'lift' 
-  | 'washroom' 
-  | 'entrance' 
-  | 'exit';
+export type RoomType = 
+  | 'Classroom'
+  | 'Laboratory'
+  | 'Computer Lab'
+  | 'Office'
+  | 'Faculty Room'
+  | 'Staff Room'
+  | 'Library'
+  | 'Seminar Hall'
+  | 'Conference Room'
+  | 'Store Room'
+  | 'Washroom'
+  | 'Cafeteria'
+  | 'Other';
 
 export type RoomShape = 'rectangle' | 'square' | 'l-shape' | 'polygon';
 
-export interface CanvasObject {
-  id: string;
-  code: string;
-  name: string;
-  category: ObjectCategory;
-  shape: RoomShape;
+export interface RoomRecord {
+  id: string | number;
+  floorId: string | number;
+  buildingId?: string | number;
+  roomNumber: string;
+  roomName: string;
+  roomType: RoomType;
+  capacity: number;
+  department: string;
+  description: string;
+  status: 'Available' | 'Occupied' | 'Maintenance' | 'Reserved';
   x: number; // canvas position in pixels
   y: number;
-  w: number;
-  h: number;
+  width: number;
+  height: number;
   rotation: number; // 0, 90, 180, 270 degrees
-  dept: string;
-  capacity: number;
-  occupancy: number; // Percentage 0-100
-  status: 'available' | 'occupied' | 'maintenance' | 'reserved';
-  equipment: string[];
-  assignedTo?: string;
-  color?: string;
+  shape: RoomShape;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const ALL_ROOM_TYPES: RoomType[] = [
+  'Classroom',
+  'Laboratory',
+  'Computer Lab',
+  'Office',
+  'Faculty Room',
+  'Staff Room',
+  'Library',
+  'Seminar Hall',
+  'Conference Room',
+  'Store Room',
+  'Washroom',
+  'Cafeteria',
+  'Other'
+];
+
+export type FacilityObjectType = 
+  | 'Stairs'
+  | 'Lift'
+  | "Men's Washroom"
+  | "Women's Washroom"
+  | 'Accessible Washroom'
+  | 'Corridor'
+  | 'Lobby'
+  | 'Entrance'
+  | 'Emergency Exit'
+  | 'Fire Exit'
+  | 'Drinking Water'
+  | 'Reception'
+  | 'Security Desk'
+  | 'Cafeteria'
+  | 'Parking/Access Area'
+  | 'Store Room';
+
+export const ALL_FACILITY_TYPES: FacilityObjectType[] = [
+  'Stairs',
+  'Lift',
+  "Men's Washroom",
+  "Women's Washroom",
+  'Accessible Washroom',
+  'Corridor',
+  'Lobby',
+  'Entrance',
+  'Emergency Exit',
+  'Fire Exit',
+  'Drinking Water',
+  'Reception',
+  'Security Desk',
+  'Cafeteria',
+  'Parking/Access Area',
+  'Store Room'
+];
+
+export interface FloorPlanObjectRecord {
+  id: string | number;
+  floorId: string | number;
+  objectType: FacilityObjectType;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  shape: string;
+  metadata?: {
+    description?: string;
+    status?: 'Active' | 'Under Maintenance' | 'Closed' | 'Restricted' | 'Available' | string;
+    [key: string]: any;
+  } | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,32 +186,95 @@ const INITIAL_FLOORS: FloorInfo[] = [
   { id: 'f13', buildingId: 'b7', floorNumber: 0, name: 'Ground Floor', description: 'Hostel Mess Hall, Gym & Warden Office', roomsCount: 24, area: '1,800 sq.m', displayOrder: 1 },
 ];
 
-const INITIAL_CANVAS_OBJECTS: CanvasObject[] = [
-  // Classrooms
-  { id: 'obj-1', code: 'CR-101', name: 'Lecture Hall 101', category: 'classroom', shape: 'rectangle', x: 40, y: 40, w: 220, h: 160, rotation: 0, dept: 'Computer Science', capacity: 60, occupancy: 85, status: 'occupied', equipment: ['4K Projector', 'Smart Board', 'AC', 'Wi-Fi 6'], assignedTo: 'Prof. Rajesh Kumar (DBMS Class)' },
-  { id: 'obj-2', code: 'CR-102', name: 'Lecture Hall 102', category: 'classroom', shape: 'rectangle', x: 280, y: 40, w: 220, h: 160, rotation: 0, dept: 'Computer Science', capacity: 60, occupancy: 0, status: 'available', equipment: ['Projector', 'Audio System', 'AC'], assignedTo: 'Available for scheduling' },
-  { id: 'obj-3', code: 'CR-103', name: 'Interactive Seminar Room', category: 'classroom', shape: 'l-shape', x: 520, y: 40, w: 220, h: 160, rotation: 0, dept: 'Electronics', capacity: 45, occupancy: 100, status: 'occupied', equipment: ['Touch Screen', 'Dual AC'], assignedTo: 'Dr. Ananya Sharma (VLSI Design)' },
-  { id: 'obj-4', code: 'CS-LAB-1', name: 'AI & Data Science Lab', category: 'lab', shape: 'rectangle', x: 760, y: 40, w: 320, h: 160, rotation: 0, dept: 'Computer Science', capacity: 36, occupancy: 90, status: 'occupied', equipment: ['36 RTX Workstations', 'GPU Server'], assignedTo: 'AI Research Team' },
+const INITIAL_ROOMS: RoomRecord[] = [
+  { id: 'r101', floorId: 'f1', buildingId: 'b2', roomNumber: '101', roomName: 'Computer Science Classroom', roomType: 'Classroom', capacity: 60, department: 'CSE', description: 'General classroom equipped with 4K projector and AC.', status: 'Occupied', x: 40, y: 40, width: 220, height: 160, rotation: 0, shape: 'rectangle' },
+  { id: 'r102', floorId: 'f1', buildingId: 'b2', roomNumber: '102', roomName: 'Advanced Computer Lab', roomType: 'Computer Lab', capacity: 40, department: 'CSE', description: '40 RTX workstations with high-speed internet.', status: 'Available', x: 280, y: 40, width: 240, height: 160, rotation: 0, shape: 'rectangle' },
+  { id: 'r103', floorId: 'f1', buildingId: 'b2', roomNumber: '103', roomName: 'Electronics Lab', roomType: 'Laboratory', capacity: 35, department: 'ECE', description: 'VLSI and CRO testing benches.', status: 'Occupied', x: 540, y: 40, width: 220, height: 160, rotation: 0, shape: 'l-shape' },
+  { id: 'r104', floorId: 'f1', buildingId: 'b2', roomNumber: '104', roomName: 'CSE Faculty Room', roomType: 'Faculty Room', capacity: 12, department: 'CSE', description: 'Faculty cabins and discussion area.', status: 'Available', x: 780, y: 40, width: 220, height: 160, rotation: 0, shape: 'rectangle' },
+  { id: 'r105', floorId: 'f1', buildingId: 'b2', roomNumber: '105', roomName: 'Department Seminar Hall', roomType: 'Seminar Hall', capacity: 150, department: 'Academic Affairs', description: 'Audio-visual acoustic hall.', status: 'Occupied', x: 40, y: 240, width: 440, height: 220, rotation: 0, shape: 'polygon' },
+  { id: 'r106', floorId: 'f1', buildingId: 'b2', roomNumber: '106', roomName: 'Executive Conference Room', roomType: 'Conference Room', capacity: 25, department: 'Admin', description: 'Board meetings and thesis defense.', status: 'Reserved', x: 500, y: 240, width: 260, height: 220, rotation: 0, shape: 'rectangle' },
+  { id: 'r107', floorId: 'f1', buildingId: 'b2', roomNumber: '107', roomName: 'Staff Washroom Complex', roomType: 'Washroom', capacity: 10, department: 'Facilities', description: 'Sensored clean restroom.', status: 'Available', x: 780, y: 240, width: 220, height: 220, rotation: 0, shape: 'square' },
+];
 
-  // Middle Corridor & Passage
-  { id: 'obj-5', code: 'CORRIDOR-MAIN', name: 'East-West Main Corridor', category: 'corridor', shape: 'rectangle', x: 40, y: 220, w: 1040, h: 40, rotation: 0, dept: 'Campus Infrastructure', capacity: 200, occupancy: 10, status: 'available', equipment: ['Emergency Lighting', 'Fire Extinguishers'] },
-
-  // Middle Row Cabins & Utilities
-  { id: 'obj-6', code: 'HOD-OFFICE', name: 'HOD Computer Science', category: 'office', shape: 'square', x: 40, y: 280, w: 160, h: 160, rotation: 0, dept: 'Computer Science', capacity: 6, occupancy: 50, status: 'occupied', equipment: ['Conference Table', 'Executive Desk'], assignedTo: 'Dr. V. K. Raman (HOD CSE)' },
-  { id: 'obj-7', code: 'FACULTY-A', name: 'Faculty Cabin Suite A', category: 'office', shape: 'rectangle', x: 220, y: 280, w: 240, h: 160, rotation: 0, dept: 'Computer Science', capacity: 12, occupancy: 40, status: 'occupied', equipment: ['12 Work Desks', 'Printer Station'], assignedTo: '6 CSE Assistant Professors' },
-  { id: 'obj-8', code: 'STAIRS-1', name: 'Central Stairwell', category: 'stairs', shape: 'rectangle', x: 480, y: 280, w: 120, h: 160, rotation: 0, dept: 'Safety & Facilities', capacity: 20, occupancy: 0, status: 'available', equipment: ['Fire Exit Signs'] },
-  { id: 'obj-9', code: 'LIFT-BAY', name: 'Dual Elevator Shaft', category: 'lift', shape: 'square', x: 620, y: 280, w: 120, h: 160, rotation: 0, dept: 'Safety & Facilities', capacity: 16, occupancy: 10, status: 'available', equipment: ['Dual Lifts', 'Braille Buttons'] },
-  { id: 'obj-10', code: 'RESTROOM-M', name: 'Gents Restroom', category: 'washroom', shape: 'rectangle', x: 760, y: 280, w: 140, h: 160, rotation: 0, dept: 'Facilities', capacity: 10, occupancy: 20, status: 'available', equipment: ['Automatic Faucets'] },
-  { id: 'obj-11', code: 'RESTROOM-F', name: 'Ladies Restroom', category: 'washroom', shape: 'rectangle', x: 920, y: 280, w: 160, h: 160, rotation: 0, dept: 'Facilities', capacity: 10, occupancy: 20, status: 'available', equipment: ['Automatic Faucets', 'Powder Room'] },
-
-  // Bottom Row Auditorium & Cafeteria
-  { id: 'obj-12', code: 'LIB-STUDY', name: 'Department Library & E-Reading', category: 'library', shape: 'rectangle', x: 40, y: 460, w: 280, h: 220, rotation: 0, dept: 'Library', capacity: 40, occupancy: 30, status: 'available', equipment: ['RFID Scanners', 'Study Pods'] },
-  { id: 'obj-13', code: 'AUD-MAIN', name: 'Mini Auditorium', category: 'seminar', shape: 'polygon', x: 340, y: 460, w: 460, h: 220, rotation: 0, dept: 'Academic Affairs', capacity: 180, occupancy: 75, status: 'occupied', equipment: ['Stage Lighting', 'Acoustic Panels', 'Dolby Audio'], assignedTo: 'National Seminar on Robotics' },
-  { id: 'obj-14', code: 'CAFETERIA', name: 'Faculty & Student Cafe', category: 'cafeteria', shape: 'rectangle', x: 820, y: 460, w: 260, h: 220, rotation: 0, dept: 'Campus Services', capacity: 60, occupancy: 40, status: 'available', equipment: ['Coffee Machine', 'Vending Machine'] },
-
-  // Entrance & Exit Markers
-  { id: 'obj-15', code: 'ENTRY-MAIN', name: 'North Main Entrance', category: 'entrance', shape: 'square', x: 500, y: 10, w: 80, h: 25, rotation: 0, dept: 'Security', capacity: 50, occupancy: 5, status: 'available', equipment: ['Turnstile Gates'] },
-  { id: 'obj-16', code: 'EXIT-EMERGENCY', name: 'South Emergency Exit', category: 'exit', shape: 'square', x: 500, y: 690, w: 80, h: 25, rotation: 0, dept: 'Safety', capacity: 50, occupancy: 0, status: 'available', equipment: ['Panic Push Bar'] }
+const INITIAL_FACILITY_OBJECTS: FloorPlanObjectRecord[] = [
+  {
+    id: 'fo1',
+    floorId: 'f1',
+    objectType: 'Stairs',
+    name: 'Main Central Stairs',
+    x: 40,
+    y: 500,
+    width: 140,
+    height: 120,
+    rotation: 0,
+    shape: 'rectangle',
+    metadata: { description: 'Main staircase connecting Ground to 3rd floor', status: 'Active' }
+  },
+  {
+    id: 'fo2',
+    floorId: 'f1',
+    objectType: 'Lift',
+    name: 'Elevator Shaft A',
+    x: 200,
+    y: 500,
+    width: 100,
+    height: 120,
+    rotation: 0,
+    shape: 'square',
+    metadata: { description: 'High-speed elevator, 12-person capacity', status: 'Active' }
+  },
+  {
+    id: 'fo3',
+    floorId: 'f1',
+    objectType: 'Entrance',
+    name: 'Main Block South Entrance',
+    x: 320,
+    y: 500,
+    width: 180,
+    height: 120,
+    rotation: 0,
+    shape: 'rectangle',
+    metadata: { description: 'Primary glass turnstile entry door with RFID', status: 'Active' }
+  },
+  {
+    id: 'fo4',
+    floorId: 'f1',
+    objectType: 'Emergency Exit',
+    name: 'Fire Exit Stairwell West',
+    x: 520,
+    y: 500,
+    width: 150,
+    height: 120,
+    rotation: 0,
+    shape: 'rectangle',
+    metadata: { description: 'Pressurized emergency fire escape door', status: 'Active' }
+  },
+  {
+    id: 'fo5',
+    floorId: 'f1',
+    objectType: 'Drinking Water',
+    name: 'RO Purifier Station 1',
+    x: 690,
+    y: 500,
+    width: 120,
+    height: 120,
+    rotation: 0,
+    shape: 'rectangle',
+    metadata: { description: 'Chilled drinking water dispenser with RO filtration', status: 'Active' }
+  },
+  {
+    id: 'fo6',
+    floorId: 'f1',
+    objectType: 'Reception',
+    name: 'Front Information Desk',
+    x: 830,
+    y: 500,
+    width: 170,
+    height: 120,
+    rotation: 0,
+    shape: 'rectangle',
+    metadata: { description: 'Student and visitor inquiry reception counter', status: 'Active' }
+  }
 ];
 
 export function FloorManagement() {
@@ -147,9 +284,14 @@ export function FloorManagement() {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | number>('b2');
   const [selectedFloorId, setSelectedFloorId] = useState<string | number>('f1');
   
-  // Interactive Vector Canvas State
-  const [canvasObjects, setCanvasObjects] = useState<CanvasObject[]>(INITIAL_CANVAS_OBJECTS);
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>('obj-1');
+  // Rooms & Canvas Objects State
+  const [rooms, setRooms] = useState<RoomRecord[]>(INITIAL_ROOMS);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | number | null>('r101');
+
+  // Facility Objects State
+  const [facilityObjects, setFacilityObjects] = useState<FloorPlanObjectRecord[]>(INITIAL_FACILITY_OBJECTS);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string | number | null>(null);
+
   const [activeTool, setActiveTool] = useState<string>('select');
   const [editMode, setEditMode] = useState<boolean>(true);
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
@@ -167,18 +309,23 @@ export function FloorManagement() {
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
 
-  // Filters & Right Panel
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [buildingSearchQuery, setBuildingSearchQuery] = useState<string>('');
-  const [activeRightTab, setActiveRightTab] = useState<'rooms' | 'buildings' | 'floors'>('rooms');
+  const [activeRightTab, setActiveRightTab] = useState<'rooms' | 'facilities' | 'buildings' | 'floors'>('rooms');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
 
-  // Modals & Feedback
+  // Modals & Feedback State
   const [isRoomModalOpen, setIsRoomModalOpen] = useState<boolean>(false);
-  const [editingRoom, setEditingRoom] = useState<Partial<CanvasObject> | null>(null);
+  const [editingRoom, setEditingRoom] = useState<Partial<RoomRecord> | null>(null);
+
+  const [isFacilityModalOpen, setIsFacilityModalOpen] = useState<boolean>(false);
+  const [editingFacility, setEditingFacility] = useState<Partial<FloorPlanObjectRecord> | null>(null);
+  
   const [isBuildingModalOpen, setIsBuildingModalOpen] = useState<boolean>(false);
   const [editingBuilding, setEditingBuilding] = useState<Partial<BuildingInfo> | null>(null);
   const [deletingBuilding, setDeletingBuilding] = useState<BuildingInfo | null>(null);
+
   const [isFloorModalOpen, setIsFloorModalOpen] = useState<boolean>(false);
   const [editingFloor, setEditingFloor] = useState<Partial<FloorInfo> | null>(null);
   const [deletingFloor, setDeletingFloor] = useState<FloorInfo | null>(null);
@@ -190,7 +337,111 @@ export function FloorManagement() {
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-  // Filtered floors for selected building ONLY
+  // Fetch campus buildings and floors from API on mount
+  useEffect(() => {
+    async function loadCampusData() {
+      try {
+        const bRes = await client.get('/campus/buildings');
+        if (bRes.data && Array.isArray(bRes.data) && bRes.data.length > 0) {
+          const mappedB: BuildingInfo[] = bRes.data.map((b: any) => ({
+            id: b.id,
+            name: b.name,
+            code: b.code,
+            description: b.description || '',
+            total_floors: b.total_floors || b.floorsCount || 1,
+            floorsCount: b.floorsCount || b.total_floors || 1,
+            status: b.status || 'Active',
+            created_at: b.created_at
+          }));
+          setBuildings(mappedB);
+          
+          const targetBId = mappedB.some(b => String(b.id) === String(selectedBuildingId)) ? selectedBuildingId : mappedB[0].id;
+          const fRes = await client.get(`/campus/buildings/${targetBId}/floors`);
+          if (fRes.data && Array.isArray(fRes.data) && fRes.data.length > 0) {
+            const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
+              id: f.id,
+              buildingId: f.buildingId || f.building_id || targetBId,
+              name: f.name,
+              floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
+              description: f.description || '',
+              displayOrder: f.displayOrder || f.display_order || 0
+            }));
+            setFloors(prev => {
+              const otherFloors = prev.filter(p => String(p.buildingId) !== String(targetBId));
+              return [...mappedF, ...otherFloors];
+            });
+          }
+        }
+      } catch (err) {
+        console.log('Using initial campus state (fallback)');
+      }
+    }
+    loadCampusData();
+  }, []);
+
+  // Fetch rooms AND facility objects whenever selectedFloorId changes
+  useEffect(() => {
+    async function loadFloorData() {
+      if (!selectedFloorId) return;
+      try {
+        // Fetch rooms
+        const rRes = await client.get(`/campus/floors/${selectedFloorId}/rooms`);
+        if (rRes.data && Array.isArray(rRes.data) && rRes.data.length > 0) {
+          const mappedRooms: RoomRecord[] = rRes.data.map((r: any) => ({
+            id: r.id,
+            floorId: r.floorId || r.floor_id || selectedFloorId,
+            buildingId: r.buildingId || r.building_id || selectedBuildingId,
+            roomNumber: String(r.roomNumber || r.room_number || ''),
+            roomName: r.roomName || r.room_name || 'Classroom',
+            roomType: r.roomType || r.room_type || 'Classroom',
+            capacity: Number(r.capacity) || 30,
+            department: r.department || 'General',
+            description: r.description || '',
+            status: r.status || 'Available',
+            x: Number(r.x) || 40,
+            y: Number(r.y) || 40,
+            width: Number(r.width) || 200,
+            height: Number(r.height) || 150,
+            rotation: Number(r.rotation) || 0,
+            shape: (r.shape as RoomShape) || 'rectangle',
+            createdAt: r.createdAt || r.created_at,
+            updatedAt: r.updatedAt || r.updated_at
+          }));
+          setRooms(mappedRooms);
+        }
+      } catch (err) {
+        console.log('Using local rooms state fallback');
+      }
+
+      try {
+        // Fetch facility objects
+        const objRes = await client.get(`/campus/floors/${selectedFloorId}/objects`);
+        if (objRes.data && Array.isArray(objRes.data) && objRes.data.length > 0) {
+          const mappedObjs: FloorPlanObjectRecord[] = objRes.data.map((o: any) => ({
+            id: o.id,
+            floorId: o.floorId || o.floor_id || selectedFloorId,
+            objectType: o.objectType || o.object_type || 'Stairs',
+            name: o.name || 'Facility Object',
+            x: Number(o.x) || 100,
+            y: Number(o.y) || 100,
+            width: Number(o.width) || 140,
+            height: Number(o.height) || 100,
+            rotation: Number(o.rotation) || 0,
+            shape: o.shape || 'rectangle',
+            metadata: typeof o.metadata === 'string' ? JSON.parse(o.metadata) : (o.metadata || { description: '', status: 'Active' }),
+            createdAt: o.createdAt || o.created_at,
+            updatedAt: o.updatedAt || o.updated_at
+          }));
+          setFacilityObjects(mappedObjs);
+        }
+      } catch (err) {
+        console.log('Using local facility objects state fallback');
+      }
+    }
+    loadFloorData();
+  }, [selectedFloorId]);
+
+  // Filter floors for selected building ONLY
   const buildingFloors = useMemo(() => {
     return floors
       .filter(f => String(f.buildingId || f.building_id) === String(selectedBuildingId))
@@ -209,9 +460,7 @@ export function FloorManagement() {
         buildingId: selectedBuildingId,
         floorNumber: 0,
         name: 'Ground Floor',
-        description: 'Ground Floor level layout',
-        roomsCount: 12,
-        area: '1,200 sq.m'
+        description: 'Ground Floor level layout'
       };
       setFloors(prev => [...prev, fallback]);
       setSelectedFloorId(fallback.id);
@@ -224,24 +473,28 @@ export function FloorManagement() {
   }, [buildings, selectedBuildingId]);
 
   const selectedFloor = useMemo(() => {
-    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', name: 'Ground Floor', floorNumber: 0, roomsCount: 18, area: '1,200 sq.m' };
+    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', name: 'Ground Floor', floorNumber: 0 };
   }, [floors, buildingFloors, selectedFloorId]);
 
-  const selectedObject = useMemo(() => {
-    return canvasObjects.find(o => o.id === selectedObjectId) || null;
-  }, [canvasObjects, selectedObjectId]);
+  const selectedRoom = useMemo(() => {
+    return rooms.find(r => String(r.id) === String(selectedRoomId)) || null;
+  }, [rooms, selectedRoomId]);
+
+  const selectedFacility = useMemo(() => {
+    return facilityObjects.find(fo => String(fo.id) === String(selectedFacilityId)) || null;
+  }, [facilityObjects, selectedFacilityId]);
 
   // Filtered rooms based on search & category
-  const filteredObjects = useMemo(() => {
-    return canvasObjects.filter(obj => {
+  const filteredRooms = useMemo(() => {
+    return rooms.filter(room => {
       const matchesSearch = searchQuery === '' || 
-        obj.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        obj.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        obj.dept.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = selectedTypeFilter === 'all' || obj.category === selectedTypeFilter;
+        room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.roomName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.department.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = selectedTypeFilter === 'all' || room.roomType.toLowerCase() === selectedTypeFilter.toLowerCase();
       return matchesSearch && matchesType;
     });
-  }, [canvasObjects, searchQuery, selectedTypeFilter]);
+  }, [rooms, searchQuery, selectedTypeFilter]);
 
   // Filtered buildings for Buildings Tab Search
   const filteredBuildings = useMemo(() => {
@@ -255,27 +508,53 @@ export function FloorManagement() {
 
   // Statistics calculation
   const stats = useMemo(() => {
-    const total = canvasObjects.length;
-    const classrooms = canvasObjects.filter(r => r.category === 'classroom').length;
-    const labs = canvasObjects.filter(r => r.category === 'lab').length;
-    const offices = canvasObjects.filter(r => r.category === 'office').length;
-    const facilities = canvasObjects.filter(r => ['washroom', 'stairs', 'lift', 'corridor', 'entrance', 'exit'].includes(r.category)).length;
-    const occupied = canvasObjects.filter(r => r.status === 'occupied').length;
-    const avgOccupancy = Math.round(canvasObjects.reduce((acc, r) => acc + (r.occupancy || 0), 0) / (total || 1));
+    const total = rooms.length;
+    const classrooms = rooms.filter(r => r.roomType === 'Classroom' || r.roomType === 'Computer Lab' || r.roomType === 'Laboratory').length;
+    const labs = rooms.filter(r => r.roomType === 'Laboratory' || r.roomType === 'Computer Lab').length;
+    const offices = rooms.filter(r => r.roomType === 'Office' || r.roomType === 'Faculty Room' || r.roomType === 'Staff Room').length;
+    const facilities = rooms.filter(r => r.roomType === 'Washroom' || r.roomType === 'Cafeteria' || r.roomType === 'Store Room').length + facilityObjects.length;
+    const occupied = rooms.filter(r => r.status === 'Occupied').length;
+    const avgOccupancy = Math.round(rooms.reduce((acc, r) => acc + (r.status === 'Occupied' ? 100 : r.status === 'Available' ? 0 : 50), 0) / (total || 1));
     return { total, classrooms, labs, offices, facilities, occupied, avgOccupancy };
-  }, [canvasObjects]);
+  }, [rooms, facilityObjects]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3200);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      // Save position updates for rooms
+      for (const rm of rooms) {
+        await client.put(`/campus/rooms/${rm.id}`, {
+          x: rm.x,
+          y: rm.y,
+          width: rm.width,
+          height: rm.height,
+          rotation: rm.rotation,
+          shape: rm.shape
+        }).catch(() => {});
+      }
+      // Save position updates for facility objects
+      for (const fo of facilityObjects) {
+        await client.put(`/campus/objects/${fo.id}`, {
+          x: fo.x,
+          y: fo.y,
+          width: fo.width,
+          height: fo.height,
+          rotation: fo.rotation,
+          shape: fo.shape,
+          metadata: fo.metadata
+        }).catch(() => {});
+      }
       setIsSaving(false);
-      triggerToast('Floor plan vector layout saved successfully!');
-    }, 600);
+      triggerToast('Floor plan layout, room positions & facility objects saved!');
+    } catch (err) {
+      setIsSaving(false);
+      triggerToast('Layout saved locally.');
+    }
   };
 
   const handlePublish = () => {
@@ -287,122 +566,317 @@ export function FloorManagement() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // EDITOR TOOLBAR & OBJECT CREATION HANDLERS (18 TOOLS)
+  // ROOM MANAGEMENT HANDLERS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const handleAddObjectFromToolbar = (category: ObjectCategory, shapeOverride?: RoomShape) => {
-    const id = `obj-${Date.now()}`;
-    const count = canvasObjects.length + 1;
-    const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
+  const handleOpenAddRoomModal = (presetType?: RoomType) => {
+    const count = rooms.length + 1;
+    const defaultType: RoomType = presetType || 'Classroom';
+    setEditingRoom({
+      floorId: selectedFloorId,
+      buildingId: selectedBuildingId,
+      roomNumber: `${100 + count}`,
+      roomName: defaultType === 'Classroom' ? `Classroom ${100 + count}` : defaultType === 'Computer Lab' ? `Computer Lab ${count}` : `${defaultType} ${count}`,
+      roomType: defaultType,
+      capacity: defaultType === 'Classroom' ? 60 : defaultType === 'Computer Lab' ? 40 : 15,
+      department: 'CSE',
+      description: `Standard ${defaultType} room with air conditioning and Wi-Fi.`,
+      status: 'Available',
+      x: 40 + (count % 3) * 60,
+      y: 40 + Math.floor(count / 3) * 60,
+      width: defaultType === 'Seminar Hall' ? 360 : 220,
+      height: 160,
+      rotation: 0,
+      shape: 'rectangle'
+    });
+    setIsRoomModalOpen(true);
+  };
 
-    let defaultWidth = 200;
-    let defaultHeight = 150;
-    let codePrefix = 'RM';
-    let defaultName = 'New Room';
-    let defaultShape: RoomShape = shapeOverride || 'rectangle';
+  const handleOpenEditModal = (rm: RoomRecord) => {
+    setEditingRoom({ ...rm });
+    setIsRoomModalOpen(true);
+  };
 
-    switch (category) {
-      case 'classroom':
-        codePrefix = 'CR'; defaultName = `Lecture Hall ${count}`; defaultWidth = 220; defaultHeight = 160; break;
-      case 'lab':
-        codePrefix = 'LAB'; defaultName = `Tech Lab ${count}`; defaultWidth = 280; defaultHeight = 160; break;
-      case 'office':
-        codePrefix = 'OFF'; defaultName = `Faculty Cabin ${count}`; defaultWidth = 160; defaultHeight = 140; break;
-      case 'library':
-        codePrefix = 'LIB'; defaultName = `Study Hall ${count}`; defaultWidth = 260; defaultHeight = 200; break;
-      case 'seminar':
-        codePrefix = 'AUD'; defaultName = `Seminar Hall ${count}`; defaultWidth = 380; defaultHeight = 220; defaultShape = 'polygon'; break;
-      case 'cafeteria':
-        codePrefix = 'CAF'; defaultName = `Campus Cafe ${count}`; defaultWidth = 240; defaultHeight = 180; break;
-      case 'corridor':
-        codePrefix = 'COR'; defaultName = `Corridor Passage ${count}`; defaultWidth = 400; defaultHeight = 40; break;
-      case 'stairs':
-        codePrefix = 'STR'; defaultName = `Stairwell ${count}`; defaultWidth = 120; defaultHeight = 140; break;
-      case 'lift':
-        codePrefix = 'LFT'; defaultName = `Elevator Shaft ${count}`; defaultWidth = 120; defaultHeight = 120; defaultShape = 'square'; break;
-      case 'washroom':
-        codePrefix = 'WSH'; defaultName = `Restroom ${count}`; defaultWidth = 140; defaultHeight = 140; break;
-      case 'entrance':
-        codePrefix = 'ENT'; defaultName = `Main Entrance ${count}`; defaultWidth = 100; defaultHeight = 30; defaultShape = 'square'; break;
-      case 'exit':
-        codePrefix = 'EXT'; defaultName = `Emergency Exit ${count}`; defaultWidth = 100; defaultHeight = 30; defaultShape = 'square'; break;
+  const handleSaveRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoom || !editingRoom.roomNumber || !editingRoom.roomName) {
+      triggerToast('Room Number and Room Name are required!');
+      return;
     }
 
-    const newObj: CanvasObject = {
-      id,
-      code: `${codePrefix}-${100 + count}`,
-      name: defaultName,
-      category,
-      shape: defaultShape,
-      x: snap(100 + (count % 4) * 40),
-      y: snap(100 + Math.floor(count / 4) * 40),
-      w: defaultWidth,
-      h: defaultHeight,
-      rotation: 0,
-      dept: category === 'lab' || category === 'classroom' ? 'Computer Science' : 'Campus Services',
-      capacity: category === 'classroom' ? 60 : category === 'lab' ? 36 : 10,
-      occupancy: 0,
-      status: 'available',
-      equipment: ['Wi-Fi 6', 'AC']
+    const payload = {
+      buildingId: selectedBuildingId,
+      roomNumber: String(editingRoom.roomNumber).trim(),
+      roomName: String(editingRoom.roomName).trim(),
+      roomType: editingRoom.roomType || 'Classroom',
+      capacity: Number(editingRoom.capacity) || 30,
+      department: editingRoom.department || 'General',
+      description: editingRoom.description || '',
+      status: editingRoom.status || 'Available',
+      x: Number(editingRoom.x) || 40,
+      y: Number(editingRoom.y) || 40,
+      width: Number(editingRoom.width) || 220,
+      height: Number(editingRoom.height) || 160,
+      rotation: Number(editingRoom.rotation) || 0,
+      shape: editingRoom.shape || 'rectangle'
     };
 
-    setCanvasObjects(prev => [...prev, newObj]);
-    setSelectedObjectId(id);
-    setActiveTool('select');
-    triggerToast(`Added ${category} tile to floor plan canvas`);
-  };
+    try {
+      if (editingRoom.id) {
+        await client.put(`/campus/rooms/${editingRoom.id}`, payload).catch(() => {});
+        setRooms(prev => prev.map(r => String(r.id) === String(editingRoom.id) ? { ...r, ...payload } as RoomRecord : r));
+        triggerToast(`Updated room "${payload.roomNumber}: ${payload.roomName}"`);
+      } else {
+        let newRoomObj: RoomRecord = {
+          id: `r-${Date.now()}`,
+          floorId: selectedFloorId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...payload
+        };
 
-  const handleRotateSelected = () => {
-    if (!selectedObjectId) return;
-    setCanvasObjects(prev => prev.map(o => {
-      if (o.id === selectedObjectId) {
-        const nextRotation = (o.rotation + 90) % 360;
-        return { ...o, rotation: nextRotation };
+        try {
+          const res = await client.post(`/campus/floors/${selectedFloorId}/rooms`, payload);
+          if (res.data && res.data.room) {
+            newRoomObj = {
+              id: res.data.room.id,
+              floorId: res.data.room.floorId || selectedFloorId,
+              buildingId: res.data.room.buildingId || selectedBuildingId,
+              roomNumber: res.data.room.roomNumber,
+              roomName: res.data.room.roomName,
+              roomType: res.data.room.roomType,
+              capacity: res.data.room.capacity,
+              department: res.data.room.department,
+              description: res.data.room.description || '',
+              status: res.data.room.status || 'Available',
+              x: res.data.room.x,
+              y: res.data.room.y,
+              width: res.data.room.width,
+              height: res.data.room.height,
+              rotation: res.data.room.rotation,
+              shape: res.data.room.shape,
+              createdAt: res.data.room.createdAt,
+              updatedAt: res.data.room.updatedAt
+            };
+          }
+        } catch (apiErr) {
+          console.log('API fallback for new room creation');
+        }
+
+        setRooms(prev => [...prev, newRoomObj]);
+        setSelectedRoomId(newRoomObj.id);
+        setSelectedFacilityId(null);
+        triggerToast(`Created room "${payload.roomNumber}: ${payload.roomName}" on floor plan`);
       }
-      return o;
+
+      setIsRoomModalOpen(false);
+      setEditingRoom(null);
+    } catch (err) {
+      console.error('Save room error:', err);
+      triggerToast('Error saving room details');
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string | number) => {
+    try {
+      await client.delete(`/campus/rooms/${roomId}`).catch(() => {});
+      setRooms(prev => prev.filter(r => String(r.id) !== String(roomId)));
+      if (String(selectedRoomId) === String(roomId)) setSelectedRoomId(null);
+      triggerToast('Room deleted from floor plan');
+    } catch (err) {
+      triggerToast('Error deleting room');
+    }
+  };
+
+  const handleRotateSelectedRoom = () => {
+    if (!selectedRoomId) return;
+    setRooms(prev => prev.map(r => {
+      if (String(r.id) === String(selectedRoomId)) {
+        const nextRotation = (r.rotation + 90) % 360;
+        client.put(`/campus/rooms/${r.id}`, { rotation: nextRotation }).catch(() => {});
+        return { ...r, rotation: nextRotation };
+      }
+      return r;
     }));
-    triggerToast('Rotated selected object by 90°');
+    triggerToast('Rotated selected room by 90°');
   };
 
-  const handleRotate90Deg = (objId: string) => {
-    setCanvasObjects(prev => prev.map(o => o.id === objId ? { ...o, rotation: (o.rotation + 90) % 360 } : o));
-  };
-
-  const handleChangeShape = (objId: string, shape: RoomShape) => {
-    setCanvasObjects(prev => prev.map(o => o.id === objId ? { ...o, shape } : o));
+  const handleChangeRoomShape = (roomId: string | number, shape: RoomShape) => {
+    setRooms(prev => prev.map(r => {
+      if (String(r.id) === String(roomId)) {
+        client.put(`/campus/rooms/${r.id}`, { shape }).catch(() => {});
+        return { ...r, shape };
+      }
+      return r;
+    }));
     triggerToast(`Changed room shape to ${shape}`);
   };
 
-  const handleDeleteSelected = () => {
-    if (!selectedObjectId) return;
-    setCanvasObjects(prev => prev.filter(o => o.id !== selectedObjectId));
-    setSelectedObjectId(null);
-    triggerToast('Deleted object from floor plan');
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FACILITY OBJECT HANDLERS (STAIRS, LIFT, WASHROOMS, CORRIDORS, EXITS, ETC.)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const handleOpenAddFacilityModal = (presetType?: FacilityObjectType) => {
+    const defaultType: FacilityObjectType = presetType || 'Stairs';
+    const count = facilityObjects.length + 1;
+    setEditingFacility({
+      floorId: selectedFloorId,
+      objectType: defaultType,
+      name: `${defaultType} ${count}`,
+      x: 60 + (count % 4) * 160,
+      y: 490,
+      width: defaultType === 'Corridor' ? 280 : defaultType === 'Lobby' ? 220 : 140,
+      height: defaultType === 'Corridor' ? 80 : 120,
+      rotation: 0,
+      shape: 'rectangle',
+      metadata: {
+        description: `Standard ${defaultType} facility on floor plan.`,
+        status: 'Active'
+      }
+    });
+    setIsFacilityModalOpen(true);
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // INTERACTIVE CANVAS MOUSE & TOUCH EVENT HANDLERS (DRAG, RESIZE, PAN)
-  // ─────────────────────────────────────────────────────────────────────────────
+  const handleOpenEditFacilityModal = (fo: FloorPlanObjectRecord) => {
+    setEditingFacility({
+      ...fo,
+      metadata: typeof fo.metadata === 'object' ? { ...fo.metadata } : { description: '', status: 'Active' }
+    });
+    setIsFacilityModalOpen(true);
+  };
 
-  const handleMouseDownCanvas = (e: React.MouseEvent) => {
-    // If clicking background canvas, deselect object or start panning
-    if (activeTool === 'move' || e.button === 1 || e.spaceKey) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - panX, y: e.clientY - panY });
-    } else if ((e.target as HTMLElement).classList.contains('canvas-bg')) {
-      setSelectedObjectId(null);
+  const handleSaveFacilitySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFacility || !editingFacility.name || !editingFacility.objectType) {
+      triggerToast('Name and Object Type are required!');
+      return;
+    }
+
+    const payload = {
+      objectType: editingFacility.objectType,
+      name: String(editingFacility.name).trim(),
+      x: Number(editingFacility.x) || 100,
+      y: Number(editingFacility.y) || 100,
+      width: Number(editingFacility.width) || 140,
+      height: Number(editingFacility.height) || 100,
+      rotation: Number(editingFacility.rotation) || 0,
+      shape: editingFacility.shape || 'rectangle',
+      metadata: typeof editingFacility.metadata === 'object' ? editingFacility.metadata : { description: '', status: 'Active' }
+    };
+
+    try {
+      if (editingFacility.id) {
+        await client.put(`/campus/objects/${editingFacility.id}`, payload).catch(() => {});
+        setFacilityObjects(prev => prev.map(fo => String(fo.id) === String(editingFacility.id) ? { ...fo, ...payload } as FloorPlanObjectRecord : fo));
+        triggerToast(`Updated facility object "${payload.name}"`);
+      } else {
+        let newObj: FloorPlanObjectRecord = {
+          id: `fo-${Date.now()}`,
+          floorId: selectedFloorId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...payload
+        };
+
+        try {
+          const res = await client.post(`/campus/floors/${selectedFloorId}/objects`, payload);
+          if (res.data && res.data.object) {
+            newObj = {
+              id: res.data.object.id,
+              floorId: res.data.object.floorId || selectedFloorId,
+              objectType: res.data.object.objectType,
+              name: res.data.object.name,
+              x: res.data.object.x,
+              y: res.data.object.y,
+              width: res.data.object.width,
+              height: res.data.object.height,
+              rotation: res.data.object.rotation,
+              shape: res.data.object.shape,
+              metadata: res.data.object.metadata,
+              createdAt: res.data.object.createdAt,
+              updatedAt: res.data.object.updatedAt
+            };
+          }
+        } catch (apiErr) {
+          console.log('API fallback for facility object creation');
+        }
+
+        setFacilityObjects(prev => [...prev, newObj]);
+        setSelectedFacilityId(newObj.id);
+        setSelectedRoomId(null);
+        setActiveRightTab('facilities');
+        triggerToast(`Created facility object "${payload.name}" on floor plan`);
+      }
+
+      setIsFacilityModalOpen(false);
+      setEditingFacility(null);
+    } catch (err) {
+      console.error('Save facility error:', err);
+      triggerToast('Error saving facility object');
     }
   };
 
-  const handleMouseDownObject = (e: React.MouseEvent, obj: CanvasObject) => {
+  const handleDeleteFacility = async (facilityId: string | number) => {
+    try {
+      await client.delete(`/campus/objects/${facilityId}`).catch(() => {});
+      setFacilityObjects(prev => prev.filter(fo => String(fo.id) !== String(facilityId)));
+      if (String(selectedFacilityId) === String(facilityId)) setSelectedFacilityId(null);
+      triggerToast('Facility object deleted from floor plan');
+    } catch (err) {
+      triggerToast('Error deleting facility object');
+    }
+  };
+
+  const handleRotateSelectedFacility = () => {
+    if (!selectedFacilityId) return;
+    setFacilityObjects(prev => prev.map(fo => {
+      if (String(fo.id) === String(selectedFacilityId)) {
+        const nextRotation = (fo.rotation + 90) % 360;
+        client.put(`/campus/objects/${fo.id}`, { rotation: nextRotation }).catch(() => {});
+        return { ...fo, rotation: nextRotation };
+      }
+      return fo;
+    }));
+    triggerToast('Rotated selected facility object by 90°');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INTERACTIVE CANVAS MOUSE HANDLERS (DRAG, RESIZE, PAN FOR ROOMS AND FACILITIES)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const handleMouseDownCanvas = (e: React.MouseEvent) => {
+    if (activeTool === 'move' || e.button === 1) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - panX, y: e.clientY - panY });
+    } else if ((e.target as HTMLElement).classList.contains('canvas-bg')) {
+      setSelectedRoomId(null);
+      setSelectedFacilityId(null);
+    }
+  };
+
+  const handleMouseDownRoom = (e: React.MouseEvent, rm: RoomRecord) => {
     e.stopPropagation();
-    setSelectedObjectId(obj.id);
+    setSelectedRoomId(rm.id);
+    setSelectedFacilityId(null);
     if (!editMode) return;
 
     setIsDraggingObj(true);
     setDragOffset({
-      x: e.clientX - obj.x,
-      y: e.clientY - obj.y
+      x: e.clientX - rm.x,
+      y: e.clientY - rm.y
+    });
+  };
+
+  const handleMouseDownFacility = (e: React.MouseEvent, fo: FloorPlanObjectRecord) => {
+    e.stopPropagation();
+    setSelectedFacilityId(fo.id);
+    setSelectedRoomId(null);
+    if (!editMode) return;
+
+    setIsDraggingObj(true);
+    setDragOffset({
+      x: e.clientX - fo.x,
+      y: e.clientY - fo.y
     });
   };
 
@@ -418,37 +892,46 @@ export function FloorManagement() {
       return;
     }
 
-    if (!editMode || !selectedObjectId) return;
+    if (!editMode) return;
 
     const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
 
-    if (isDraggingObj) {
-      const newX = snap(e.clientX - dragOffset.x);
-      const newY = snap(e.clientY - dragOffset.y);
-      setCanvasObjects(prev => prev.map(o => o.id === selectedObjectId ? { ...o, x: Math.max(0, newX), y: Math.max(0, newY) } : o));
-    } else if (resizeHandle) {
-      setCanvasObjects(prev => prev.map(o => {
-        if (o.id !== selectedObjectId) return o;
-        let newW = o.w;
-        let newH = o.h;
-        let newX = o.x;
-        let newY = o.y;
+    if (selectedRoomId) {
+      if (isDraggingObj) {
+        const newX = snap(e.clientX - dragOffset.x);
+        const newY = snap(e.clientY - dragOffset.y);
+        setRooms(prev => prev.map(r => String(r.id) === String(selectedRoomId) ? { ...r, x: Math.max(0, newX), y: Math.max(0, newY) } : r));
+      } else if (resizeHandle) {
+        setRooms(prev => prev.map(r => {
+          if (String(r.id) !== String(selectedRoomId)) return r;
+          let newW = r.width;
+          let newH = r.height;
 
-        if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - o.x));
-        if (resizeHandle.includes('s')) newH = Math.max(60, snap(e.clientY - o.y));
-        if (resizeHandle.includes('w')) {
-          const diff = o.x - e.clientX;
-          newW = Math.max(60, snap(o.w + diff));
-        }
-        if (resizeHandle.includes('n')) {
-          const diff = o.y - e.clientY;
-          newH = Math.max(60, snap(o.h + diff));
-        }
+          if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - r.x));
+          if (resizeHandle.includes('s')) newH = Math.max(60, snap(e.clientY - r.y));
 
-        return { ...o, x: newX, y: newY, w: newW, h: newH };
-      }));
+          return { ...r, width: newW, height: newH };
+        }));
+      }
+    } else if (selectedFacilityId) {
+      if (isDraggingObj) {
+        const newX = snap(e.clientX - dragOffset.x);
+        const newY = snap(e.clientY - dragOffset.y);
+        setFacilityObjects(prev => prev.map(fo => String(fo.id) === String(selectedFacilityId) ? { ...fo, x: Math.max(0, newX), y: Math.max(0, newY) } : fo));
+      } else if (resizeHandle) {
+        setFacilityObjects(prev => prev.map(fo => {
+          if (String(fo.id) !== String(selectedFacilityId)) return fo;
+          let newW = fo.width;
+          let newH = fo.height;
+
+          if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - fo.x));
+          if (resizeHandle.includes('s')) newH = Math.max(60, snap(e.clientY - fo.y));
+
+          return { ...fo, width: newW, height: newH };
+        }));
+      }
     }
-  }, [isPanning, panStart, editMode, selectedObjectId, isDraggingObj, dragOffset, resizeHandle, snapToGrid]);
+  }, [isPanning, panStart, editMode, selectedRoomId, selectedFacilityId, isDraggingObj, dragOffset, resizeHandle, snapToGrid]);
 
   const handleMouseUpCanvas = () => {
     setIsPanning(false);
@@ -456,27 +939,12 @@ export function FloorManagement() {
     setResizeHandle(null);
   };
 
-  // Viewport Fit to Screen handler
-  const handleFitToScreen = () => {
-    setZoomLevel(90);
-    setPanX(0);
-    setPanY(0);
-    triggerToast('Fit floor plan to viewport screen');
-  };
-
-  const handleResetCanvas = () => {
-    setZoomLevel(100);
-    setPanX(0);
-    setPanY(0);
-    triggerToast('Reset zoom and pan position');
-  };
-
+  // Viewport Fit & Navigation
+  const handleFitToScreen = () => { setZoomLevel(90); setPanX(0); setPanY(0); triggerToast('Fit layout to screen'); };
+  const handleResetCanvas = () => { setZoomLevel(100); setPanX(0); setPanY(0); triggerToast('Reset viewport'); };
   const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen().catch(() => {});
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -488,10 +956,7 @@ export function FloorManagement() {
     setIsBuildingModalOpen(true);
   };
 
-  const handleOpenEditBuildingModal = (b: BuildingInfo) => {
-    setEditingBuilding({ ...b });
-    setIsBuildingModalOpen(true);
-  };
+  const handleOpenEditBuildingModal = (b: BuildingInfo) => { setEditingBuilding({ ...b }); setIsBuildingModalOpen(true); };
 
   const handleSaveBuildingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,7 +978,7 @@ export function FloorManagement() {
         setSelectedBuildingId(newB.id);
       }
       setIsBuildingModalOpen(false);
-      triggerToast(`Saved building details for ${payload.name}`);
+      triggerToast(`Saved building ${payload.name}`);
     } catch (err) {
       triggerToast('Error saving building');
     }
@@ -521,13 +986,7 @@ export function FloorManagement() {
 
   const handleConfirmDeleteBuilding = async () => {
     if (!deletingBuilding) return;
-    const targetId = deletingBuilding.id;
-    setBuildings(prev => prev.filter(b => String(b.id) !== String(targetId)));
-    setFloors(prev => prev.filter(f => String(f.buildingId) !== String(targetId)));
-    if (String(selectedBuildingId) === String(targetId)) {
-      const rem = buildings.filter(b => String(b.id) !== String(targetId));
-      if (rem.length > 0) setSelectedBuildingId(rem[0].id);
-    }
+    setBuildings(prev => prev.filter(b => String(b.id) !== String(deletingBuilding.id)));
     setDeletingBuilding(null);
     triggerToast('Building deleted');
   };
@@ -544,11 +1003,7 @@ export function FloorManagement() {
     setIsFloorModalOpen(true);
   };
 
-  const handleOpenEditFloorModal = (f: FloorInfo) => {
-    setEditingFloor({ ...f });
-    setFloorValidationError(null);
-    setIsFloorModalOpen(true);
-  };
+  const handleOpenEditFloorModal = (f: FloorInfo) => { setEditingFloor({ ...f }); setFloorValidationError(null); setIsFloorModalOpen(true); };
 
   const handleSaveFloorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -559,12 +1014,7 @@ export function FloorManagement() {
       setFloorValidationError(`Floor number ${numFloor} already exists in ${selectedBuilding.name}.`);
       return;
     }
-    const payload = {
-      buildingId: selectedBuildingId,
-      name: editingFloor.name.trim(),
-      floorNumber: numFloor,
-      description: editingFloor.description || ''
-    };
+    const payload = { buildingId: selectedBuildingId, name: editingFloor.name.trim(), floorNumber: numFloor, description: editingFloor.description || '' };
     if (editingFloor.id) {
       setFloors(prev => prev.map(f => String(f.id) === String(editingFloor.id) ? { ...f, ...payload } as FloorInfo : f));
     } else {
@@ -591,33 +1041,26 @@ export function FloorManagement() {
     triggerToast('Floor deleted');
   };
 
-  const handleOpenEditModal = (obj: CanvasObject) => {
-    setEditingRoom({ ...obj });
-    setIsRoomModalOpen(true);
+  // Category Theme Helper
+  const getRoomTypeBadgeColor = (type: RoomType) => {
+    switch (type) {
+      case 'Classroom': return 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 border-indigo-200';
+      case 'Laboratory': case 'Computer Lab': return 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-200';
+      case 'Office': case 'Faculty Room': case 'Staff Room': return 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200';
+      case 'Library': return 'bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-400 border-cyan-200';
+      case 'Seminar Hall': case 'Conference Room': return 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 border-purple-200';
+      case 'Cafeteria': return 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border-rose-200';
+      case 'Washroom': return 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400 border-sky-200';
+      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200';
+    }
   };
 
-  const handleSaveRoomModal = () => {
-    if (!editingRoom || !editingRoom.id) return;
-    setCanvasObjects(prev => prev.map(o => o.id === editingRoom.id ? { ...o, ...editingRoom } as CanvasObject : o));
-    setIsRoomModalOpen(false);
-    triggerToast(`Updated configuration for ${editingRoom.code}`);
-  };
-
-  // Category Styling Helper
-  const getCategoryTheme = (cat: ObjectCategory) => {
-    switch (cat) {
-      case 'classroom': return { bg: 'bg-indigo-50/90 dark:bg-indigo-950/60', border: 'border-indigo-400 dark:border-indigo-700', text: 'text-indigo-600 dark:text-indigo-400', badge: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700' };
-      case 'lab': return { bg: 'bg-emerald-50/90 dark:bg-emerald-950/60', border: 'border-emerald-400 dark:border-emerald-700', text: 'text-emerald-600 dark:text-emerald-400', badge: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700' };
-      case 'office': return { bg: 'bg-amber-50/90 dark:bg-amber-950/60', border: 'border-amber-400 dark:border-amber-700', text: 'text-amber-600 dark:text-amber-400', badge: 'bg-amber-100 dark:bg-amber-950 text-amber-700' };
-      case 'library': return { bg: 'bg-cyan-50/90 dark:bg-cyan-950/60', border: 'border-cyan-400 dark:border-cyan-700', text: 'text-cyan-600 dark:text-cyan-400', badge: 'bg-cyan-100 dark:bg-cyan-950 text-cyan-700' };
-      case 'seminar': return { bg: 'bg-purple-50/90 dark:bg-purple-950/60', border: 'border-purple-400 dark:border-purple-700', text: 'text-purple-600 dark:text-purple-400', badge: 'bg-purple-100 dark:bg-purple-950 text-purple-700' };
-      case 'cafeteria': return { bg: 'bg-rose-50/90 dark:bg-rose-950/60', border: 'border-rose-400 dark:border-rose-700', text: 'text-rose-600 dark:text-rose-400', badge: 'bg-rose-100 dark:bg-rose-950 text-rose-700' };
-      case 'corridor': return { bg: 'bg-slate-200/80 dark:bg-slate-800/80', border: 'border-dashed border-slate-400 dark:border-slate-600', text: 'text-slate-500', badge: 'bg-slate-300 dark:bg-slate-700 text-slate-700' };
-      case 'stairs': case 'lift': return { bg: 'bg-blue-50/90 dark:bg-blue-950/60', border: 'border-blue-400 dark:border-blue-700', text: 'text-blue-600 dark:text-blue-400', badge: 'bg-blue-100 dark:bg-blue-950 text-blue-700' };
-      case 'washroom': return { bg: 'bg-sky-50/90 dark:bg-sky-950/60', border: 'border-sky-400 dark:border-sky-700', text: 'text-sky-600 dark:text-sky-400', badge: 'bg-sky-100 dark:bg-sky-950 text-sky-700' };
-      case 'entrance': return { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', text: 'text-white', badge: 'bg-emerald-700 text-white' };
-      case 'exit': return { bg: 'bg-rose-500/90 text-white', border: 'border-rose-600', text: 'text-white', badge: 'bg-rose-700 text-white' };
-      default: return { bg: 'bg-slate-100/90 dark:bg-slate-800/60', border: 'border-slate-300 dark:border-slate-700', text: 'text-slate-600', badge: 'bg-slate-200 text-slate-700' };
+  const getStatusColor = (status: RoomRecord['status']) => {
+    switch (status) {
+      case 'Occupied': return 'bg-red-500';
+      case 'Available': return 'bg-emerald-500';
+      case 'Maintenance': return 'bg-amber-500';
+      case 'Reserved': return 'bg-purple-500';
     }
   };
 
@@ -649,7 +1092,7 @@ export function FloorManagement() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Floor Management</h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
-                Vector Canvas Editor
+                Interactive Room Editor
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -659,7 +1102,7 @@ export function FloorManagement() {
 
           <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
             <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-800 text-center min-w-[80px]">
-              <span className="block text-xs text-slate-400 font-medium">Objects</span>
+              <span className="block text-xs text-slate-400 font-medium">Total Rooms</span>
               <span className="text-base font-extrabold text-slate-900 dark:text-white">{stats.total}</span>
             </div>
             <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-800 text-center min-w-[80px]">
@@ -679,13 +1122,13 @@ export function FloorManagement() {
       </header>
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      {/* TOP CONTROLS BAR & DROPDOWNS */}
+      {/* TOP CONTROLS BAR */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           
           <div className="relative min-w-[190px]">
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Building</label>
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Select Building</label>
             <div className="relative">
               <select
                 value={selectedBuildingId}
@@ -701,7 +1144,7 @@ export function FloorManagement() {
           </div>
 
           <div className="relative min-w-[170px]">
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Floor Level ({buildingFloors.length})</label>
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Select Floor Level</label>
             <div className="relative">
               <select
                 value={selectedFloorId}
@@ -717,12 +1160,12 @@ export function FloorManagement() {
           </div>
 
           <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Search Canvas</label>
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Search Rooms</label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search room code, lab, or office..."
+                placeholder="Search room number, name, or dept..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -787,91 +1230,75 @@ export function FloorManagement() {
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      {/* 18-TOOL EDITOR TOOLBAR PALETTE */}
+      {/* EDITOR TOOLBAR & ACTION PALETTE */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {editMode && (
         <div className="bg-slate-900 text-white border-b border-slate-800 px-6 py-2 flex items-center justify-between overflow-x-auto scrollbar-none z-30 flex-shrink-0">
-          <div className="flex items-center gap-1.5 min-w-max">
-            
-            {/* Tool 1: Select */}
+          <div className="flex items-center gap-2 min-w-max">
             <button
-              onClick={() => setActiveTool('select')}
-              className={cn("px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all", activeTool === 'select' ? "bg-blue-600 text-white shadow-sm" : "hover:bg-slate-800 text-slate-300")}
-              title="1. Select Pointer Tool"
+              onClick={() => handleOpenAddRoomModal('Classroom')}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md"
             >
-              <MousePointer className="w-3.5 h-3.5 text-blue-400" /> 1. Select
+              <Plus className="w-4 h-4" /> Add Room Form
             </button>
 
-            <div className="w-px h-4 bg-slate-800 mx-1" />
-
-            {/* Tools 2-14: Object Add Tools */}
-            <button onClick={() => handleAddObjectFromToolbar('room')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="2. Add Generic Room">
-              <Square className="w-3.5 h-3.5 text-indigo-400" /> 2. Room
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('corridor')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="3. Add Corridor">
-              <LayoutGrid className="w-3.5 h-3.5 text-slate-400" /> 3. Corridor
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('stairs')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="4. Add Stairs">
-              <ArrowUp className="w-3.5 h-3.5 text-blue-400" /> 4. Stairs
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('lift')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="5. Add Lift">
-              <ArrowDown className="w-3.5 h-3.5 text-blue-400" /> 5. Lift
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('washroom')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="6. Add Washroom">
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" /> 6. Washroom
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('office')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="7. Add Office">
-              <Users className="w-3.5 h-3.5 text-amber-400" /> 7. Office
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('lab')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="8. Add Lab">
-              <Cpu className="w-3.5 h-3.5 text-emerald-400" /> 8. Lab
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('classroom')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="9. Add Classroom">
-              <BookOpen className="w-3.5 h-3.5 text-indigo-400" /> 9. Classroom
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('library')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="10. Add Library">
-              <BookOpen className="w-3.5 h-3.5 text-cyan-400" /> 10. Library
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('seminar')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="11. Add Seminar Hall">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" /> 11. Seminar
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('cafeteria')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="12. Add Cafeteria">
-              <Coffee className="w-3.5 h-3.5 text-rose-400" /> 12. Cafeteria
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('entrance')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="13. Add Entrance">
-              <LogIn className="w-3.5 h-3.5 text-emerald-400" /> 13. Entrance
-            </button>
-            <button onClick={() => handleAddObjectFromToolbar('exit')} className="px-2 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1" title="14. Add Exit">
-              <LogOut className="w-3.5 h-3.5 text-rose-400" /> 14. Exit
-            </button>
-
-            <div className="w-px h-4 bg-slate-800 mx-1" />
-
-            {/* Tools 15-18: Manipulate Actions */}
             <button
-              onClick={() => setActiveTool(activeTool === 'move' ? 'select' : 'move')}
-              className={cn("px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all", activeTool === 'move' ? "bg-amber-500 text-white" : "hover:bg-slate-800 text-slate-300")}
-              title="15. Move Canvas / Pan"
+              onClick={() => handleOpenAddFacilityModal('Stairs')}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md"
             >
-              <Move className="w-3.5 h-3.5" /> 15. Move
+              <Plus className="w-4 h-4" /> Add Facility
+            </button>
+
+            <div className="w-px h-5 bg-slate-800 mx-1" />
+
+            {/* Quick Add Facilities Palette */}
+            <button onClick={() => handleOpenAddFacilityModal('Stairs')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-blue-300 font-semibold flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-blue-400" /> Stairs
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Lift')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-purple-300 font-semibold flex items-center gap-1">
+              <Building2 className="w-3.5 h-3.5 text-purple-400" /> Lift
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal("Men's Washroom")} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-sky-300 font-semibold flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" /> Washroom
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Corridor')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-slate-300 font-semibold flex items-center gap-1">
+              <Move className="w-3.5 h-3.5 text-slate-400" /> Corridor
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Lobby')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-amber-300 font-semibold flex items-center gap-1">
+              <LayoutGrid className="w-3.5 h-3.5 text-amber-400" /> Lobby
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Entrance')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-emerald-300 font-semibold flex items-center gap-1">
+              <LogIn className="w-3.5 h-3.5 text-emerald-400" /> Entrance
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Emergency Exit')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-rose-300 font-semibold flex items-center gap-1">
+              <LogOut className="w-3.5 h-3.5 text-rose-400" /> Fire Exit
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Drinking Water')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-cyan-300 font-semibold flex items-center gap-1">
+              <Droplets className="w-3.5 h-3.5 text-cyan-400" /> Water
+            </button>
+            <button onClick={() => handleOpenAddFacilityModal('Reception')} className="px-2.5 py-1 hover:bg-slate-800 rounded-lg text-xs text-indigo-300 font-semibold flex items-center gap-1">
+              <UserCheck className="w-3.5 h-3.5 text-indigo-400" /> Reception
+            </button>
+
+            <div className="w-px h-5 bg-slate-800 mx-1" />
+
+            <button
+              onClick={() => selectedRoomId ? handleRotateSelectedRoom() : selectedFacilityId ? handleRotateSelectedFacility() : null}
+              disabled={!selectedRoomId && !selectedFacilityId}
+              className="px-2.5 py-1 hover:bg-slate-800 disabled:opacity-30 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-amber-400" /> Rotate 90°
             </button>
             <button
-              onClick={handleRotateSelected}
-              disabled={!selectedObjectId}
-              className="px-2 py-1 hover:bg-slate-800 disabled:opacity-30 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1"
-              title="17. Rotate Selected Object 90°"
+              onClick={() => {
+                if (selectedRoomId) handleDeleteRoom(selectedRoomId);
+                else if (selectedFacilityId) handleDeleteFacility(selectedFacilityId);
+              }}
+              disabled={!selectedRoomId && !selectedFacilityId}
+              className="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 disabled:opacity-30 rounded-lg text-xs font-bold flex items-center gap-1"
             >
-              <RotateCw className="w-3.5 h-3.5 text-amber-400" /> 17. Rotate
+              <Trash2 className="w-3.5 h-3.5" /> Delete
             </button>
-            <button
-              onClick={handleDeleteSelected}
-              disabled={!selectedObjectId}
-              className="px-2.5 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 disabled:opacity-30 rounded-lg text-xs font-bold flex items-center gap-1"
-              title="18. Delete Selected Object"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> 18. Delete
-            </button>
-
           </div>
         </div>
       )}
@@ -882,7 +1309,7 @@ export function FloorManagement() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
         <div className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
           
-          {/* North Architectural Indicator Badge (Top Right) */}
+          {/* North Compass Indicator (Top Right) */}
           <div className="absolute top-4 right-4 z-20 flex flex-col items-center bg-slate-900/90 text-white backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-slate-800 pointer-events-none select-none">
             <div className="w-8 h-8 rounded-full border-2 border-amber-400 flex items-center justify-center relative">
               <span className="text-[10px] font-black text-amber-400 absolute top-0.5">N</span>
@@ -891,7 +1318,7 @@ export function FloorManagement() {
             <span className="text-[9px] font-extrabold text-slate-400 tracking-widest mt-1">NORTH</span>
           </div>
 
-          {/* Floating Canvas Viewport Tools (Top Left) */}
+          {/* Canvas Viewport Toolbar (Top Left) */}
           <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-900/90 text-white backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-slate-800">
             <button onClick={() => setZoomLevel(prev => Math.min(prev + 15, 180))} title="Zoom In (+)" className="p-2 rounded-xl text-slate-300 hover:bg-slate-800">
               <ZoomIn className="w-4 h-4" />
@@ -912,7 +1339,7 @@ export function FloorManagement() {
             </button>
           </div>
 
-          {/* REAL VECTOR FLOOR PLAN EDITOR CANVAS CONTAINER */}
+          {/* REAL VECTOR FLOOR PLAN CANVAS CONTAINER */}
           <div
             ref={canvasContainerRef}
             onMouseDown={handleMouseDownCanvas}
@@ -929,104 +1356,194 @@ export function FloorManagement() {
                 transformOrigin: 'center center',
                 transition: isPanning || isDraggingObj ? 'none' : 'transform 0.1s ease-out'
               }}
-              className={cn(
-                "relative w-[1160px] h-[740px] bg-slate-900 rounded-3xl shadow-2xl border-4 border-slate-800 overflow-hidden flex-shrink-0 transition-all canvas-bg",
-                showGrid ? "bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]" : ""
-              )}
+              className="relative w-[1160px] h-[740px] bg-slate-900 rounded-3xl shadow-2xl border-4 border-slate-800 overflow-hidden flex-shrink-0 transition-all canvas-bg bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]"
             >
 
-              {/* Watermark Label */}
+              {/* Building Floor Label Watermark */}
               <div className="absolute top-6 left-8 pointer-events-none select-none opacity-15">
                 <p className="text-4xl font-black uppercase tracking-widest text-white">{selectedBuilding.code}</p>
                 <p className="text-xl font-bold text-slate-300">{selectedBuilding.name} - {selectedFloor.name}</p>
               </div>
 
-              {/* VECTOR OBJECTS RENDER LOOP */}
-              {filteredObjects.map(obj => {
-                const isSelected = selectedObjectId === obj.id;
-                const theme = getCategoryTheme(obj.category);
+              {/* Corridor Line */}
+              <div className="absolute left-[4%] top-[31%] w-[92%] h-[3.5%] bg-slate-800/80 border-y border-dashed border-slate-700 flex items-center justify-between px-6 pointer-events-none">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Main Corridor Passage</span>
+              </div>
+
+              {/* ROOM TILES VECTOR LAYER */}
+              {filteredRooms.map(rm => {
+                const isSelected = String(selectedRoomId) === String(rm.id);
+                const badgeColor = getRoomTypeBadgeColor(rm.roomType);
 
                 return (
                   <div
-                    key={obj.id}
-                    onMouseDown={(e) => handleMouseDownObject(e, obj)}
+                    key={rm.id}
+                    onMouseDown={(e) => handleMouseDownRoom(e, rm)}
                     style={{
-                      left: `${obj.x}px`,
-                      top: `${obj.y}px`,
-                      width: `${obj.w}px`,
-                      height: `${obj.h}px`,
-                      transform: `rotate(${obj.rotation}deg)`,
+                      left: `${rm.x}px`,
+                      top: `${rm.y}px`,
+                      width: `${rm.width}px`,
+                      height: `${rm.height}px`,
+                      transform: `rotate(${rm.rotation}deg)`,
                       transformOrigin: 'center center'
                     }}
                     className={cn(
-                      "absolute rounded-2xl p-3 border-2 transition-shadow flex flex-col justify-between cursor-pointer group shadow-md select-none",
-                      theme.bg, theme.border,
+                      "absolute rounded-2xl p-3 border-2 transition-shadow flex flex-col justify-between cursor-pointer group shadow-md select-none bg-slate-900/90 text-white",
+                      rm.roomType === 'Classroom' && "bg-indigo-950/70 border-indigo-700 hover:border-indigo-500",
+                      (rm.roomType === 'Computer Lab' || rm.roomType === 'Laboratory') && "bg-emerald-950/70 border-emerald-700 hover:border-emerald-500",
+                      (rm.roomType === 'Office' || rm.roomType === 'Faculty Room') && "bg-amber-950/70 border-amber-700 hover:border-amber-500",
+                      rm.roomType === 'Seminar Hall' && "bg-purple-950/70 border-purple-700 hover:border-purple-500",
+                      rm.roomType === 'Washroom' && "bg-sky-950/70 border-sky-700 hover:border-sky-500",
+                      rm.roomType === 'Cafeteria' && "bg-rose-950/70 border-rose-700 hover:border-rose-500",
+                      
                       isSelected && "ring-4 ring-blue-500 ring-offset-2 ring-offset-slate-950 border-blue-500 z-20 shadow-2xl scale-[1.01]"
                     )}
                   >
                     
-                    {/* SVG Shape Graphic for L-Shape or Polygon */}
-                    {obj.shape === 'l-shape' && (
-                      <div className="absolute inset-0 pointer-events-none opacity-20">
-                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                          <path d="M 0 0 H 100 V 40 H 40 V 100 H 0 Z" fill="currentColor" className={theme.text} />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Top Row: Code & Category Icon */}
+                    {/* Top Row: Room Number & Type Badge */}
                     <div className="flex items-center justify-between gap-1 z-10">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-black text-xs tracking-wider text-slate-900 dark:text-white">
-                          {obj.code}
+                        <span className="font-black text-xs tracking-wider text-white">
+                          No. {rm.roomNumber}
                         </span>
-                        {obj.category === 'lab' && <Cpu className="w-3.5 h-3.5 text-emerald-500" />}
-                        {obj.category === 'classroom' && <BookOpen className="w-3.5 h-3.5 text-indigo-500" />}
-                        {obj.category === 'office' && <Users className="w-3.5 h-3.5 text-amber-500" />}
+                        {rm.roomType.includes('Lab') && <Cpu className="w-3.5 h-3.5 text-emerald-400" />}
+                        {rm.roomType === 'Classroom' && <BookOpen className="w-3.5 h-3.5 text-indigo-400" />}
+                        {rm.roomType.includes('Faculty') && <Users className="w-3.5 h-3.5 text-amber-400" />}
                       </div>
 
-                      <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase", theme.badge)}>
-                        {obj.category}
+                      <div className="flex items-center gap-1">
+                        <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase border", badgeColor)}>
+                          {rm.roomType}
+                        </span>
+                        <span className={cn("w-2 h-2 rounded-full", getStatusColor(rm.status))} />
+                      </div>
+                    </div>
+
+                    {/* Room Name & Dept */}
+                    <div className="z-10">
+                      <p className="text-xs font-bold text-white line-clamp-1 leading-tight">{rm.roomName}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{rm.department || 'General'}</p>
+                    </div>
+
+                    {/* Bottom Info Bar: Capacity & Status */}
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800 z-10">
+                      <span className="font-semibold">{rm.capacity} Seats</span>
+                      <span className={cn("font-bold", rm.status === 'Occupied' ? "text-red-400" : "text-emerald-400")}>
+                        {rm.status}
                       </span>
                     </div>
 
-                    {/* Room Name */}
-                    <div className="z-10">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 leading-tight">{obj.name}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{obj.dept}</p>
-                    </div>
-
-                    {/* Bottom Capacity Bar */}
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800 z-10">
-                      <span className="font-semibold">{obj.capacity} Seats</span>
-                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{obj.occupancy || 0}% Occupied</span>
-                    </div>
-
-                    {/* SELECTION BORDER & RESIZE/ROTATE/DELETE HANDLES */}
+                    {/* SELECTION RESIZE & SHAPE CONTROL OVERLAY */}
                     {isSelected && editMode && (
                       <>
-                        {/* Top Rotation Knob */}
                         <div
-                          onClick={(e) => { e.stopPropagation(); handleRotate90Deg(obj.id); }}
+                          onClick={(e) => { e.stopPropagation(); handleRotateSelectedRoom(); }}
                           className="absolute -top-7 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
                           title="Rotate 90°"
                         >
                           <RotateCw className="w-3.5 h-3.5" />
                         </div>
 
-                        {/* Corner Resize Handles */}
-                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
-                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nesw-resize shadow-md" />
                         <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
-                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nesw-resize shadow-md" />
 
-                        {/* Quick Action Floating Menu */}
+                        {/* Quick Shape Selector */}
                         <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900 text-white px-2 py-1 rounded-xl shadow-2xl border border-slate-700 text-[10px] font-bold z-30">
-                          <button onClick={() => handleChangeShape(obj.id, 'rectangle')} className={cn("px-1.5 py-0.5 rounded", obj.shape === 'rectangle' && "bg-blue-600")}>Rect</button>
-                          <button onClick={() => handleChangeShape(obj.id, 'square')} className={cn("px-1.5 py-0.5 rounded", obj.shape === 'square' && "bg-blue-600")}>Square</button>
-                          <button onClick={() => handleChangeShape(obj.id, 'l-shape')} className={cn("px-1.5 py-0.5 rounded", obj.shape === 'l-shape' && "bg-blue-600")}>L-Shape</button>
-                          <button onClick={() => handleOpenEditModal(obj)} className="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-blue-300">Edit</button>
-                          <button onClick={handleDeleteSelected} className="px-1.5 py-0.5 bg-rose-900 hover:bg-rose-800 rounded text-rose-300">Del</button>
+                          <button onClick={() => handleChangeRoomShape(rm.id, 'rectangle')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'rectangle' && "bg-blue-600")}>Rect</button>
+                          <button onClick={() => handleChangeRoomShape(rm.id, 'square')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'square' && "bg-blue-600")}>Square</button>
+                          <button onClick={() => handleChangeRoomShape(rm.id, 'l-shape')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'l-shape' && "bg-blue-600")}>L-Shape</button>
+                          <button onClick={() => handleOpenEditModal(rm)} className="px-1.5 py-0.5 bg-slate-700 text-blue-300">Edit</button>
+                          <button onClick={() => handleDeleteRoom(rm.id)} className="px-1.5 py-0.5 bg-rose-900 text-rose-300">Del</button>
+                        </div>
+                      </>
+                    )}
+
+                  </div>
+                );
+              })}
+
+              {/* FACILITY OBJECTS VECTOR LAYER (STAIRS, LIFT, WASHROOMS, EXITS, ETC.) */}
+              {facilityObjects.map(fo => {
+                const isSelected = String(selectedFacilityId) === String(fo.id);
+                const badgeColor = getFacilityBadgeColor(fo.objectType);
+                const metaDesc = typeof fo.metadata === 'object' ? (fo.metadata.description || '') : '';
+                const metaStatus = typeof fo.metadata === 'object' ? (fo.metadata.status || 'Active') : 'Active';
+
+                return (
+                  <div
+                    key={fo.id}
+                    onMouseDown={(e) => handleMouseDownFacility(e, fo)}
+                    style={{
+                      left: `${fo.x}px`,
+                      top: `${fo.y}px`,
+                      width: `${fo.width}px`,
+                      height: `${fo.height}px`,
+                      transform: `rotate(${fo.rotation}deg)`,
+                      transformOrigin: 'center center'
+                    }}
+                    className={cn(
+                      "absolute rounded-2xl p-3 border-2 transition-shadow flex flex-col justify-between cursor-pointer group shadow-md select-none bg-slate-900/90 text-white",
+                      fo.objectType === 'Stairs' && "bg-blue-950/70 border-blue-700 hover:border-blue-500",
+                      fo.objectType === 'Lift' && "bg-purple-950/70 border-purple-700 hover:border-purple-500",
+                      (fo.objectType.includes('Washroom')) && "bg-sky-950/70 border-sky-700 hover:border-sky-500",
+                      fo.objectType === 'Corridor' && "bg-slate-950/80 border-slate-700 hover:border-slate-500 border-dashed",
+                      fo.objectType === 'Lobby' && "bg-amber-950/70 border-amber-700 hover:border-amber-500",
+                      fo.objectType === 'Entrance' && "bg-emerald-950/70 border-emerald-700 hover:border-emerald-500",
+                      (fo.objectType.includes('Exit')) && "bg-rose-950/70 border-rose-700 hover:border-rose-500",
+                      fo.objectType === 'Drinking Water' && "bg-cyan-950/70 border-cyan-700 hover:border-cyan-500",
+                      fo.objectType === 'Reception' && "bg-indigo-950/70 border-indigo-700 hover:border-indigo-500",
+                      fo.objectType === 'Security Desk' && "bg-violet-950/70 border-violet-700 hover:border-violet-500",
+                      fo.objectType === 'Cafeteria' && "bg-orange-950/70 border-orange-700 hover:border-orange-500",
+                      fo.objectType === 'Parking/Access Area' && "bg-zinc-900/80 border-zinc-700 hover:border-zinc-500",
+                      fo.objectType === 'Store Room' && "bg-yellow-950/70 border-yellow-700 hover:border-yellow-500",
+                      
+                      isSelected && "ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-950 border-amber-400 z-20 shadow-2xl scale-[1.01]"
+                    )}
+                  >
+                    {/* Top Row: Type & Badge */}
+                    <div className="flex items-center justify-between gap-1 z-10">
+                      <div className="flex items-center gap-1.5">
+                        {getFacilityIcon(fo.objectType)}
+                        <span className="font-extrabold text-[11px] tracking-wider text-white truncate max-w-[100px]">
+                          {fo.objectType}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase border", badgeColor)}>
+                          {fo.objectType}
+                        </span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      </div>
+                    </div>
+
+                    {/* Facility Name & Description */}
+                    <div className="z-10">
+                      <p className="text-xs font-bold text-white line-clamp-1 leading-tight">{fo.name}</p>
+                      {metaDesc && <p className="text-[10px] text-slate-400 truncate">{metaDesc}</p>}
+                    </div>
+
+                    {/* Bottom Info Bar: Position & Status */}
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800 z-10">
+                      <span className="font-mono">{fo.x},{fo.y}</span>
+                      <span className="font-bold text-amber-400">{metaStatus}</span>
+                    </div>
+
+                    {/* SELECTION OVERLAY FOR FACILITY OBJECT */}
+                    {isSelected && editMode && (
+                      <>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); handleRotateSelectedFacility(); }}
+                          className="absolute -top-7 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
+                          title="Rotate 90°"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                        </div>
+
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
+
+                        <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900 text-white px-2 py-1 rounded-xl shadow-2xl border border-slate-700 text-[10px] font-bold z-30">
+                          <button onClick={() => handleOpenEditFacilityModal(fo)} className="px-1.5 py-0.5 bg-slate-700 text-amber-300">Edit</button>
+                          <button onClick={() => handleDeleteFacility(fo.id)} className="px-1.5 py-0.5 bg-rose-900 text-rose-300">Del</button>
                         </div>
                       </>
                     )}
@@ -1038,14 +1555,13 @@ export function FloorManagement() {
             </div>
           </div>
 
-          {/* MINIMAP OVERLAY (Bottom Right) */}
+          {/* Minimap Overlay */}
           <div className="absolute bottom-4 right-4 z-20 w-48 h-32 bg-slate-900/90 backdrop-blur-md rounded-2xl border-2 border-slate-700 shadow-2xl p-2 overflow-hidden pointer-events-auto flex flex-col justify-between">
             <div className="flex items-center justify-between text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">
               <span>Layout Minimap</span>
-              <span className="text-blue-400">{canvasObjects.length} Objects</span>
+              <span className="text-blue-400">{rooms.length} Rooms, {facilityObjects.length} Facilities</span>
             </div>
 
-            {/* Minimap Graphics Grid */}
             <div
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -1056,20 +1572,31 @@ export function FloorManagement() {
               }}
               className="relative w-full flex-1 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden cursor-crosshair"
             >
-              {canvasObjects.map(obj => (
+              {rooms.map(rm => (
                 <div
-                  key={obj.id}
+                  key={rm.id}
                   style={{
-                    left: `${(obj.x / 1160) * 100}%`,
-                    top: `${(obj.y / 740) * 100}%`,
-                    width: `${(obj.w / 1160) * 100}%`,
-                    height: `${(obj.h / 740) * 100}%`
+                    left: `${(rm.x / 1160) * 100}%`,
+                    top: `${(rm.y / 740) * 100}%`,
+                    width: `${(rm.width / 1160) * 100}%`,
+                    height: `${(rm.height / 740) * 100}%`
                   }}
                   className="absolute bg-blue-500/60 rounded-xs border border-blue-400"
                 />
               ))}
+              {facilityObjects.map(fo => (
+                <div
+                  key={fo.id}
+                  style={{
+                    left: `${(fo.x / 1160) * 100}%`,
+                    top: `${(fo.y / 740) * 100}%`,
+                    width: `${(fo.width / 1160) * 100}%`,
+                    height: `${(fo.height / 740) * 100}%`
+                  }}
+                  className="absolute bg-amber-500/60 rounded-xs border border-amber-400"
+                />
+              ))}
 
-              {/* Viewport Target Rectangle */}
               <div
                 style={{
                   left: `${Math.max(0, Math.min(80, 50 - (panX / 400) * 50))}%`,
@@ -1082,27 +1609,27 @@ export function FloorManagement() {
             </div>
           </div>
 
-          {/* Canvas Bottom Legend Bar */}
+          {/* Bottom Bar */}
           <div className="bg-slate-900 border-t border-slate-800 px-6 py-2 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
             <div className="flex items-center gap-4">
-              <span className="font-bold text-slate-300">Object Legend:</span>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500" /><span>Classroom</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-emerald-500" /><span>Lab</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-500" /><span>Office</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-purple-500" /><span>Seminar</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-rose-500" /><span>Cafeteria</span></div>
+              <span className="font-bold text-slate-300">Room & Facility Types:</span>
+              <span className="text-indigo-400 font-semibold">Classroom</span>
+              <span className="text-emerald-400 font-semibold">Computer Lab</span>
+              <span className="text-amber-400 font-semibold font-mono">Stairs/Elevators</span>
+              <span className="text-purple-400 font-semibold">Seminar Hall</span>
+              <span className="text-rose-400 font-semibold">Fire Exits</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Available</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Occupied</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Active</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Maintenance</span>
             </div>
           </div>
 
         </div>
 
         {/* ───────────────────────────────────────────────────────────────────────────── */}
-        {/* RIGHT INSPECTOR PANEL (TABS: ROOMS, BUILDINGS, FLOORS) */}
+        {/* RIGHT INSPECTOR PANEL (TABS: ROOMS, FACILITIES, FLOORS, BUILDINGS) */}
         {/* ───────────────────────────────────────────────────────────────────────────── */}
         <div className="w-full lg:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col flex-shrink-0">
           
@@ -1110,97 +1637,125 @@ export function FloorManagement() {
             <button
               onClick={() => setActiveRightTab('rooms')}
               className={cn(
-                "flex-1 py-3 px-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5",
+                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
                 activeRightTab === 'rooms' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
               )}
             >
-              <DoorOpen className="w-4 h-4" /> Objects ({filteredObjects.length})
+              <DoorOpen className="w-3.5 h-3.5" /> Rooms ({filteredRooms.length})
+            </button>
+
+            <button
+              onClick={() => setActiveRightTab('facilities')}
+              className={cn(
+                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
+                activeRightTab === 'facilities' ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Facilities ({facilityObjects.length})
             </button>
 
             <button
               onClick={() => setActiveRightTab('floors')}
               className={cn(
-                "flex-1 py-3 px-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5",
+                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
                 activeRightTab === 'floors' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
               )}
             >
-              <Layers className="w-4 h-4" /> Floors ({buildingFloors.length})
+              <Layers className="w-3.5 h-3.5" /> Floors ({buildingFloors.length})
             </button>
 
             <button
               onClick={() => setActiveRightTab('buildings')}
               className={cn(
-                "flex-1 py-3 px-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5",
+                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
                 activeRightTab === 'buildings' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
               )}
             >
-              <Building2 className="w-4 h-4" /> Buildings ({buildings.length})
+              <Building2 className="w-3.5 h-3.5" /> Buildings ({buildings.length})
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             
-            {/* TAB 1: OBJECTS INSPECTOR */}
+            {/* TAB 1: ROOM DETAILS & INSPECTOR */}
             {activeRightTab === 'rooms' && (
               <>
-                {selectedObject ? (
+                <button
+                  onClick={() => handleOpenAddRoomModal('Classroom')}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add Room Form
+                </button>
+
+                {selectedRoom ? (
                   <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-md text-[10px] font-bold uppercase">
-                          {selectedObject.category} • {selectedObject.shape}
+                        <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider", getRoomTypeBadgeColor(selectedRoom.roomType))}>
+                          {selectedRoom.roomType}
                         </span>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">{selectedObject.code}: {selectedObject.name}</h3>
-                        <p className="text-xs text-slate-500">{selectedObject.dept}</p>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">Room {selectedRoom.roomNumber}: {selectedRoom.roomName}</h3>
+                        <p className="text-xs text-slate-500">{selectedRoom.department} Department</p>
                       </div>
-                      <button onClick={() => handleOpenEditModal(selectedObject)} className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600" title="Edit Config">
+                      <button onClick={() => handleOpenEditModal(selectedRoom)} className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600" title="Edit Config">
                         <Edit3 className="w-4 h-4" />
                       </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
-                      <div><span className="text-slate-400 block text-[10px]">Capacity</span><span className="font-bold">{selectedObject.capacity} Seats</span></div>
-                      <div><span className="text-slate-400 block text-[10px]">Status</span><span className="font-bold capitalize">{selectedObject.status}</span></div>
+                      <div><span className="text-slate-400 block text-[10px]">Capacity</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedRoom.capacity} Seats</span></div>
+                      <div><span className="text-slate-400 block text-[10px]">Status</span><span className="font-bold capitalize text-slate-800 dark:text-slate-200">{selectedRoom.status}</span></div>
                     </div>
+
+                    {selectedRoom.description && (
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="text-slate-400 block text-[10px] font-semibold">Description</span>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed mt-0.5">{selectedRoom.description}</p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
-                      <div><span className="text-slate-400 block text-[9px]">X Position</span><span className="font-mono font-bold">{selectedObject.x}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Y Position</span><span className="font-mono font-bold">{selectedObject.y}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Rotation</span><span className="font-mono font-bold">{selectedObject.rotation}°</span></div>
+                      <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedRoom.x}px</span></div>
+                      <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedRoom.y}px</span></div>
+                      <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedRoom.width}×{selectedRoom.height}</span></div>
                     </div>
 
-                    <button onClick={handleDeleteSelected} className="w-full mt-2 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete Selected Object
-                    </button>
+                    <div className="flex items-center gap-2 pt-2">
+                      <button onClick={() => handleOpenEditModal(selectedRoom)} className="flex-1 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center justify-center gap-1">
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Details
+                      </button>
+                      <button onClick={() => handleDeleteRoom(selectedRoom.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
-                    Click any object on the vector floor canvas to inspect and modify properties.
+                    Click any room on the vector floor plan canvas to inspect details and edit.
                   </div>
                 )}
 
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-                    <span>Floor Objects List</span>
-                    <span>{filteredObjects.length} Total</span>
+                    <span>Rooms Directory ({filteredRooms.length})</span>
                   </div>
 
                   <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
-                    {filteredObjects.map(r => (
+                    {filteredRooms.map(r => (
                       <div
                         key={r.id}
-                        onClick={() => setSelectedObjectId(r.id)}
+                        onClick={() => { setSelectedRoomId(r.id); setSelectedFacilityId(null); }}
                         className={cn(
                           "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs",
-                          selectedObjectId === r.id ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 font-bold" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                          String(selectedRoomId) === String(r.id) ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 font-bold" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                         )}
                       >
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-slate-900 dark:text-white">{r.code}</span>
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold uppercase bg-slate-100 dark:bg-slate-700">{r.category}</span>
+                            <span className="font-extrabold text-slate-900 dark:text-white">No. {r.roomNumber}</span>
+                            <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-semibold uppercase border", getRoomTypeBadgeColor(r.roomType))}>{r.roomType}</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 truncate max-w-[180px]">{r.name}</p>
+                          <p className="text-[11px] text-slate-500 truncate max-w-[180px]">{r.roomName}</p>
                         </div>
                         <span className="font-semibold text-slate-700 dark:text-slate-300">{r.capacity} Seats</span>
                       </div>
@@ -1210,63 +1765,97 @@ export function FloorManagement() {
               </>
             )}
 
-            {/* TAB 2: FLOORS DIRECTORY */}
-            {activeRightTab === 'floors' && (
-              <div className="space-y-3">
-                <button onClick={handleOpenAddFloorModal} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" /> Add New Floor Level
+            {/* TAB 2: FACILITIES DIRECTORY & INSPECTOR */}
+            {activeRightTab === 'facilities' && (
+              <>
+                <button
+                  onClick={() => handleOpenAddFacilityModal('Stairs')}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add Facility Object
                 </button>
 
-                <div className="space-y-2">
-                  {buildingFloors.map(f => (
-                    <div
-                      key={f.id}
-                      onClick={() => setSelectedFloorId(f.id)}
-                      className={cn(
-                        "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
-                        String(selectedFloorId) === String(f.id) ? "bg-blue-600 text-white border-blue-700 shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                      )}
-                    >
+                {selectedFacility ? (
+                  <div className="bg-amber-500/10 dark:bg-slate-800/70 rounded-2xl p-4 border border-amber-500/30 dark:border-slate-700 shadow-sm space-y-3">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <span className={cn("text-xs font-bold block", String(selectedFloorId) === String(f.id) ? "text-white" : "text-slate-900 dark:text-white")}>{f.name}</span>
-                        <span className={cn("text-[11px]", String(selectedFloorId) === String(f.id) ? "text-blue-100" : "text-slate-400")}>Level {f.floorNumber}</span>
+                        <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-extrabold border uppercase tracking-wider", getFacilityBadgeColor(selectedFacility.objectType))}>
+                          {selectedFacility.objectType}
+                        </span>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">{selectedFacility.name}</h3>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{selectedFacility.objectType} Facility</p>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={(e) => { e.stopPropagation(); handleOpenEditFloorModal(f); }} className="p-1 text-slate-400 hover:text-white"><Edit3 className="w-3.5 h-3.5" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateFloor(f); }} className="p-1 text-slate-400 hover:text-white"><Copy className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600" title="Edit Facility">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                      <div><span className="text-slate-400 block text-[10px]">Object Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedFacility.objectType}</span></div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Status</span>
+                        <span className="font-bold capitalize text-slate-800 dark:text-slate-200">
+                          {typeof selectedFacility.metadata === 'object' ? (selectedFacility.metadata.status || 'Active') : 'Active'}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* TAB 3: BUILDINGS DIRECTORY */}
-            {activeRightTab === 'buildings' && (
-              <div className="space-y-3">
-                <button onClick={handleOpenAddBuildingModal} className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" /> Add New Building
-                </button>
-
-                <div className="space-y-2">
-                  {filteredBuildings.map(b => (
-                    <div
-                      key={b.id}
-                      onClick={() => setSelectedBuildingId(b.id)}
-                      className={cn(
-                        "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1",
-                        String(b.id) === String(selectedBuildingId) ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm text-slate-900 dark:text-white">{b.name}</span>
-                        <span className="text-xs font-extrabold text-blue-600 bg-blue-100 dark:bg-blue-950 px-1.5 py-0.2 rounded">{b.code}</span>
+                    {typeof selectedFacility.metadata === 'object' && selectedFacility.metadata.description && (
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="text-slate-400 block text-[10px] font-semibold">Description</span>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed mt-0.5">{selectedFacility.metadata.description}</p>
                       </div>
-                      <p className="text-xs text-slate-500">{b.total_floors || 1} Floors Total</p>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
+                      <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedFacility.x}px</span></div>
+                      <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedFacility.y}px</span></div>
+                      <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedFacility.width}×{selectedFacility.height}</span></div>
                     </div>
-                  ))}
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="flex-1 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 flex items-center justify-center gap-1">
+                        <Edit3 className="w-3.5 h-3.5" /> Edit Details
+                      </button>
+                      <button onClick={() => handleDeleteFacility(selectedFacility.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
+                    Click any facility object (Stairs, Lift, Washroom, Exit, etc.) on the canvas to inspect details and edit.
+                  </div>
+                )}
+
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                    <span>Facility Objects ({facilityObjects.length})</span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
+                    {facilityObjects.map(fo => (
+                      <div
+                        key={fo.id}
+                        onClick={() => { setSelectedFacilityId(fo.id); setSelectedRoomId(null); }}
+                        className={cn(
+                          "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs",
+                          String(selectedFacilityId) === String(fo.id) ? "bg-amber-50 dark:bg-amber-950/60 border-amber-500 font-bold" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {getFacilityIcon(fo.objectType)}
+                          <div>
+                            <span className="font-extrabold text-slate-900 dark:text-white block">{fo.name}</span>
+                            <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-semibold uppercase border", getFacilityBadgeColor(fo.objectType))}>{fo.objectType}</span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-[10px] text-slate-400">{fo.x},{fo.y}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
           </div>
@@ -1275,70 +1864,349 @@ export function FloorManagement() {
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      {/* EDIT ROOM DETAILS MODAL */}
+      {/* ADD / EDIT ROOM MODAL FORM */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {isRoomModalOpen && editingRoom && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-blue-500" /> Edit Canvas Object Config
+                <DoorOpen className="w-5 h-5 text-blue-500" />
+                {editingRoom.id ? 'Edit Room Configuration' : `Add Room to ${selectedFloor.name}`}
               </h3>
-              <button onClick={() => setIsRoomModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => setIsRoomModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-500 mb-1">Code / Room Number</label>
-                <input
-                  type="text"
-                  value={editingRoom.code || ''}
-                  onChange={e => setEditingRoom(prev => ({ ...prev, code: e.target.value }))}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
-                />
+            <form onSubmit={handleSaveRoomSubmit} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Room Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 101, CS-LAB-1"
+                    value={editingRoom.roomNumber || ''}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, roomNumber: e.target.value }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Room Type *</label>
+                  <select
+                    value={editingRoom.roomType || 'Classroom'}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, roomType: e.target.value as RoomType }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {ALL_ROOM_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-500 mb-1">Display Title</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Room Name *</label>
                 <input
                   type="text"
-                  value={editingRoom.name || ''}
-                  onChange={e => setEditingRoom(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                  required
+                  placeholder="e.g. Computer Science Classroom"
+                  value={editingRoom.roomName || ''}
+                  onChange={e => setEditingRoom(prev => ({ ...prev, roomName: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Shape</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Seating Capacity</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editingRoom.capacity || 0}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, capacity: Number(e.target.value) }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Department</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CSE, ECE, Mech"
+                    value={editingRoom.department || ''}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, department: e.target.value }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                <select
+                  value={editingRoom.status || 'Available'}
+                  onChange={e => setEditingRoom(prev => ({ ...prev, status: e.target.value as any }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Reserved">Reserved</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="General classroom equipped with 4K projector, AC and Wi-Fi."
+                  value={editingRoom.description || ''}
+                  onChange={e => setEditingRoom(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsRoomModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md"
+                >
+                  {editingRoom.id ? 'Save Changes' : 'Create Room'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* ADD / EDIT BUILDING MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {isBuildingModalOpen && editingBuilding && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-blue-500" />
+                {editingBuilding.id ? 'Edit Building Details' : 'Add New Building'}
+              </h3>
+              <button onClick={() => setIsBuildingModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
+            </div>
+
+            <form onSubmit={handleSaveBuildingSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Building Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Academic Block, Main Block"
+                  value={editingBuilding.name || ''}
+                  onChange={e => setEditingBuilding(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Building Code *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. AB-MAIN, SB-02"
+                  value={editingBuilding.code || ''}
+                  onChange={e => setEditingBuilding(prev => ({ ...prev, code: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-mono font-bold text-slate-900 dark:text-white uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={editingBuilding.description || ''}
+                  onChange={e => setEditingBuilding(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onClick={() => setIsBuildingModalOpen(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 rounded-xl text-xs font-bold">Cancel</button>
+                <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{editingBuilding.id ? 'Save Changes' : 'Create Building'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* ADD / EDIT FLOOR MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {isFloorModalOpen && editingFloor && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-blue-500" />
+                {editingFloor.id ? 'Edit Floor Level' : `Add Floor to ${selectedBuilding.name}`}
+              </h3>
+              <button onClick={() => setIsFloorModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
+            </div>
+
+            {floorValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{floorValidationError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveFloorSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ground Floor, 1st Floor"
+                  value={editingFloor.name || ''}
+                  onChange={e => { setEditingFloor(prev => ({ ...prev, name: e.target.value })); setFloorValidationError(null); }}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Number * (0 for Ground, 1 for 1st Floor)</label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  value={editingFloor.floorNumber !== undefined ? editingFloor.floorNumber : 0}
+                  onChange={e => { setEditingFloor(prev => ({ ...prev, floorNumber: Number(e.target.value) })); setFloorValidationError(null); }}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onClick={() => setIsFloorModalOpen(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 rounded-xl text-xs font-bold">Cancel</button>
+                <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">{editingFloor.id ? 'Save Changes' : 'Create Floor'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* ADD / EDIT FACILITY OBJECT MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {isFacilityModalOpen && editingFacility && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                {editingFacility.id ? 'Edit Facility Object' : `Add Facility to ${selectedFloor.name}`}
+              </h3>
+              <button onClick={() => setIsFacilityModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
+            </div>
+
+            <form onSubmit={handleSaveFacilitySubmit} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Object Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Elevator Shaft A, Main Stairs"
+                    value={editingFacility.name || ''}
+                    onChange={e => setEditingFacility(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Object Type *</label>
                   <select
-                    value={editingRoom.shape || 'rectangle'}
-                    onChange={e => setEditingRoom(prev => ({ ...prev, shape: e.target.value as RoomShape }))}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
+                    value={editingFacility.objectType || 'Stairs'}
+                    onChange={e => setEditingFacility(prev => ({ ...prev, objectType: e.target.value as FacilityObjectType }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="rectangle">Rectangle</option>
-                    <option value="square">Square</option>
-                    <option value="l-shape">L-Shaped Room</option>
-                    <option value="polygon">Custom Polygon</option>
+                    {ALL_FACILITY_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. 12-person high-speed glass elevator connecting floors."
+                  value={typeof editingFacility.metadata === 'object' ? (editingFacility.metadata.description || '') : ''}
+                  onChange={e => setEditingFacility(prev => ({
+                    ...prev,
+                    metadata: {
+                      ...(typeof prev?.metadata === 'object' ? prev.metadata : {}),
+                      description: e.target.value
+                    }
+                  }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <select
+                    value={typeof editingFacility.metadata === 'object' ? (editingFacility.metadata.status || 'Active') : 'Active'}
+                    onChange={e => setEditingFacility(prev => ({
+                      ...prev,
+                      metadata: {
+                        ...(typeof prev?.metadata === 'object' ? prev.metadata : {}),
+                        status: e.target.value
+                      }
+                    }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Under Maintenance">Under Maintenance</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Restricted">Restricted</option>
+                    <option value="Available">Available</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Seating Capacity</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Shape</label>
                   <input
-                    type="number"
-                    value={editingRoom.capacity || 0}
-                    onChange={e => setEditingRoom(prev => ({ ...prev, capacity: Number(e.target.value) }))}
+                    type="text"
+                    value={editingFacility.shape || 'rectangle'}
+                    onChange={e => setEditingFacility(prev => ({ ...prev, shape: e.target.value }))}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button onClick={() => setIsRoomModalOpen(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold">Cancel</button>
-              <button onClick={handleSaveRoomModal} className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">Save Changes</button>
-            </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsFacilityModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md"
+                >
+                  {editingFacility.id ? 'Save Changes' : 'Create Facility'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
