@@ -434,7 +434,12 @@ export function FloorManagement() {
           }));
           setBuildings(mappedB);
           
-          const targetBId = mappedB.some(b => String(b.id) === String(selectedBuildingId)) ? selectedBuildingId : mappedB[0].id;
+          const existingMatch = mappedB.find(b => String(b.id) === String(selectedBuildingId)) ||
+                                mappedB.find(b => b.code === 'AB-MAIN' && (selectedBuildingId === 'b2' || selectedBuildingId === '2')) ||
+                                mappedB[0];
+          const targetBId = existingMatch.id;
+          setSelectedBuildingId(targetBId);
+
           const fRes = await client.get(`/campus/buildings/${targetBId}/floors`);
           if (fRes.data && Array.isArray(fRes.data) && fRes.data.length > 0) {
             const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
@@ -453,6 +458,11 @@ export function FloorManagement() {
               const otherFloors = prev.filter(p => String(p.buildingId) !== String(targetBId));
               return [...mappedF, ...otherFloors];
             });
+
+            if (mappedF.length > 0) {
+              const matchingFloor = mappedF.find(f => String(f.id) === String(selectedFloorId)) || mappedF[0];
+              setSelectedFloorId(matchingFloor.id);
+            }
           }
         }
       } catch (err) {
@@ -1476,14 +1486,10 @@ export function FloorManagement() {
       setBuildingValidationError('Building name cannot be empty');
       return;
     }
-    if (!editingBuilding.code?.trim()) {
-      setBuildingValidationError('Building code is required');
-      return;
-    }
 
     const payload = {
       name: editingBuilding.name.trim(),
-      code: editingBuilding.code.trim().toUpperCase(),
+      code: (editingBuilding.code || editingBuilding.name.trim().replace(/[^A-Za-z0-9]/g, '').slice(0, 10)).toUpperCase(),
       description: editingBuilding.description || '',
       total_floors: Number(editingBuilding.total_floors) || 1,
       status: editingBuilding.status || 'Active'
@@ -1496,9 +1502,37 @@ export function FloorManagement() {
         triggerToast('Building updated successfully.');
       } else {
         const res = await client.post('/campus/buildings', payload);
-        const newB: BuildingInfo = { id: res.data?.building?.id || `b-${Date.now()}`, ...payload };
+        const createdB = res.data?.building;
+        const newB: BuildingInfo = {
+          id: createdB?.id || `b-${Date.now()}`,
+          name: createdB?.name || payload.name,
+          code: createdB?.code || payload.code,
+          description: createdB?.description || payload.description,
+          total_floors: createdB?.total_floors || payload.total_floors,
+          floorsCount: createdB?.total_floors || payload.total_floors,
+          status: createdB?.status || payload.status
+        };
         setBuildings(prev => [newB, ...prev]);
         setSelectedBuildingId(newB.id);
+
+        // Fetch newly created building's floors
+        try {
+          const fRes = await client.get(`/campus/buildings/${newB.id}/floors`);
+          if (fRes.data && Array.isArray(fRes.data) && fRes.data.length > 0) {
+            const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
+              id: f.id,
+              buildingId: f.buildingId || f.building_id || newB.id,
+              name: f.name,
+              floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
+              description: f.description || '',
+              displayOrder: f.displayOrder || f.display_order || 0,
+              publishStatus: f.publishStatus || f.publish_status || 'DRAFT'
+            }));
+            setFloors(prev => [...mappedF, ...prev]);
+            setSelectedFloorId(mappedF[0].id);
+          }
+        } catch (e) {}
+
         triggerToast('Building added successfully.');
       }
       setIsBuildingModalOpen(false);
@@ -1524,7 +1558,7 @@ export function FloorManagement() {
   const handleOpenAddFloorModal = () => {
     const nextNum = buildingFloors.length > 0 ? Math.max(...buildingFloors.map(f => f.floorNumber ?? 0)) + 1 : 0;
     setEditingFloor({
-      buildingId: selectedBuildingId,
+      buildingId: selectedBuilding?.id || selectedBuildingId,
       name: nextNum === 0 ? 'Ground Floor' : `${nextNum}${nextNum === 1 ? 'st' : nextNum === 2 ? 'nd' : 'th'} Floor`,
       floorNumber: nextNum,
       description: `Classrooms & facilities`
@@ -1550,13 +1584,14 @@ export function FloorManagement() {
       return;
     }
 
-    const isDup = floors.some(f => String(f.buildingId) === String(selectedBuildingId) && f.floorNumber === numFloor && String(f.id) !== String(editingFloor.id));
+    const targetBId = selectedBuilding?.id || selectedBuildingId;
+    const isDup = floors.some(f => String(f.buildingId) === String(targetBId) && f.floorNumber === numFloor && String(f.id) !== String(editingFloor.id));
     if (isDup) {
       setFloorValidationError(`Floor number ${numFloor} already exists in ${selectedBuilding.name}.`);
       return;
     }
 
-    const payload = { buildingId: selectedBuildingId, name: editingFloor.name.trim(), floorNumber: numFloor, description: editingFloor.description || '' };
+    const payload = { buildingId: targetBId, name: editingFloor.name.trim(), floorNumber: numFloor, description: editingFloor.description || '' };
 
     try {
       if (editingFloor.id) {
@@ -1564,7 +1599,16 @@ export function FloorManagement() {
         setFloors(prev => prev.map(f => String(f.id) === String(editingFloor.id) ? { ...f, ...payload } as FloorInfo : f));
       } else {
         const res = await client.post('/campus/floors', payload);
-        const newF: FloorInfo = { id: res.data?.floor?.id || `f-${selectedBuildingId}-${Date.now()}`, ...payload };
+        const createdF = res.data?.floor;
+        const newF: FloorInfo = {
+          id: createdF?.id || `f-${targetBId}-${Date.now()}`,
+          buildingId: createdF?.buildingId || createdF?.building_id || targetBId,
+          name: createdF?.name || payload.name,
+          floorNumber: createdF?.floorNumber !== undefined ? createdF?.floorNumber : payload.floorNumber,
+          description: createdF?.description || payload.description,
+          displayOrder: createdF?.displayOrder || 0,
+          publishStatus: createdF?.publishStatus || 'DRAFT'
+        };
         setFloors(prev => [...prev, newF]);
         setSelectedFloorId(newF.id);
       }

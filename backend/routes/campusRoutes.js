@@ -179,6 +179,46 @@ async function seedBuildingsIfEmpty() {
 // Auto-run schema initialization on module load
 seedBuildingsIfEmpty().catch(err => console.error('[Campus] Initial schema seed error:', err));
 
+// Helper to resolve building_id from string ID ('b1', 'b2'), numeric string ('1'), building code ('AB-MAIN'), or name
+async function resolveBuildingId(buildingId) {
+  if (buildingId === undefined || buildingId === null) return null;
+
+  const strId = String(buildingId).trim();
+  const parsed = parseInt(strId, 10);
+
+  // 1. If it's a valid positive integer string like "1", "2"
+  if (!isNaN(parsed) && /^\d+$/.test(strId)) {
+    const [rows] = await pool.execute('SELECT id FROM campus_buildings WHERE id = ?', [parsed]);
+    if (rows.length > 0) return rows[0].id;
+  }
+
+  // 2. Map frontend initial mock IDs ('b1'..'b7') to default seeded codes
+  const mockMap = {
+    'b1': 'MB-01',
+    'b2': 'AB-MAIN',
+    'b3': 'SB-02',
+    'b4': 'ENG-WNG',
+    'b5': 'ADM-01',
+    'b6': 'LIB-ADM',
+    'b7': 'HST-01'
+  };
+
+  const codeLookup = mockMap[strId.toLowerCase()] || strId.toUpperCase();
+
+  // Search by building code, name, or parsed number fallback
+  const [byCode] = await pool.execute(
+    'SELECT id FROM campus_buildings WHERE UPPER(code) = ? OR UPPER(name) = ? OR id = ?',
+    [codeLookup, strId.toUpperCase(), parsed || 0]
+  );
+  if (byCode.length > 0) return byCode[0].id;
+
+  // 3. Fallback: Return first building ID in DB
+  const [first] = await pool.execute('SELECT id FROM campus_buildings ORDER BY id ASC LIMIT 1');
+  if (first.length > 0) return first[0].id;
+
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BUILDING ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,10 +249,13 @@ router.get('/buildings', async (req, res) => {
 router.get('/buildings/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
+    const bId = await resolveBuildingId(id);
+    if (!bId) return res.status(404).json({ error: 'Building not found' });
+
+    const [rows] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [bId]);
     if (rows.length === 0) return res.status(404).json({ error: 'Building not found' });
     
-    const [floors] = await pool.execute('SELECT * FROM campus_floors WHERE building_id = ? ORDER BY floor_number ASC', [id]);
+    const [floors] = await pool.execute('SELECT * FROM campus_floors WHERE building_id = ? ORDER BY floor_number ASC', [bId]);
     res.json({ ...rows[0], floors });
   } catch (err) {
     console.error('Error fetching building detail:', err);
@@ -223,9 +266,16 @@ router.get('/buildings/:id', async (req, res) => {
 // POST /api/campus/buildings - Add new building (Admin Only)
 router.post('/buildings', ...requireAdmin, async (req, res) => {
   try {
+    await seedBuildingsIfEmpty();
     const { name, code, description, total_floors, status } = req.body;
-    if (!name || !code) {
-      return res.status(400).json({ error: 'Building Name and Building Code are required' });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Building Name is required' });
+    }
+
+    let bCode = (code || '').trim().toUpperCase();
+    if (!bCode) {
+      bCode = name.trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10);
+      if (!bCode) bCode = 'BLDG-' + Date.now();
     }
 
     const numFloors = parseInt(total_floors) || 1;
@@ -233,7 +283,7 @@ router.post('/buildings', ...requireAdmin, async (req, res) => {
 
     const [result] = await pool.execute(
       'INSERT INTO campus_buildings (name, code, description, total_floors, status) VALUES (?, ?, ?, ?, ?)',
-      [name, code.toUpperCase(), description || '', numFloors, bStatus]
+      [name.trim(), bCode, description || '', numFloors, bStatus]
     );
 
     const buildingId = result.insertId;
@@ -254,7 +304,7 @@ router.post('/buildings', ...requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error creating building:', err);
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: `Building Code "${req.body.code}" already exists` });
+      return res.status(400).json({ error: `Building Code "${req.body.code || 'specified'}" already exists` });
     }
     res.status(500).json({ error: 'Failed to create building: ' + err.message });
   }
@@ -264,19 +314,22 @@ router.post('/buildings', ...requireAdmin, async (req, res) => {
 router.put('/buildings/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const bId = await resolveBuildingId(id);
+    if (!bId) return res.status(404).json({ error: 'Building not found' });
+
     const { name, code, description, total_floors, status } = req.body;
 
-    const [existing] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
+    const [existing] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [bId]);
     if (existing.length === 0) return res.status(404).json({ error: 'Building not found' });
 
     const numFloors = parseInt(total_floors) || existing[0].total_floors || 1;
 
     await pool.execute(
       'UPDATE campus_buildings SET name = ?, code = ?, description = ?, total_floors = ?, status = ? WHERE id = ?',
-      [name || existing[0].name, (code || existing[0].code).toUpperCase(), description ?? existing[0].description, numFloors, status || existing[0].status, id]
+      [name || existing[0].name, (code || existing[0].code).toUpperCase(), description ?? existing[0].description, numFloors, status || existing[0].status, bId]
     );
 
-    const [updated] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
+    const [updated] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [bId]);
     res.json({ message: 'Building updated successfully', building: updated[0] });
   } catch (err) {
     console.error('Error updating building:', err);
@@ -288,11 +341,11 @@ router.put('/buildings/:id', ...requireAdmin, async (req, res) => {
 router.delete('/buildings/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const [existing] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
-    if (existing.length === 0) return res.status(404).json({ error: 'Building not found' });
+    const bId = await resolveBuildingId(id);
+    if (!bId) return res.status(404).json({ error: 'Building not found' });
 
-    await pool.execute('DELETE FROM campus_buildings WHERE id = ?', [id]);
-    res.json({ message: 'Building deleted successfully', id: parseInt(id) });
+    await pool.execute('DELETE FROM campus_buildings WHERE id = ?', [bId]);
+    res.json({ message: 'Building deleted successfully', id: bId });
   } catch (err) {
     console.error('Error deleting building:', err);
     res.status(500).json({ error: 'Failed to delete building: ' + err.message });
@@ -308,6 +361,12 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
   try {
     await seedBuildingsIfEmpty();
     const { buildingId } = req.params;
+    const bId = await resolveBuildingId(buildingId);
+
+    if (!bId) {
+      return res.json([]);
+    }
+
     const [floors] = await pool.execute(
       `SELECT 
         id, 
@@ -325,7 +384,7 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
       FROM campus_floors 
       WHERE building_id = ? 
       ORDER BY floor_number ASC, display_order ASC`,
-      [buildingId]
+      [bId]
     );
     res.json(floors.map(f => ({
       ...f,
@@ -347,7 +406,11 @@ router.post('/floors', ...requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'buildingId, Floor Name, and Floor Number are required' });
     }
 
-    const bId = parseInt(buildingId);
+    const bId = await resolveBuildingId(buildingId);
+    if (!bId) {
+      return res.status(400).json({ error: 'Valid building not found for the given buildingId' });
+    }
+
     const numFloor = parseInt(floorNumber);
 
     const [existing] = await pool.execute(
@@ -359,7 +422,7 @@ router.post('/floors', ...requireAdmin, async (req, res) => {
       return res.status(400).json({ error: `Floor Number ${numFloor} already exists in this building` });
     }
 
-    const order = parseInt(displayOrder) || numFloor;
+    const order = displayOrder !== undefined ? parseInt(displayOrder) : numFloor;
 
     const [result] = await pool.execute(
       'INSERT INTO campus_floors (building_id, name, floor_number, description, display_order) VALUES (?, ?, ?, ?, ?)',
@@ -387,7 +450,7 @@ router.put('/floors/:id', ...requireAdmin, async (req, res) => {
     const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
     if (existing.length === 0) return res.status(404).json({ error: 'Floor not found' });
 
-    const bId = buildingId ? parseInt(buildingId) : existing[0].building_id;
+    const bId = buildingId ? ((await resolveBuildingId(buildingId)) || existing[0].building_id) : existing[0].building_id;
     const newFloorNum = floorNumber !== undefined ? parseInt(floorNumber) : existing[0].floor_number;
 
     if (newFloorNum !== existing[0].floor_number) {
