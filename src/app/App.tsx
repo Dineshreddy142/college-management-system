@@ -16,6 +16,7 @@ import { CampusMapEditor } from "./admin/campus-map/CampusMapEditor";
 import { CampusMap } from "./campus-map/CampusMap";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
+import { UserControlModule } from "./admin/users/UserControlModule";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
 import {
@@ -240,6 +241,7 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 
 const SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
+  { id: "users", label: "User Access Control", icon: Shield, badge: "Block/Face" },
   { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "profile", label: "Security & Face ID", icon: UserCheck, badge: "Biometrics" },
   { id: "academic", label: "Academic & Subjects", icon: BookOpen, badge: "New" },
@@ -1556,6 +1558,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   const render = () => {
     switch (mod) {
       case "dashboard": return <DashboardHome />;
+      case "users": return <UserControlModule />;
       case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;
       case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;

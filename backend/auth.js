@@ -61,6 +61,12 @@ router.post('/login', async (req, res) => {
 
         const user = rows[0];
 
+        // Check if account is blocked or inactive
+        if (user.status === 'blocked' || user.status === 'inactive') {
+            await logActivity(user.id, 'LOGIN_BLOCKED', 'Blocked account attempted login');
+            return errorResponse(res, 'Your account has been blocked or deactivated by the administrator. Please contact IT support.', [], 403, { accountBlocked: true });
+        }
+
         // Check if account is temporarily locked due to brute-force rate limit
         const isLocked = await loginAttemptService.checkAccountLocked(user.id);
         if (isLocked) {
@@ -308,6 +314,8 @@ router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (r
     try {
         const [users] = await pool.execute(
             `SELECT u.id, u.username, u.email, u.role_id, r.name as role_name, u.status,
+                    COALESCE(u.face_registered, 0) as face_registered,
+                    (SELECT created_at FROM face_embeddings WHERE user_id = u.id LIMIT 1) as face_registered_at,
                     (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
                     (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
                     (SELECT created_at FROM activity_logs WHERE user_id = u.id AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1) as last_login
@@ -318,6 +326,48 @@ router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (r
         return successResponse(res, 'Users retrieved successfully', users);
     } catch (error) {
         return errorResponse(res, 'Failed to fetch users', [error.message], 500);
+    }
+});
+
+// Admin Block / Unblock User Account
+router.post('/admin/users/toggle-status', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const { userId, status } = req.body;
+        if (!userId || !status) {
+            return errorResponse(res, 'userId and status are required', [], 400);
+        }
+        
+        const newStatus = status.toLowerCase() === 'blocked' ? 'blocked' : 'active';
+        await pool.execute('UPDATE users SET status = ? WHERE id = ?', [newStatus, userId]);
+        
+        await logActivity(req.user.id, 'USER_STATUS_CHANGE', `User #${userId} status updated to ${newStatus}`);
+        return successResponse(res, `User account ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`, { userId, status: newStatus });
+    } catch (error) {
+        return errorResponse(res, 'Failed to update user status', [error.message], 500);
+    }
+});
+
+// Admin Reset User Face Biometrics Registration
+router.post('/admin/users/reset-face', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return errorResponse(res, 'userId is required', [], 400);
+        }
+
+        await pool.execute('DELETE FROM face_embeddings WHERE user_id = ?', [userId]);
+        await pool.execute('UPDATE users SET face_registered = 0 WHERE id = ?', [userId]);
+
+        // Hot-reload Python Face Service cache
+        try {
+            const faceServiceUrl = process.env.FACE_SERVICE_URL || 'http://localhost:5001';
+            await fetch(`${faceServiceUrl}/health`);
+        } catch (e) {}
+
+        await logActivity(req.user.id, 'USER_FACE_RESET', `Reset face biometrics for User #${userId}`);
+        return successResponse(res, `Face biometric registration reset successfully for User #${userId}`, { userId });
+    } catch (error) {
+        return errorResponse(res, 'Failed to reset face biometrics', [error.message], 500);
     }
 });
 
