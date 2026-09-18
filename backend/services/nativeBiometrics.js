@@ -242,8 +242,8 @@ export async function identifyFaceBiometrics(imageBuffer, clientIp = '127.0.0.1'
   };
 }
 
-// Configurable match threshold from environment
-export const BIOMETRIC_MATCH_THRESHOLD = parseFloat(process.env.BIOMETRIC_MATCH_THRESHOLD || '0.38');
+// Configurable match threshold from environment (SFace precision target: 0.50)
+export const BIOMETRIC_MATCH_THRESHOLD = parseFloat(process.env.BIOMETRIC_MATCH_THRESHOLD || '0.50');
 
 /**
  * Performs strict 1:1 biometric identity verification against ONLY the target user's template.

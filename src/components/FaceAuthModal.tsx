@@ -4,6 +4,7 @@ import client from '../api/client';
 
 interface FaceAuthModalProps {
   mode: 'login' | 'register';
+  identifier?: string;
   portalRole?: string;
   onSuccess: (data: any) => void;
   onCancel: () => void;
@@ -26,6 +27,7 @@ const POSE_STEPS: PoseStep[] = [
 
 export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
   mode,
+  identifier,
   portalRole,
   onSuccess,
   onCancel
@@ -329,6 +331,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
       formData.append('image', blob, 'face_capture.jpg');
       if (portalRole) {
         formData.append('portalRole', portalRole);
+      }
+      if (identifier) {
+        formData.append('identifier', identifier);
       }
 
       try {

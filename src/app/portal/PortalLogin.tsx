@@ -781,6 +781,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <FaceAuthModal
             mode="login"
+            identifier={identifier}
             portalRole={effectiveRole}
             onSuccess={handleFaceSuccess}
             onCancel={() => setShowFaceAuth(false)}
