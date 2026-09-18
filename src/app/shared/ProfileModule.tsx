@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
+import { FaceAuthModal } from "../../components/FaceAuthModal";
 import { PasskeyAuthModal } from "../../components/PasskeyAuthModal";
 
 export function ProfileModule() {
@@ -407,6 +408,70 @@ export function ProfileModule() {
             </div>
           </Card>
 
+          {/* Face Biometrics Management Card */}
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <ScanFace size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">3D Face Biometrics Authentication</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    AES-256 encrypted facial vectors with liveness verification & 1:1 account identity matching.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                {faceRegistered ? (
+                  <Badge variant="success">Face ID Active</Badge>
+                ) : (
+                  <Badge variant="warning">Not Configured</Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                {faceRegistered ? (
+                  <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 font-medium">
+                    <CheckCircle2 size={16} />
+                    <span>Face registered {faceRegisteredAt ? `on ${new Date(faceRegisteredAt).toLocaleDateString()}` : ''}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                    <AlertCircle size={16} />
+                    <span>No biometric face registered. Setup to enable 1-click passwordless login.</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {faceRegistered && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveFace}
+                    disabled={faceActionLoading}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/50 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                    <span>Remove Face ID</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowFaceModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Camera size={14} />
+                  <span>{faceRegistered ? 'Re-scan / Update Face' : 'Register Face ID'}</span>
+                </button>
+              </div>
+            </div>
+          </Card>
+
           {/* Standard Authentication Info */}
           <Card className="p-6">
             <h4 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
@@ -518,6 +583,17 @@ export function ProfileModule() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* FACE REGISTRATION MODAL */}
+      {showFaceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <FaceAuthModal
+            mode="register"
+            onSuccess={handleFaceSuccess}
+            onCancel={() => setShowFaceModal(false)}
+          />
         </div>
       )}
     </div>
