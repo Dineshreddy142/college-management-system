@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import {
   Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace,
-  Sparkles, ShieldCheck, Lock, KeyRound,
+  Sparkles, ShieldCheck, Lock, KeyRound, Monitor,
   Send, CheckCircle2, Shield, RefreshCw, UserPlus, UserCheck, User
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
