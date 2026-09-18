@@ -722,12 +722,27 @@ router.post('/floors/:floorId/rooms', ...requireAdmin, async (req, res) => {
       shape
     } = req.body;
 
-    if (!roomNumber) {
-      return res.status(400).json({ error: 'Room Number is required' });
+    if (!roomNumber || !String(roomNumber).trim()) {
+      return res.status(400).json({ error: 'Room number cannot be empty' });
+    }
+    if (!roomType || !String(roomType).trim()) {
+      return res.status(400).json({ error: 'Room type must be selected' });
+    }
+    if (capacity === undefined || capacity === null || isNaN(Number(capacity)) || Number(capacity) < 0) {
+      return res.status(400).json({ error: 'Capacity must be a valid number' });
     }
 
     const fId = parseInt(floorId);
     let bId = parseInt(buildingId);
+
+    // Prevent duplicate room numbers on the same floor
+    const [dupRooms] = await pool.execute(
+      "SELECT id FROM campus_rooms WHERE floor_id = ? AND LOWER(room_number) = LOWER(?) AND (version_status = 'DRAFT' OR version_status IS NULL)",
+      [fId, String(roomNumber).trim()]
+    );
+    if (dupRooms.length > 0) {
+      return res.status(400).json({ error: `Room number "${roomNumber.trim()}" already exists on this floor.` });
+    }
 
     // If buildingId not provided, lookup building_id from campus_floors
     if (!bId) {
@@ -813,6 +828,26 @@ router.put('/rooms/:id', ...requireAdmin, async (req, res) => {
     if (existing.length === 0) return res.status(404).json({ error: 'Room not found' });
 
     const cur = existing[0];
+
+    if (roomNumber !== undefined && !String(roomNumber).trim()) {
+      return res.status(400).json({ error: 'Room number cannot be empty' });
+    }
+    if (roomType !== undefined && !String(roomType).trim()) {
+      return res.status(400).json({ error: 'Room type must be selected' });
+    }
+    if (capacity !== undefined && (capacity === null || isNaN(Number(capacity)) || Number(capacity) < 0)) {
+      return res.status(400).json({ error: 'Capacity must be a valid number' });
+    }
+
+    if (roomNumber !== undefined && String(roomNumber).trim().toLowerCase() !== String(cur.room_number).toLowerCase()) {
+      const [dupRooms] = await pool.execute(
+        "SELECT id FROM campus_rooms WHERE floor_id = ? AND LOWER(room_number) = LOWER(?) AND id != ? AND (version_status = 'DRAFT' OR version_status IS NULL)",
+        [cur.floor_id, String(roomNumber).trim(), id]
+      );
+      if (dupRooms.length > 0) {
+        return res.status(400).json({ error: `Room number "${roomNumber.trim()}" already exists on this floor.` });
+      }
+    }
 
     await pool.execute(`
       UPDATE campus_rooms 

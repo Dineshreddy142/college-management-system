@@ -177,6 +177,44 @@ export interface SearchResultItem {
   height?: number;
 }
 
+export function getFacilityBadgeColor(type: string): string {
+  switch (type) {
+    case 'Stairs': return 'bg-blue-900/60 text-blue-300 border-blue-700';
+    case 'Lift': return 'bg-purple-900/60 text-purple-300 border-purple-700';
+    case "Men's Washroom":
+    case "Women's Washroom":
+    case 'Accessible Washroom':
+    case 'Washroom': return 'bg-sky-900/60 text-sky-300 border-sky-700';
+    case 'Emergency Exit':
+    case 'Fire Exit': return 'bg-rose-900/60 text-rose-300 border-rose-700';
+    case 'Drinking Water': return 'bg-cyan-900/60 text-cyan-300 border-cyan-700';
+    case 'Reception': return 'bg-indigo-900/60 text-indigo-300 border-indigo-700';
+    case 'Security Desk': return 'bg-violet-900/60 text-violet-300 border-violet-700';
+    case 'Cafeteria': return 'bg-orange-900/60 text-orange-300 border-orange-700';
+    case 'Store Room': return 'bg-yellow-900/60 text-yellow-300 border-yellow-700';
+    default: return 'bg-slate-800 text-slate-300 border-slate-700';
+  }
+}
+
+export function getFacilityIcon(type: string) {
+  switch (type) {
+    case 'Stairs': return <Layers className="w-3.5 h-3.5 text-blue-400" />;
+    case 'Lift': return <ArrowUp className="w-3.5 h-3.5 text-purple-400" />;
+    case "Men's Washroom":
+    case "Women's Washroom":
+    case 'Accessible Washroom':
+    case 'Washroom': return <Droplets className="w-3.5 h-3.5 text-sky-400" />;
+    case 'Emergency Exit':
+    case 'Fire Exit': return <Flame className="w-3.5 h-3.5 text-rose-400" />;
+    case 'Drinking Water': return <Droplets className="w-3.5 h-3.5 text-cyan-400" />;
+    case 'Reception': return <UserCheck className="w-3.5 h-3.5 text-indigo-400" />;
+    case 'Security Desk': return <Shield className="w-3.5 h-3.5 text-violet-400" />;
+    case 'Cafeteria': return <Utensils className="w-3.5 h-3.5 text-orange-400" />;
+    case 'Store Room': return <Box className="w-3.5 h-3.5 text-yellow-400" />;
+    default: return <Sparkles className="w-3.5 h-3.5 text-amber-400" />;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // INITIAL DEFAULT BUILDINGS & FLOORS DATA
 // ─────────────────────────────────────────────────────────────────────────────
@@ -352,13 +390,18 @@ export function FloorManagement() {
   // Modals & Feedback State
   const [isRoomModalOpen, setIsRoomModalOpen] = useState<boolean>(false);
   const [editingRoom, setEditingRoom] = useState<Partial<RoomRecord> | null>(null);
+  const [deletingRoom, setDeletingRoom] = useState<RoomRecord | null>(null);
+  const [roomValidationError, setRoomValidationError] = useState<string | null>(null);
 
   const [isFacilityModalOpen, setIsFacilityModalOpen] = useState<boolean>(false);
   const [editingFacility, setEditingFacility] = useState<Partial<FloorPlanObjectRecord> | null>(null);
+  const [deletingFacility, setDeletingFacility] = useState<FloorPlanObjectRecord | null>(null);
+  const [facilityValidationError, setFacilityValidationError] = useState<string | null>(null);
   
   const [isBuildingModalOpen, setIsBuildingModalOpen] = useState<boolean>(false);
   const [editingBuilding, setEditingBuilding] = useState<Partial<BuildingInfo> | null>(null);
   const [deletingBuilding, setDeletingBuilding] = useState<BuildingInfo | null>(null);
+  const [buildingValidationError, setBuildingValidationError] = useState<string | null>(null);
 
   const [isFloorModalOpen, setIsFloorModalOpen] = useState<boolean>(false);
   const [editingFloor, setEditingFloor] = useState<Partial<FloorInfo> | null>(null);
@@ -565,8 +608,8 @@ export function FloorManagement() {
     return buildings.find(b => String(b.id) === String(selectedBuildingId)) || buildings[0] || { id: 'b2', name: 'Academic Block', code: 'AB-MAIN', description: '', total_floors: 4, status: 'Active' };
   }, [buildings, selectedBuildingId]);
 
-  const selectedFloor = useMemo(() => {
-    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', name: 'Ground Floor', floorNumber: 0 };
+  const selectedFloor: FloorInfo = useMemo(() => {
+    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', buildingId: 'b2', name: 'Ground Floor', floorNumber: 0, publishStatus: 'DRAFT', updatedBy: 'Admin' };
   }, [floors, buildingFloors, selectedFloorId]);
 
   const selectedRoom = useMemo(() => {
@@ -914,7 +957,7 @@ export function FloorManagement() {
 
       // Mark floor as saved draft
       const nowIso = new Date().toISOString();
-      const saveRes = await client.post(`/campus/floors/${selectedFloorId}/save`, { updatedBy: 'Admin' }).catch(() => null);
+      const saveRes = await client.post(`/campus/floors/${selectedFloorId}/save`, { updatedBy: 'Admin' });
 
       setFloors(prev => prev.map(f => {
         if (String(f.id) === String(selectedFloorId)) {
@@ -929,10 +972,10 @@ export function FloorManagement() {
       }));
 
       setIsSaving(false);
-      triggerToast('Floor plan saved successfully.');
+      triggerToast('Floor saved successfully.');
     } catch (err) {
       setIsSaving(false);
-      triggerToast('Floor plan saved successfully.');
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
@@ -950,7 +993,7 @@ export function FloorManagement() {
     setIsPublishing(true);
     try {
       const nowIso = new Date().toISOString();
-      const pubRes = await client.post(`/campus/floors/${selectedFloorId}/publish`, { updatedBy: 'Admin' }).catch(() => null);
+      const pubRes = await client.post(`/campus/floors/${selectedFloorId}/publish`, { updatedBy: 'Admin' });
 
       setFloors(prev => prev.map(f => {
         if (String(f.id) === String(selectedFloorId)) {
@@ -967,11 +1010,10 @@ export function FloorManagement() {
 
       setIsPublishing(false);
       setIsPublishConfirmOpen(false);
-      triggerToast('Floor plan published successfully.');
+      triggerToast('Floor published successfully.');
     } catch (err: any) {
       setIsPublishing(false);
-      const errMsg = err?.response?.data?.error || 'Failed to publish floor plan';
-      triggerToast(errMsg);
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
@@ -982,6 +1024,7 @@ export function FloorManagement() {
   const handleOpenAddRoomModal = (presetType?: RoomType) => {
     const count = rooms.length + 1;
     const defaultType: RoomType = presetType || 'Classroom';
+    setRoomValidationError(null);
     setEditingRoom({
       floorId: selectedFloorId,
       buildingId: selectedBuildingId,
@@ -1003,23 +1046,51 @@ export function FloorManagement() {
   };
 
   const handleOpenEditModal = (rm: RoomRecord) => {
+    setRoomValidationError(null);
     setEditingRoom({ ...rm });
     setIsRoomModalOpen(true);
   };
 
   const handleSaveRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingRoom || !editingRoom.roomNumber || !editingRoom.roomName) {
-      triggerToast('Room Number and Room Name are required!');
+    setRoomValidationError(null);
+
+    if (!editingRoom) return;
+
+    const rNum = String(editingRoom.roomNumber || '').trim();
+    if (!rNum) {
+      setRoomValidationError('Room number cannot be empty');
+      return;
+    }
+
+    if (!editingRoom.roomType) {
+      setRoomValidationError('Room type must be selected');
+      return;
+    }
+
+    const rawCap = editingRoom.capacity;
+    if (rawCap === undefined || rawCap === null || String(rawCap).trim() === '' || isNaN(Number(rawCap)) || Number(rawCap) < 0) {
+      setRoomValidationError('Capacity must be a valid number');
+      return;
+    }
+
+    const isDup = rooms.some(r =>
+      String(r.floorId) === String(selectedFloorId) &&
+      String(r.roomNumber).trim().toLowerCase() === rNum.toLowerCase() &&
+      String(r.id) !== String(editingRoom.id)
+    );
+
+    if (isDup) {
+      setRoomValidationError(`Room number "${rNum}" already exists on this floor.`);
       return;
     }
 
     const payload = {
       buildingId: selectedBuildingId,
-      roomNumber: String(editingRoom.roomNumber).trim(),
-      roomName: String(editingRoom.roomName).trim(),
+      roomNumber: rNum,
+      roomName: String(editingRoom.roomName || rNum).trim(),
       roomType: editingRoom.roomType || 'Classroom',
-      capacity: Number(editingRoom.capacity) || 30,
+      capacity: Number(editingRoom.capacity),
       department: editingRoom.department || 'General',
       description: editingRoom.description || '',
       status: editingRoom.status || 'Available',
@@ -1033,9 +1104,9 @@ export function FloorManagement() {
 
     try {
       if (editingRoom.id) {
-        await client.put(`/campus/rooms/${editingRoom.id}`, payload).catch(() => {});
+        await client.put(`/campus/rooms/${editingRoom.id}`, payload);
         setRooms(prev => prev.map(r => String(r.id) === String(editingRoom.id) ? { ...r, ...payload } as RoomRecord : r));
-        triggerToast(`Updated room "${payload.roomNumber}: ${payload.roomName}"`);
+        triggerToast('Room updated successfully.');
       } else {
         let newRoomObj: RoomRecord = {
           id: `r-${Date.now()}`,
@@ -1076,25 +1147,39 @@ export function FloorManagement() {
         setRooms(prev => [...prev, newRoomObj]);
         setSelectedRoomId(newRoomObj.id);
         setSelectedFacilityId(null);
-        triggerToast(`Created room "${payload.roomNumber}: ${payload.roomName}" on floor plan`);
+        triggerToast('Room added successfully.');
       }
 
       setIsRoomModalOpen(false);
       setEditingRoom(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save room error:', err);
-      triggerToast('Error saving room details');
+      const errMsg = err?.response?.data?.error || 'Unable to save changes. Please try again.';
+      setRoomValidationError(errMsg);
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
-  const handleDeleteRoom = async (roomId: string | number) => {
+  const handleDeleteRoom = (id: string | number) => {
+    const target = rooms.find(r => String(r.id) === String(id));
+    if (target) setDeletingRoom(target);
+  };
+
+  const handleDeleteFacility = (id: string | number) => {
+    const target = facilityObjects.find(fo => String(fo.id) === String(id));
+    if (target) setDeletingFacility(target);
+  };
+
+  const handleConfirmDeleteRoom = async () => {
+    if (!deletingRoom) return;
     try {
-      await client.delete(`/campus/rooms/${roomId}`).catch(() => {});
-      setRooms(prev => prev.filter(r => String(r.id) !== String(roomId)));
-      if (String(selectedRoomId) === String(roomId)) setSelectedRoomId(null);
-      triggerToast('Room deleted from floor plan');
+      await client.delete(`/campus/rooms/${deletingRoom.id}`).catch(() => {});
+      setRooms(prev => prev.filter(r => String(r.id) !== String(deletingRoom.id)));
+      if (String(selectedRoomId) === String(deletingRoom.id)) setSelectedRoomId(null);
+      triggerToast(`Room deleted successfully.`);
+      setDeletingRoom(null);
     } catch (err) {
-      triggerToast('Error deleting room');
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
@@ -1129,6 +1214,7 @@ export function FloorManagement() {
   const handleOpenAddFacilityModal = (presetType?: FacilityObjectType) => {
     const defaultType: FacilityObjectType = presetType || 'Stairs';
     const count = facilityObjects.length + 1;
+    setFacilityValidationError(null);
     setEditingFacility({
       floorId: selectedFloorId,
       objectType: defaultType,
@@ -1148,6 +1234,7 @@ export function FloorManagement() {
   };
 
   const handleOpenEditFacilityModal = (fo: FloorPlanObjectRecord) => {
+    setFacilityValidationError(null);
     setEditingFacility({
       ...fo,
       metadata: typeof fo.metadata === 'object' ? { ...fo.metadata } : { description: '', status: 'Active' }
@@ -1157,8 +1244,14 @@ export function FloorManagement() {
 
   const handleSaveFacilitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingFacility || !editingFacility.name || !editingFacility.objectType) {
-      triggerToast('Name and Object Type are required!');
+    setFacilityValidationError(null);
+
+    if (!editingFacility || !editingFacility.name?.trim()) {
+      setFacilityValidationError('Facility name cannot be empty');
+      return;
+    }
+    if (!editingFacility.objectType) {
+      setFacilityValidationError('Object type must be selected');
       return;
     }
 
@@ -1176,9 +1269,9 @@ export function FloorManagement() {
 
     try {
       if (editingFacility.id) {
-        await client.put(`/campus/objects/${editingFacility.id}`, payload).catch(() => {});
+        await client.put(`/campus/objects/${editingFacility.id}`, payload);
         setFacilityObjects(prev => prev.map(fo => String(fo.id) === String(editingFacility.id) ? { ...fo, ...payload } as FloorPlanObjectRecord : fo));
-        triggerToast(`Updated facility object "${payload.name}"`);
+        triggerToast('Facility updated successfully.');
       } else {
         let newObj: FloorPlanObjectRecord = {
           id: `fo-${Date.now()}`,
@@ -1215,25 +1308,27 @@ export function FloorManagement() {
         setSelectedFacilityId(newObj.id);
         setSelectedRoomId(null);
         setActiveRightTab('facilities');
-        triggerToast(`Created facility object "${payload.name}" on floor plan`);
+        triggerToast('Facility added successfully.');
       }
 
       setIsFacilityModalOpen(false);
       setEditingFacility(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Save facility error:', err);
-      triggerToast('Error saving facility object');
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
-  const handleDeleteFacility = async (facilityId: string | number) => {
+  const handleConfirmDeleteFacility = async () => {
+    if (!deletingFacility) return;
     try {
-      await client.delete(`/campus/objects/${facilityId}`).catch(() => {});
-      setFacilityObjects(prev => prev.filter(fo => String(fo.id) !== String(facilityId)));
-      if (String(selectedFacilityId) === String(facilityId)) setSelectedFacilityId(null);
-      triggerToast('Facility object deleted from floor plan');
+      await client.delete(`/campus/objects/${deletingFacility.id}`).catch(() => {});
+      setFacilityObjects(prev => prev.filter(fo => String(fo.id) !== String(deletingFacility.id)));
+      if (String(selectedFacilityId) === String(deletingFacility.id)) setSelectedFacilityId(null);
+      triggerToast(`Facility deleted successfully.`);
+      setDeletingFacility(null);
     } catch (err) {
-      triggerToast('Error deleting facility object');
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
@@ -1362,15 +1457,30 @@ export function FloorManagement() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   const handleOpenAddBuildingModal = () => {
+    setBuildingValidationError(null);
     setEditingBuilding({ name: '', code: '', description: '', total_floors: 4, status: 'Active' });
     setIsBuildingModalOpen(true);
   };
 
-  const handleOpenEditBuildingModal = (b: BuildingInfo) => { setEditingBuilding({ ...b }); setIsBuildingModalOpen(true); };
+  const handleOpenEditBuildingModal = (b: BuildingInfo) => {
+    setBuildingValidationError(null);
+    setEditingBuilding({ ...b });
+    setIsBuildingModalOpen(true);
+  };
 
   const handleSaveBuildingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingBuilding || !editingBuilding.name || !editingBuilding.code) return;
+    setBuildingValidationError(null);
+
+    if (!editingBuilding || !editingBuilding.name?.trim()) {
+      setBuildingValidationError('Building name cannot be empty');
+      return;
+    }
+    if (!editingBuilding.code?.trim()) {
+      setBuildingValidationError('Building code is required');
+      return;
+    }
+
     const payload = {
       name: editingBuilding.name.trim(),
       code: editingBuilding.code.trim().toUpperCase(),
@@ -1378,27 +1488,37 @@ export function FloorManagement() {
       total_floors: Number(editingBuilding.total_floors) || 1,
       status: editingBuilding.status || 'Active'
     };
+
     try {
       if (editingBuilding.id) {
-        await client.put(`/campus/buildings/${editingBuilding.id}`, payload).catch(() => {});
+        await client.put(`/campus/buildings/${editingBuilding.id}`, payload);
         setBuildings(prev => prev.map(b => String(b.id) === String(editingBuilding.id) ? { ...b, ...payload } as BuildingInfo : b));
+        triggerToast('Building updated successfully.');
       } else {
-        const newB: BuildingInfo = { id: `b-${Date.now()}`, ...payload };
+        const res = await client.post('/campus/buildings', payload);
+        const newB: BuildingInfo = { id: res.data?.building?.id || `b-${Date.now()}`, ...payload };
         setBuildings(prev => [newB, ...prev]);
         setSelectedBuildingId(newB.id);
+        triggerToast('Building added successfully.');
       }
       setIsBuildingModalOpen(false);
-      triggerToast(`Saved building ${payload.name}`);
-    } catch (err) {
-      triggerToast('Error saving building');
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error || 'Unable to save changes. Please try again.';
+      setBuildingValidationError(errMsg);
+      triggerToast('Unable to save changes. Please try again.');
     }
   };
 
   const handleConfirmDeleteBuilding = async () => {
     if (!deletingBuilding) return;
-    setBuildings(prev => prev.filter(b => String(b.id) !== String(deletingBuilding.id)));
-    setDeletingBuilding(null);
-    triggerToast('Building deleted');
+    try {
+      await client.delete(`/campus/buildings/${deletingBuilding.id}`).catch(() => {});
+      setBuildings(prev => prev.filter(b => String(b.id) !== String(deletingBuilding.id)));
+      triggerToast(`Building ${deletingBuilding.name} deleted successfully.`);
+      setDeletingBuilding(null);
+    } catch (err) {
+      triggerToast('Unable to save changes. Please try again.');
+    }
   };
 
   const handleOpenAddFloorModal = () => {
@@ -1417,23 +1537,44 @@ export function FloorManagement() {
 
   const handleSaveFloorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingFloor || !editingFloor.name) return;
+    setFloorValidationError(null);
+
+    if (!editingFloor || !editingFloor.name?.trim()) {
+      setFloorValidationError('Floor name cannot be empty');
+      return;
+    }
+
     const numFloor = Number(editingFloor.floorNumber);
+    if (editingFloor.floorNumber === undefined || editingFloor.floorNumber === null || isNaN(numFloor) || numFloor < 0) {
+      setFloorValidationError('Floor number must be valid');
+      return;
+    }
+
     const isDup = floors.some(f => String(f.buildingId) === String(selectedBuildingId) && f.floorNumber === numFloor && String(f.id) !== String(editingFloor.id));
     if (isDup) {
       setFloorValidationError(`Floor number ${numFloor} already exists in ${selectedBuilding.name}.`);
       return;
     }
+
     const payload = { buildingId: selectedBuildingId, name: editingFloor.name.trim(), floorNumber: numFloor, description: editingFloor.description || '' };
-    if (editingFloor.id) {
-      setFloors(prev => prev.map(f => String(f.id) === String(editingFloor.id) ? { ...f, ...payload } as FloorInfo : f));
-    } else {
-      const newF: FloorInfo = { id: `f-${selectedBuildingId}-${Date.now()}`, ...payload };
-      setFloors(prev => [...prev, newF]);
-      setSelectedFloorId(newF.id);
+
+    try {
+      if (editingFloor.id) {
+        await client.put(`/campus/floors/${editingFloor.id}`, payload);
+        setFloors(prev => prev.map(f => String(f.id) === String(editingFloor.id) ? { ...f, ...payload } as FloorInfo : f));
+      } else {
+        const res = await client.post('/campus/floors', payload);
+        const newF: FloorInfo = { id: res.data?.floor?.id || `f-${selectedBuildingId}-${Date.now()}`, ...payload };
+        setFloors(prev => [...prev, newF]);
+        setSelectedFloorId(newF.id);
+      }
+      setIsFloorModalOpen(false);
+      triggerToast('Floor saved successfully.');
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error || 'Unable to save changes. Please try again.';
+      setFloorValidationError(errMsg);
+      triggerToast('Unable to save changes. Please try again.');
     }
-    setIsFloorModalOpen(false);
-    triggerToast(`Saved floor level ${payload.name}`);
   };
 
   const handleDuplicateFloor = (f: FloorInfo) => {
@@ -1444,11 +1585,16 @@ export function FloorManagement() {
     triggerToast(`Duplicated floor level`);
   };
 
-  const handleConfirmDeleteFloor = () => {
+  const handleConfirmDeleteFloor = async () => {
     if (!deletingFloor) return;
-    setFloors(prev => prev.filter(f => String(f.id) !== String(deletingFloor.id)));
-    setDeletingFloor(null);
-    triggerToast('Floor deleted');
+    try {
+      await client.delete(`/campus/floors/${deletingFloor.id}`).catch(() => {});
+      setFloors(prev => prev.filter(f => String(f.id) !== String(deletingFloor.id)));
+      triggerToast(`Floor ${deletingFloor.name} deleted successfully.`);
+      setDeletingFloor(null);
+    } catch (err) {
+      triggerToast('Unable to save changes. Please try again.');
+    }
   };
 
   // Category Theme Helper
@@ -2299,7 +2445,7 @@ export function FloorManagement() {
                           <button onClick={() => handleOpenEditModal(selectedRoom)} className="flex-1 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center justify-center gap-1">
                             <Edit3 className="w-3.5 h-3.5" /> Edit Details
                           </button>
-                          <button onClick={() => handleDeleteRoom(selectedRoom.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
+                          <button onClick={() => setDeletingRoom(selectedRoom)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
@@ -2509,6 +2655,13 @@ export function FloorManagement() {
               <button onClick={() => setIsRoomModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
             </div>
 
+            {roomValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{roomValidationError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSaveRoomSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2632,6 +2785,13 @@ export function FloorManagement() {
               <button onClick={() => setIsBuildingModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
             </div>
 
+            {buildingValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{buildingValidationError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSaveBuildingSubmit} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Building Name *</label>
@@ -2744,6 +2904,13 @@ export function FloorManagement() {
               </h3>
               <button onClick={() => setIsFacilityModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
             </div>
+
+            {facilityValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{facilityValidationError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSaveFacilitySubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
@@ -2908,6 +3075,187 @@ export function FloorManagement() {
           </div>
         </div>
       )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE ROOM CONFIRMATION MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {deletingRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-2xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Room Confirmation</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Confirm Room Deletion</p>
+                </div>
+              </div>
+              <button onClick={() => setDeletingRoom(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete Room {deletingRoom.roomNumber}?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingRoom(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteRoom}
+                className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-500/20"
+              >
+                Delete Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE FACILITY CONFIRMATION MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {deletingFacility && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-2xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Facility Confirmation</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Confirm Facility Deletion</p>
+                </div>
+              </div>
+              <button onClick={() => setDeletingFacility(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete {deletingFacility.name}?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingFacility(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteFacility}
+                className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-500/20"
+              >
+                Delete Facility
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE FLOOR CONFIRMATION MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {deletingFloor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-2xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Floor Confirmation</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Confirm Floor Deletion</p>
+                </div>
+              </div>
+              <button onClick={() => setDeletingFloor(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete {deletingFloor.name}?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingFloor(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteFloor}
+                className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-500/20"
+              >
+                Delete Floor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE BUILDING CONFIRMATION MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {deletingBuilding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 rounded-2xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Building Confirmation</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Confirm Building Deletion</p>
+                </div>
+              </div>
+              <button onClick={() => setDeletingBuilding(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete Building {deletingBuilding.name}?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingBuilding(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteBuilding}
+                className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-500/20"
+              >
+                Delete Building
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );
