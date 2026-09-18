@@ -92,6 +92,25 @@ async function seedBuildingsIfEmpty() {
       console.error('Error initializing floor_plan_objects table:', e.message);
     }
 
+    // Ensure floor_plan_versions table exists
+    try {
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS floor_plan_versions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          floor_id INT NOT NULL,
+          version VARCHAR(50) DEFAULT 'v1.0',
+          status VARCHAR(20) DEFAULT 'DRAFT',
+          created_by VARCHAR(100) DEFAULT 'Admin',
+          published_by VARCHAR(100) NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          published_at TIMESTAMP NULL,
+          FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
+        )
+      `);
+    } catch (e) {
+      console.error('Error initializing floor_plan_versions table:', e.message);
+    }
+
     const [rows] = await pool.execute('SELECT COUNT(*) as count FROM campus_buildings');
     if (rows[0].count === 0) {
       console.log('Seeding initial campus buildings & floors...');
@@ -523,6 +542,22 @@ router.post('/floors/:id/publish', ...requireAdmin, async (req, res) => {
       [updatedBy, id]
     );
 
+    // Record publication version in floor_plan_versions
+    try {
+      const [vRows] = await pool.execute(
+        'SELECT COUNT(*) as vCount FROM floor_plan_versions WHERE floor_id = ?',
+        [id]
+      );
+      const nextVersion = `v${(vRows[0]?.vCount || 0) + 1}.0`;
+      await pool.execute(
+        `INSERT INTO floor_plan_versions (floor_id, version, status, created_by, published_by, published_at)
+         VALUES (?, ?, 'PUBLISHED', ?, ?, NOW())`,
+        [id, nextVersion, updatedBy, updatedBy]
+      );
+    } catch (verErr) {
+      console.error('Error logging floor_plan_version:', verErr.message);
+    }
+
     const [updated] = await pool.execute(
       `SELECT 
         id, building_id as buildingId, name, floor_number as floorNumber, 
@@ -543,6 +578,32 @@ router.post('/floors/:id/publish', ...requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error publishing floor plan:', err);
     res.status(500).json({ error: 'Failed to publish floor plan: ' + err.message });
+  }
+});
+
+// GET /api/campus/floors/:floorId/versions - Fetch version history for a floor plan
+router.get('/floors/:floorId/versions', async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const [rows] = await pool.execute(
+      `SELECT 
+        id, 
+        floor_id as floorId, 
+        version, 
+        status, 
+        created_by as createdBy, 
+        published_by as publishedBy, 
+        created_at as createdAt, 
+        published_at as publishedAt 
+      FROM floor_plan_versions 
+      WHERE floor_id = ? 
+      ORDER BY id DESC`,
+      [floorId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching floor plan versions:', err);
+    res.status(500).json({ error: 'Failed to fetch floor plan versions' });
   }
 });
 
