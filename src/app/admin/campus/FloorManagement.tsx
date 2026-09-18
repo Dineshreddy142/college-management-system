@@ -2040,6 +2040,7 @@ export function FloorManagement() {
                   <div
                     key={rm.id}
                     onMouseDown={(e) => handleMouseDownRoom(e, rm)}
+                    onDoubleClick={(e) => { e.stopPropagation(); if (editMode && isAdmin) handleOpenEditModal(rm); }}
                     style={{
                       left: `${rm.x}px`,
                       top: `${rm.y}px`,
@@ -2141,6 +2142,7 @@ export function FloorManagement() {
                   <div
                     key={fo.id}
                     onMouseDown={(e) => handleMouseDownFacility(e, fo)}
+                    onDoubleClick={(e) => { e.stopPropagation(); if (editMode && isAdmin) handleOpenEditFacilityModal(fo); }}
                     style={{
                       left: `${fo.x}px`,
                       top: `${fo.y}px`,
@@ -2403,7 +2405,7 @@ export function FloorManagement() {
                   </button>
                 )}
 
-                {/* SELECTED ROOM DETAILS INSPECTOR */}
+                {/* SELECTED OBJECT DETAILS INSPECTOR */}
                 {selectedRoom ? (
                   <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
@@ -2452,9 +2454,57 @@ export function FloorManagement() {
                       </>
                     )}
                   </div>
+                ) : selectedFacility ? (
+                  <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-amber-200 dark:border-amber-700/60 shadow-sm space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider", getFacilityBadgeColor(selectedFacility.objectType))}>
+                          {selectedFacility.objectType}
+                        </span>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">{selectedFacility.name}</h3>
+                        <p className="text-xs text-slate-500">{selectedFacility.objectType} Facility Object</p>
+                      </div>
+                      {isAdmin && (
+                        <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600" title="Edit Facility">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                      <div><span className="text-slate-400 block text-[10px]">Shape</span><span className="font-bold text-slate-800 dark:text-slate-200 capitalize">{selectedFacility.shape || 'rectangle'}</span></div>
+                      <div><span className="text-slate-400 block text-[10px]">Status</span><span className="font-bold capitalize text-slate-800 dark:text-slate-200">{typeof selectedFacility.metadata === 'object' ? (selectedFacility.metadata.status || 'Active') : 'Active'}</span></div>
+                    </div>
+
+                    {typeof selectedFacility.metadata === 'object' && selectedFacility.metadata.description && (
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="text-slate-400 block text-[10px] font-semibold">Description</span>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed mt-0.5">{selectedFacility.metadata.description}</p>
+                      </div>
+                    )}
+
+                    {isAdmin && (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
+                          <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedFacility.x}px</span></div>
+                          <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedFacility.y}px</span></div>
+                          <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedFacility.width}×{selectedFacility.height}</span></div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2">
+                          <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="flex-1 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 flex items-center justify-center gap-1">
+                            <Edit3 className="w-3.5 h-3.5" /> Edit Details
+                          </button>
+                          <button onClick={() => setDeletingFacility(selectedFacility)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
-                    Click any room on the vector floor plan canvas to inspect information.
+                    Click any room or facility object on the vector floor plan canvas to inspect information.
                   </div>
                 )}
 
