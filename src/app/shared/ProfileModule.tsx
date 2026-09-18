@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   Save, Download, Phone, MapPin, HeartPulse, Shield, Smartphone,
   Activity, ScanFace, CheckCircle2, AlertCircle, Trash2, Camera,
