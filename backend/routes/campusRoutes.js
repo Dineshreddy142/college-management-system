@@ -21,40 +21,127 @@ const INITIAL_BUILDINGS = [
   { name: 'Hostel Block', code: 'HST-01', description: 'Student Residential Complex & Dining Facility', total_floors: 6, status: 'Active' },
 ];
 
-// Helper to seed buildings and ensure schema columns exist
+// Helper to seed buildings and ensure schema tables & columns exist
 async function seedBuildingsIfEmpty() {
   try {
-    // Ensure display_order column exists on campus_floors
-    try {
-      await pool.execute('ALTER TABLE campus_floors ADD COLUMN display_order INT DEFAULT 0');
-    } catch (e) {}
+    // 1. Ensure campus_buildings table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS campus_buildings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        description TEXT NULL,
+        total_floors INT DEFAULT 1,
+        status VARCHAR(30) DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
 
-    // Ensure publish columns exist on campus_floors
-    try {
-      await pool.execute("ALTER TABLE campus_floors ADD COLUMN publish_status VARCHAR(20) DEFAULT 'DRAFT'");
-    } catch (e) {}
-    try {
-      await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_saved_at TIMESTAMP NULL");
-    } catch (e) {}
-    try {
-      await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_published_at TIMESTAMP NULL");
-    } catch (e) {}
-    try {
-      await pool.execute("ALTER TABLE campus_floors ADD COLUMN updated_by VARCHAR(100) DEFAULT 'Admin'");
-    } catch (e) {}
+    // 2. Ensure campus_floors table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS campus_floors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        building_id INT NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        floor_number INT DEFAULT 0,
+        display_order INT DEFAULT 0,
+        description TEXT NULL,
+        status VARCHAR(30) DEFAULT 'Active',
+        publish_status VARCHAR(20) DEFAULT 'DRAFT',
+        last_saved_at TIMESTAMP NULL,
+        last_published_at TIMESTAMP NULL,
+        updated_by VARCHAR(100) DEFAULT 'Admin',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (building_id) REFERENCES campus_buildings(id) ON DELETE CASCADE
+      )
+    `);
 
-    // Ensure columns exist on campus_rooms
-    try {
-      await pool.execute('ALTER TABLE campus_rooms ADD COLUMN room_type VARCHAR(50) DEFAULT "Classroom"');
-    } catch (e) {}
-    try {
-      await pool.execute('ALTER TABLE campus_rooms ADD COLUMN shape VARCHAR(30) DEFAULT "rectangle"');
-    } catch (e) {}
-    try {
-      await pool.execute("ALTER TABLE campus_rooms ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'");
-    } catch (e) {}
+    // 3. Ensure campus_room_types table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS campus_room_types (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        color VARCHAR(30) DEFAULT '#3B82F6',
+        icon VARCHAR(50) DEFAULT 'book-open'
+      )
+    `);
 
-    // Ensure campus_room_types has at least one fallback entry
+    // 4. Ensure campus_rooms table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS campus_rooms (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        building_id INT NULL,
+        room_number VARCHAR(50) NOT NULL,
+        room_name VARCHAR(150) NOT NULL,
+        room_type VARCHAR(50) DEFAULT 'Classroom',
+        capacity INT DEFAULT 30,
+        department VARCHAR(100) DEFAULT 'General',
+        description TEXT NULL,
+        status VARCHAR(30) DEFAULT 'Available',
+        x FLOAT NOT NULL DEFAULT 40,
+        y FLOAT NOT NULL DEFAULT 40,
+        width FLOAT NOT NULL DEFAULT 200,
+        height FLOAT NOT NULL DEFAULT 150,
+        rotation FLOAT NOT NULL DEFAULT 0,
+        shape VARCHAR(30) DEFAULT 'rectangle',
+        version_status VARCHAR(20) DEFAULT 'DRAFT',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 5. Ensure floor_plan_objects table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS floor_plan_objects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        object_type VARCHAR(100) NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        x FLOAT NOT NULL DEFAULT 100,
+        y FLOAT NOT NULL DEFAULT 100,
+        width FLOAT NOT NULL DEFAULT 120,
+        height FLOAT NOT NULL DEFAULT 100,
+        rotation FLOAT NOT NULL DEFAULT 0,
+        shape VARCHAR(50) DEFAULT 'rectangle',
+        metadata JSON NULL,
+        version_status VARCHAR(20) DEFAULT 'DRAFT',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 6. Ensure floor_plan_versions table exists
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS floor_plan_versions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        floor_id INT NOT NULL,
+        version VARCHAR(50) DEFAULT 'v1.0',
+        status VARCHAR(20) DEFAULT 'DRAFT',
+        created_by VARCHAR(100) DEFAULT 'Admin',
+        published_by VARCHAR(100) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        published_at TIMESTAMP NULL,
+        FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Safety ALTERS for pre-existing tables missing newly added columns
+    try { await pool.execute('ALTER TABLE campus_floors ADD COLUMN display_order INT DEFAULT 0'); } catch (e) {}
+    try { await pool.execute("ALTER TABLE campus_floors ADD COLUMN publish_status VARCHAR(20) DEFAULT 'DRAFT'"); } catch (e) {}
+    try { await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_saved_at TIMESTAMP NULL"); } catch (e) {}
+    try { await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_published_at TIMESTAMP NULL"); } catch (e) {}
+    try { await pool.execute("ALTER TABLE campus_floors ADD COLUMN updated_by VARCHAR(100) DEFAULT 'Admin'"); } catch (e) {}
+    try { await pool.execute('ALTER TABLE campus_rooms ADD COLUMN room_type VARCHAR(50) DEFAULT "Classroom"'); } catch (e) {}
+    try { await pool.execute('ALTER TABLE campus_rooms ADD COLUMN shape VARCHAR(30) DEFAULT "rectangle"'); } catch (e) {}
+    try { await pool.execute("ALTER TABLE campus_rooms ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'"); } catch (e) {}
+    try { await pool.execute("ALTER TABLE floor_plan_objects ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'"); } catch (e) {}
+
+    // Ensure campus_room_types fallback data
     try {
       const [typeRows] = await pool.execute('SELECT id FROM campus_room_types LIMIT 1');
       if (typeRows.length === 0) {
@@ -64,56 +151,10 @@ async function seedBuildingsIfEmpty() {
       }
     } catch (e) {}
 
-    // Ensure floor_plan_objects table exists
-    try {
-      await pool.execute(`
-        CREATE TABLE IF NOT EXISTS floor_plan_objects (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          floor_id INT NOT NULL,
-          object_type VARCHAR(100) NOT NULL,
-          name VARCHAR(150) NOT NULL,
-          x FLOAT NOT NULL DEFAULT 100,
-          y FLOAT NOT NULL DEFAULT 100,
-          width FLOAT NOT NULL DEFAULT 120,
-          height FLOAT NOT NULL DEFAULT 100,
-          rotation FLOAT NOT NULL DEFAULT 0,
-          shape VARCHAR(50) DEFAULT 'rectangle',
-          metadata JSON NULL,
-          version_status VARCHAR(20) DEFAULT 'DRAFT',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
-        )
-      `);
-      try {
-        await pool.execute("ALTER TABLE floor_plan_objects ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'");
-      } catch (e) {}
-    } catch (e) {
-      console.error('Error initializing floor_plan_objects table:', e.message);
-    }
-
-    // Ensure floor_plan_versions table exists
-    try {
-      await pool.execute(`
-        CREATE TABLE IF NOT EXISTS floor_plan_versions (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          floor_id INT NOT NULL,
-          version VARCHAR(50) DEFAULT 'v1.0',
-          status VARCHAR(20) DEFAULT 'DRAFT',
-          created_by VARCHAR(100) DEFAULT 'Admin',
-          published_by VARCHAR(100) NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          published_at TIMESTAMP NULL,
-          FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
-        )
-      `);
-    } catch (e) {
-      console.error('Error initializing floor_plan_versions table:', e.message);
-    }
-
+    // Seed default buildings & floors if campus_buildings table is empty
     const [rows] = await pool.execute('SELECT COUNT(*) as count FROM campus_buildings');
     if (rows[0].count === 0) {
-      console.log('Seeding initial campus buildings & floors...');
+      console.log('[Campus] Seeding initial campus buildings & floors...');
       for (const b of INITIAL_BUILDINGS) {
         const [res] = await pool.execute(
           'INSERT INTO campus_buildings (name, code, description, total_floors, status) VALUES (?, ?, ?, ?, ?)',
@@ -128,11 +169,15 @@ async function seedBuildingsIfEmpty() {
           );
         }
       }
+      console.log('[Campus] Initial buildings and floors seeded successfully.');
     }
   } catch (err) {
     console.error('Error seeding campus buildings & floors:', err.message);
   }
 }
+
+// Auto-run schema initialization on module load
+seedBuildingsIfEmpty().catch(err => console.error('[Campus] Initial schema seed error:', err));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BUILDING ROUTES
@@ -296,6 +341,7 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
 // POST /api/campus/floors - Add new floor to building (Admin Only)
 router.post('/floors', ...requireAdmin, async (req, res) => {
   try {
+    await seedBuildingsIfEmpty();
     const { buildingId, name, floorNumber, description, displayOrder } = req.body;
     if (!buildingId || name === undefined || floorNumber === undefined) {
       return res.status(400).json({ error: 'buildingId, Floor Name, and Floor Number are required' });
