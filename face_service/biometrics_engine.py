@@ -2,8 +2,8 @@ import os
 import numpy as np
 
 # Configurable 1:1 Verification & Duplicate Thresholds (Customizable via environment variables)
-# SFace recommended cosine similarity threshold for zero false positives is 0.50
-BIOMETRIC_MATCH_THRESHOLD = float(os.getenv("BIOMETRIC_MATCH_THRESHOLD", "0.50"))
+# SFace recommended cosine similarity threshold for zero false positives is 0.52
+BIOMETRIC_MATCH_THRESHOLD = float(os.getenv("BIOMETRIC_MATCH_THRESHOLD", "0.52"))
 DUPLICATE_THRESHOLD = float(os.getenv("BIOMETRIC_DUPLICATE_THRESHOLD", "0.48"))
 
 def cosine_similarity(vec1, vec2):
