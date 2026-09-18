@@ -417,6 +417,7 @@ export function FloorManagement() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch campus buildings and floors from API on mount
+  // Fetch campus buildings on mount
   useEffect(() => {
     async function loadCampusData() {
       try {
@@ -439,31 +440,6 @@ export function FloorManagement() {
                                 mappedB[0];
           const targetBId = existingMatch.id;
           setSelectedBuildingId(targetBId);
-
-          const fRes = await client.get(`/campus/buildings/${targetBId}/floors`);
-          if (fRes.data && Array.isArray(fRes.data) && fRes.data.length > 0) {
-            const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
-              id: f.id,
-              buildingId: f.buildingId || f.building_id || targetBId,
-              name: f.name,
-              floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
-              description: f.description || '',
-              displayOrder: f.displayOrder || f.display_order || 0,
-              publishStatus: f.publishStatus || f.publish_status || 'DRAFT',
-              lastSavedAt: f.lastSavedAt || f.last_saved_at || undefined,
-              lastPublishedAt: f.lastPublishedAt || f.last_published_at || undefined,
-              updatedBy: f.updatedBy || f.updated_by || 'Admin'
-            }));
-            setFloors(prev => {
-              const otherFloors = prev.filter(p => String(p.buildingId) !== String(targetBId));
-              return [...mappedF, ...otherFloors];
-            });
-
-            if (mappedF.length > 0) {
-              const matchingFloor = mappedF.find(f => String(f.id) === String(selectedFloorId)) || mappedF[0];
-              setSelectedFloorId(matchingFloor.id);
-            }
-          }
         }
       } catch (err) {
         console.log('Using initial campus state (fallback)');
@@ -472,10 +448,50 @@ export function FloorManagement() {
     loadCampusData();
   }, []);
 
+  // Fetch floors whenever selectedBuildingId changes
+  useEffect(() => {
+    async function loadBuildingFloors() {
+      if (!selectedBuildingId) return;
+      try {
+        const fRes = await client.get(`/campus/buildings/${selectedBuildingId}/floors`);
+        if (fRes.data && Array.isArray(fRes.data)) {
+          const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
+            id: f.id,
+            buildingId: f.buildingId || f.building_id || selectedBuildingId,
+            name: f.name,
+            floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
+            description: f.description || '',
+            displayOrder: f.displayOrder || f.display_order || 0,
+            publishStatus: f.publishStatus || f.publish_status || 'DRAFT',
+            lastSavedAt: f.lastSavedAt || f.last_saved_at || undefined,
+            lastPublishedAt: f.lastPublishedAt || f.last_published_at || undefined,
+            updatedBy: f.updatedBy || f.updated_by || 'Admin'
+          }));
+
+          setFloors(prev => {
+            const otherFloors = prev.filter(p => String(p.buildingId) !== String(selectedBuildingId));
+            return [...otherFloors, ...mappedF];
+          });
+
+          if (mappedF.length > 0) {
+            setSelectedFloorId(mappedF[0].id);
+          }
+        }
+      } catch (err) {
+        console.log('Error loading building floors');
+      }
+    }
+    loadBuildingFloors();
+  }, [selectedBuildingId]);
+
   // Fetch rooms AND facility objects whenever selectedFloorId changes
   useEffect(() => {
     async function loadFloorData() {
       if (!selectedFloorId) return;
+
+      // Reset selection when floor changes
+      setSelectedRoomId(null);
+      setSelectedFacilityId(null);
 
       // For Non-Admins (Students & Faculty), fetch published floor plan version
       if (!isAdmin) {
@@ -504,7 +520,10 @@ export function FloorManagement() {
                 updatedAt: r.updatedAt || r.updated_at
               }));
               setRooms(mappedRooms);
+            } else {
+              setRooms([]);
             }
+
             if (pubRes.data.objects && Array.isArray(pubRes.data.objects)) {
               const mappedObjs: FloorPlanObjectRecord[] = pubRes.data.objects.map((o: any) => ({
                 id: o.id,
@@ -520,6 +539,8 @@ export function FloorManagement() {
                 metadata: typeof o.metadata === 'string' ? JSON.parse(o.metadata) : (o.metadata || {})
               }));
               setFacilityObjects(mappedObjs);
+            } else {
+              setFacilityObjects([]);
             }
           }
           return;
@@ -532,7 +553,7 @@ export function FloorManagement() {
       try {
         // Fetch rooms
         const rRes = await client.get(`/campus/floors/${selectedFloorId}/rooms`);
-        if (rRes.data && Array.isArray(rRes.data) && rRes.data.length > 0) {
+        if (rRes.data && Array.isArray(rRes.data)) {
           const mappedRooms: RoomRecord[] = rRes.data.map((r: any) => ({
             id: r.id,
             floorId: r.floorId || r.floor_id || selectedFloorId,
@@ -562,7 +583,7 @@ export function FloorManagement() {
       try {
         // Fetch facility objects
         const objRes = await client.get(`/campus/floors/${selectedFloorId}/objects`);
-        if (objRes.data && Array.isArray(objRes.data) && objRes.data.length > 0) {
+        if (objRes.data && Array.isArray(objRes.data)) {
           const mappedObjs: FloorPlanObjectRecord[] = objRes.data.map((o: any) => ({
             id: o.id,
             floorId: o.floorId || o.floor_id || selectedFloorId,
@@ -941,28 +962,74 @@ export function FloorManagement() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Save position updates for rooms
+      // Save position updates & create new rooms for current floor
       for (const rm of rooms) {
-        await client.put(`/campus/rooms/${rm.id}`, {
-          x: rm.x,
-          y: rm.y,
-          width: rm.width,
-          height: rm.height,
-          rotation: rm.rotation,
-          shape: rm.shape
-        }).catch(() => {});
+        if (rm.id && !String(rm.id).startsWith('r-') && !String(rm.id).startsWith('r10')) {
+          await client.put(`/campus/rooms/${rm.id}`, {
+            x: rm.x,
+            y: rm.y,
+            width: rm.width,
+            height: rm.height,
+            rotation: rm.rotation,
+            shape: rm.shape
+          }).catch(() => {});
+        } else {
+          try {
+            const postRes = await client.post(`/campus/floors/${selectedFloorId}/rooms`, {
+              buildingId: selectedBuildingId,
+              roomNumber: rm.roomNumber,
+              roomName: rm.roomName,
+              roomType: rm.roomType,
+              capacity: rm.capacity,
+              department: rm.department,
+              description: rm.description,
+              status: rm.status,
+              x: rm.x,
+              y: rm.y,
+              width: rm.width,
+              height: rm.height,
+              rotation: rm.rotation,
+              shape: rm.shape
+            });
+            if (postRes.data?.room?.id) {
+              const realId = postRes.data.room.id;
+              setRooms(prev => prev.map(r => String(r.id) === String(rm.id) ? { ...r, id: realId } : r));
+            }
+          } catch (e) {}
+        }
       }
-      // Save position updates for facility objects
+
+      // Save position updates & create new facility objects for current floor
       for (const fo of facilityObjects) {
-        await client.put(`/campus/objects/${fo.id}`, {
-          x: fo.x,
-          y: fo.y,
-          width: fo.width,
-          height: fo.height,
-          rotation: fo.rotation,
-          shape: fo.shape,
-          metadata: fo.metadata
-        }).catch(() => {});
+        if (fo.id && !String(fo.id).startsWith('fo-') && !String(fo.id).startsWith('fo10')) {
+          await client.put(`/campus/objects/${fo.id}`, {
+            x: fo.x,
+            y: fo.y,
+            width: fo.width,
+            height: fo.height,
+            rotation: fo.rotation,
+            shape: fo.shape,
+            metadata: fo.metadata
+          }).catch(() => {});
+        } else {
+          try {
+            const postRes = await client.post(`/campus/floors/${selectedFloorId}/objects`, {
+              objectType: fo.objectType,
+              name: fo.name,
+              x: fo.x,
+              y: fo.y,
+              width: fo.width,
+              height: fo.height,
+              rotation: fo.rotation,
+              shape: fo.shape,
+              metadata: fo.metadata
+            });
+            if (postRes.data?.object?.id) {
+              const realId = postRes.data.object.id;
+              setFacilityObjects(prev => prev.map(o => String(o.id) === String(fo.id) ? { ...o, id: realId } : o));
+            }
+          } catch (e) {}
+        }
       }
 
       // Mark floor as saved draft

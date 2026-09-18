@@ -219,6 +219,52 @@ async function resolveBuildingId(buildingId) {
   return null;
 }
 
+// Helper to resolve floor_id from string ID ('f1', 'f-2-0'), numeric string ('15'), or building context
+async function resolveFloorId(floorId, buildingId) {
+  if (floorId === undefined || floorId === null) return null;
+
+  const strId = String(floorId).trim();
+  const parsed = parseInt(strId, 10);
+
+  // 1. Valid positive integer string like "1", "15"
+  if (!isNaN(parsed) && /^\d+$/.test(strId)) {
+    const [rows] = await pool.execute('SELECT id FROM campus_floors WHERE id = ?', [parsed]);
+    if (rows.length > 0) return rows[0].id;
+  }
+
+  // 2. Mock floor ID mappings ('f1', 'f2', etc.)
+  const mockFloorMap = {
+    'f1': { buildingCode: 'AB-MAIN', floorNumber: 0 },
+    'f2': { buildingCode: 'AB-MAIN', floorNumber: 1 },
+    'f3': { buildingCode: 'AB-MAIN', floorNumber: 2 },
+    'f4': { buildingCode: 'AB-MAIN', floorNumber: 3 },
+  };
+
+  const info = mockFloorMap[strId.toLowerCase()];
+  if (info) {
+    const [rows] = await pool.execute(
+      `SELECT f.id FROM campus_floors f 
+       JOIN campus_buildings b ON f.building_id = b.id 
+       WHERE UPPER(b.code) = ? AND f.floor_number = ?`,
+      [info.buildingCode.toUpperCase(), info.floorNumber]
+    );
+    if (rows.length > 0) return rows[0].id;
+  }
+
+  // 3. Fallback: Lookup by buildingId if available
+  const bId = buildingId ? await resolveBuildingId(buildingId) : null;
+  if (bId) {
+    const [bFloors] = await pool.execute('SELECT id FROM campus_floors WHERE building_id = ? ORDER BY floor_number ASC LIMIT 1', [bId]);
+    if (bFloors.length > 0) return bFloors[0].id;
+  }
+
+  // 4. Fallback: first floor overall
+  const [first] = await pool.execute('SELECT id FROM campus_floors ORDER BY id ASC LIMIT 1');
+  if (first.length > 0) return first[0].id;
+
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BUILDING ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -778,6 +824,9 @@ router.get('/floors/:floorId/rooms', async (req, res) => {
   try {
     await seedBuildingsIfEmpty();
     const { floorId } = req.params;
+    const fId = await resolveFloorId(floorId);
+    if (!fId) return res.json([]);
+
     const [rooms] = await pool.execute(`
       SELECT 
         id, 
@@ -799,9 +848,9 @@ router.get('/floors/:floorId/rooms', async (req, res) => {
         created_at as createdAt, 
         updated_at as updatedAt 
       FROM campus_rooms 
-      WHERE floor_id = ? 
+      WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)
       ORDER BY id ASC
-    `, [floorId]);
+    `, [fId]);
 
     res.json(rooms);
   } catch (err) {
@@ -841,8 +890,11 @@ router.post('/floors/:floorId/rooms', ...requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Capacity must be a valid number' });
     }
 
-    const fId = parseInt(floorId);
-    let bId = parseInt(buildingId);
+    const fId = await resolveFloorId(floorId, buildingId);
+    if (!fId) {
+      return res.status(400).json({ error: 'Valid floor not found' });
+    }
+    let bId = await resolveBuildingId(buildingId);
 
     // Prevent duplicate room numbers on the same floor
     const [dupRooms] = await pool.execute(
@@ -1047,6 +1099,9 @@ router.get('/floors/:floorId/objects', async (req, res) => {
   try {
     await seedBuildingsIfEmpty();
     const { floorId } = req.params;
+    const fId = await resolveFloorId(floorId);
+    if (!fId) return res.json([]);
+
     const [objects] = await pool.execute(`
       SELECT 
         id, 
@@ -1063,9 +1118,9 @@ router.get('/floors/:floorId/objects', async (req, res) => {
         created_at as createdAt, 
         updated_at as updatedAt 
       FROM floor_plan_objects 
-      WHERE floor_id = ? 
+      WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)
       ORDER BY id ASC
-    `, [floorId]);
+    `, [fId]);
 
     const formatted = objects.map(o => ({
       ...o,
@@ -1099,7 +1154,10 @@ router.post('/floors/:floorId/objects', ...requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Name and Object Type are required' });
     }
 
-    const fId = parseInt(floorId);
+    const fId = await resolveFloorId(floorId);
+    if (!fId) {
+      return res.status(400).json({ error: 'Valid floor not found' });
+    }
     const metaStr = typeof metadata === 'object' ? JSON.stringify(metadata) : (metadata || JSON.stringify({ status: 'Active', description: '' }));
 
     const [resInsert] = await pool.execute(`
