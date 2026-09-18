@@ -156,6 +156,26 @@ export interface FloorPlanObjectRecord {
   updatedAt?: string;
 }
 
+export interface SearchResultItem {
+  id: string;
+  type: 'room' | 'facility' | 'floor' | 'building';
+  title: string;
+  subtitle: string;
+  badge: string;
+  badgeColor: string;
+  icon: React.ReactNode;
+  buildingId: string | number;
+  buildingName: string;
+  floorId: string | number;
+  floorName: string;
+  targetId?: string | number;
+  targetType?: 'room' | 'facility';
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // INITIAL DEFAULT BUILDINGS & FLOORS DATA
 // ─────────────────────────────────────────────────────────────────────────────
@@ -315,6 +335,8 @@ export function FloorManagement() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
+  const [highlightedSearchId, setHighlightedSearchId] = useState<string | null>(null);
   const [buildingSearchQuery, setBuildingSearchQuery] = useState<string>('');
   const [activeRightTab, setActiveRightTab] = useState<'rooms' | 'facilities' | 'buildings' | 'floors'>('rooms');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
@@ -493,6 +515,227 @@ export function FloorManagement() {
   const selectedFacility = useMemo(() => {
     return facilityObjects.find(fo => String(fo.id) === String(selectedFacilityId)) || null;
   }, [facilityObjects, selectedFacilityId]);
+
+  // Center canvas on target object
+  const centerCanvasOnObject = useCallback((x: number, y: number, width: number, height: number) => {
+    const containerWidth = canvasContainerRef.current?.clientWidth || 800;
+    const containerHeight = canvasContainerRef.current?.clientHeight || 600;
+    const objCenterX = x + width / 2;
+    const objCenterY = y + height / 2;
+    const newPanX = Math.round((containerWidth / 2) - (objCenterX * (zoomLevel / 100)));
+    const newPanY = Math.round((containerHeight / 2) - (objCenterY * (zoomLevel / 100)));
+    setPanX(newPanX);
+    setPanY(newPanY);
+  }, [zoomLevel]);
+
+  // Searchable Pool Across Campus
+  const allSearchableRooms = useMemo(() => {
+    const map = new Map<string, RoomRecord>();
+    INITIAL_ROOMS.forEach(r => map.set(String(r.id), r));
+    rooms.forEach(r => map.set(String(r.id), r));
+    return Array.from(map.values());
+  }, [rooms]);
+
+  const allSearchableFacilities = useMemo(() => {
+    const map = new Map<string, FloorPlanObjectRecord>();
+    INITIAL_FACILITY_OBJECTS.forEach(fo => map.set(String(fo.id), fo));
+    facilityObjects.forEach(fo => map.set(String(fo.id), fo));
+    return Array.from(map.values());
+  }, [facilityObjects]);
+
+  // Global Multi-field Search Filter
+  const globalSearchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    const results: SearchResultItem[] = [];
+
+    // 1. Search Rooms (Number, Name, Dept, Type, Description)
+    allSearchableRooms.forEach(room => {
+      const rNum = String(room.roomNumber || '').toLowerCase();
+      const rName = String(room.roomName || '').toLowerCase();
+      const rDept = String(room.department || '').toLowerCase();
+      const rType = String(room.roomType || '').toLowerCase();
+      const rDesc = String(room.description || '').toLowerCase();
+
+      if (
+        rNum.includes(q) ||
+        rName.includes(q) ||
+        rDept.includes(q) ||
+        rType.includes(q) ||
+        rDesc.includes(q)
+      ) {
+        const b = buildings.find(b => String(b.id) === String(room.buildingId)) || buildings[0];
+        const f = floors.find(f => String(f.id) === String(room.floorId)) || { name: 'Floor', floorNumber: 0 };
+        results.push({
+          id: `room-${room.id}`,
+          type: 'room',
+          title: `Room ${room.roomNumber}: ${room.roomName}`,
+          subtitle: `${b.name} • ${f.name} • Dept: ${room.department}`,
+          badge: room.roomType,
+          badgeColor: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-900',
+          icon: <DoorOpen className="w-4 h-4 text-blue-500" />,
+          buildingId: room.buildingId || b.id,
+          buildingName: b.name,
+          floorId: room.floorId,
+          floorName: f.name,
+          targetId: room.id,
+          targetType: 'room',
+          x: room.x,
+          y: room.y,
+          width: room.width,
+          height: room.height
+        });
+      }
+    });
+
+    // 2. Search Facilities (Name, Type, Description, Status)
+    allSearchableFacilities.forEach(fo => {
+      const foName = String(fo.name || '').toLowerCase();
+      const foType = String(fo.objectType || '').toLowerCase();
+      const meta = typeof fo.metadata === 'object' ? fo.metadata : {};
+      const foDesc = String(meta.description || '').toLowerCase();
+      const foStatus = String(meta.status || '').toLowerCase();
+
+      if (
+        foName.includes(q) ||
+        foType.includes(q) ||
+        foDesc.includes(q) ||
+        foStatus.includes(q)
+      ) {
+        const f = floors.find(f => String(f.id) === String(fo.floorId)) || { buildingId: 'b2', name: 'Floor' };
+        const b = buildings.find(b => String(b.id) === String(f.buildingId)) || buildings[0];
+        results.push({
+          id: `facility-${fo.id}`,
+          type: 'facility',
+          title: fo.name,
+          subtitle: `${b.name} • ${f.name} • Type: ${fo.objectType}`,
+          badge: fo.objectType,
+          badgeColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+          icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+          buildingId: f.buildingId || b.id,
+          buildingName: b.name,
+          floorId: fo.floorId,
+          floorName: f.name,
+          targetId: fo.id,
+          targetType: 'facility',
+          x: fo.x,
+          y: fo.y,
+          width: fo.width,
+          height: fo.height
+        });
+      }
+    });
+
+    // 3. Search Floors (Name, Description, Number)
+    floors.forEach(floor => {
+      const fName = String(floor.name || '').toLowerCase();
+      const fDesc = String(floor.description || '').toLowerCase();
+      const fNum = `floor ${floor.floorNumber}`;
+      const fNumShort = `${floor.floorNumber}th floor`;
+
+      if (
+        fName.includes(q) ||
+        fDesc.includes(q) ||
+        fNum.includes(q) ||
+        fNumShort.includes(q) ||
+        q.includes(fName)
+      ) {
+        const b = buildings.find(b => String(b.id) === String(floor.buildingId)) || buildings[0];
+        results.push({
+          id: `floor-${floor.id}`,
+          type: 'floor',
+          title: `${floor.name} (Level ${floor.floorNumber})`,
+          subtitle: `${b.name} • ${floor.description || 'Floor plan level'}`,
+          badge: 'Floor',
+          badgeColor: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-900',
+          icon: <Layers className="w-4 h-4 text-purple-500" />,
+          buildingId: floor.buildingId,
+          buildingName: b.name,
+          floorId: floor.id,
+          floorName: floor.name
+        });
+      }
+    });
+
+    // 4. Search Buildings (Name, Code, Description)
+    buildings.forEach(b => {
+      const bName = String(b.name || '').toLowerCase();
+      const bCode = String(b.code || '').toLowerCase();
+      const bDesc = String(b.description || '').toLowerCase();
+
+      if (
+        bName.includes(q) ||
+        bCode.includes(q) ||
+        bDesc.includes(q)
+      ) {
+        const targetFloor = floors.find(f => String(f.buildingId) === String(b.id)) || { id: 'f1', name: 'Ground Floor' };
+        results.push({
+          id: `building-${b.id}`,
+          type: 'building',
+          title: `${b.name} (${b.code})`,
+          subtitle: `${b.total_floors} Floors • ${b.description || 'Building Block'}`,
+          badge: 'Building',
+          badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
+          icon: <Building2 className="w-4 h-4 text-emerald-500" />,
+          buildingId: b.id,
+          buildingName: b.name,
+          floorId: targetFloor.id,
+          floorName: targetFloor.name
+        });
+      }
+    });
+
+    return results;
+  }, [searchQuery, allSearchableRooms, allSearchableFacilities, floors, buildings]);
+
+  const handleSelectSearchResult = (item: SearchResultItem) => {
+    setIsSearchDropdownOpen(false);
+
+    // 1. Automatically open correct building
+    if (item.buildingId) {
+      setSelectedBuildingId(item.buildingId);
+    }
+
+    // 2. Automatically open correct floor
+    if (item.floorId) {
+      setSelectedFloorId(item.floorId);
+    }
+
+    if (item.targetType === 'room' && item.targetId) {
+      // 3. Highlight room & open details
+      setSelectedRoomId(item.targetId);
+      setSelectedFacilityId(null);
+      setHighlightedSearchId(String(item.targetId));
+      setActiveRightTab('rooms');
+
+      // 4. Center floor plan on selected room
+      if (item.x !== undefined && item.y !== undefined) {
+        centerCanvasOnObject(item.x, item.y, item.width || 200, item.height || 150);
+      }
+
+      triggerToast(`Navigated to ${item.title} on ${item.floorName}`);
+    } else if (item.targetType === 'facility' && item.targetId) {
+      // 3. Highlight facility & open details
+      setSelectedFacilityId(item.targetId);
+      setSelectedRoomId(null);
+      setHighlightedSearchId(String(item.targetId));
+      setActiveRightTab('facilities');
+
+      // 4. Center floor plan on selected facility
+      if (item.x !== undefined && item.y !== undefined) {
+        centerCanvasOnObject(item.x, item.y, item.width || 140, item.height || 100);
+      }
+
+      triggerToast(`Navigated to Facility ${item.title} on ${item.floorName}`);
+    } else if (item.type === 'floor') {
+      triggerToast(`Navigated to ${item.title} (${item.buildingName})`);
+    } else if (item.type === 'building') {
+      triggerToast(`Navigated to Building ${item.title}`);
+    }
+
+    setTimeout(() => setHighlightedSearchId(null), 3500);
+  };
 
   // Filtered rooms based on search & category
   const filteredRooms = useMemo(() => {
@@ -1248,18 +1491,83 @@ export function FloorManagement() {
             </div>
           </div>
 
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Search Rooms</label>
+          <div className="relative flex-1 min-w-[240px] max-w-sm">
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Campus Search & Navigation</label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search room number, name, or dept..."
+                placeholder="Search 101, CSE, Computer Lab, Library, 2nd Floor, Stairs..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchDropdownOpen(false);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+
+            {/* Global Search Results Dropdown */}
+            {isSearchDropdownOpen && searchQuery.trim() !== '' && (
+              <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
+                {globalSearchResults.length > 0 ? (
+                  <div className="py-1">
+                    <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>Matches ({globalSearchResults.length})</span>
+                      <span>Click to Focus & Center</span>
+                    </div>
+                    {globalSearchResults.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectSearchResult(item)}
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/50 last:border-0"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl flex-shrink-0">
+                            {item.icon}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 dark:text-white truncate flex items-center gap-2">
+                              <span>{item.title}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {item.subtitle}
+                            </div>
+                          </div>
+                        </div>
+                        <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0", item.badgeColor)}>
+                          {item.badge}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  /* NO RESULTS FOUND STATE */
+                  <div className="p-6 text-center space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+                      <Search className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">No results found</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                      No rooms, facilities, floors, or buildings match <span className="font-semibold text-blue-600 dark:text-blue-400">"{searchQuery}"</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 pt-3">
@@ -1462,6 +1770,7 @@ export function FloorManagement() {
               {/* ROOM TILES VECTOR LAYER */}
               {filteredRooms.map(rm => {
                 const isSelected = String(selectedRoomId) === String(rm.id);
+                const isHighlighted = String(rm.id) === String(highlightedSearchId);
                 const badgeColor = getRoomTypeBadgeColor(rm.roomType);
 
                 return (
@@ -1488,6 +1797,13 @@ export function FloorManagement() {
                       isSelected && "ring-4 ring-blue-500 ring-offset-2 ring-offset-slate-950 border-blue-500 z-20 shadow-2xl scale-[1.01]"
                     )}
                   >
+                    {isHighlighted && (
+                      <div className="absolute -inset-2 border-4 border-amber-400 dark:border-amber-400 rounded-2xl animate-pulse shadow-[0_0_35px_rgba(245,158,11,0.95)] z-40 pointer-events-none flex items-center justify-center">
+                        <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-xl flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> MATCHED ROOM
+                        </span>
+                      </div>
+                    )}
                     
                     {/* Top Row: Room Number & Type Badge */}
                     <div className="flex items-center justify-between gap-1 z-10">
@@ -1553,6 +1869,7 @@ export function FloorManagement() {
               {/* FACILITY OBJECTS VECTOR LAYER (STAIRS, LIFT, WASHROOMS, EXITS, ETC.) */}
               {facilityObjects.map(fo => {
                 const isSelected = String(selectedFacilityId) === String(fo.id);
+                const isHighlighted = String(fo.id) === String(highlightedSearchId);
                 const badgeColor = getFacilityBadgeColor(fo.objectType);
                 const metaDesc = typeof fo.metadata === 'object' ? (fo.metadata.description || '') : '';
                 const metaStatus = typeof fo.metadata === 'object' ? (fo.metadata.status || 'Active') : 'Active';
@@ -1588,6 +1905,13 @@ export function FloorManagement() {
                       isSelected && "ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-950 border-amber-400 z-20 shadow-2xl scale-[1.01]"
                     )}
                   >
+                    {isHighlighted && (
+                      <div className="absolute -inset-2 border-4 border-amber-400 dark:border-amber-400 rounded-2xl animate-pulse shadow-[0_0_35px_rgba(245,158,11,0.95)] z-40 pointer-events-none flex items-center justify-center">
+                        <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-xl flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> MATCHED FACILITY
+                        </span>
+                      </div>
+                    )}
                     {/* Top Row: Type & Badge */}
                     <div className="flex items-center justify-between gap-1 z-10">
                       <div className="flex items-center gap-1.5">
