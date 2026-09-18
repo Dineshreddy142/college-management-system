@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import {
   Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace,
-  Sparkles, ShieldCheck, Lock, KeyRound, Monitor, Smartphone,
+  Sparkles, ShieldCheck, Lock, KeyRound,
   Send, CheckCircle2, Shield, RefreshCw, UserPlus, UserCheck, User
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
@@ -32,12 +32,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
-  const detectedDevice = useDeviceType();
-
-  // Manual device override for preview/testing
-  const [deviceOverride, setDeviceOverride] = useState<'auto' | 'desktop' | 'mobile'>('auto');
-  const isMobile = deviceOverride === 'auto' ? detectedDevice.isMobile : deviceOverride === 'mobile';
-  const isDesktop = !isMobile;
+  const { isMobile, isDesktop } = useDeviceType();
   
   // Extract role from URL pathname (e.g. /student/login -> 'student')
   const getRoleFromPath = (pathname: string): string => {
@@ -397,50 +392,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
       {/* Right side - Login Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 relative">
-        
-        {/* Device Mode Switcher Pill (Preview / Testing Aid) */}
-        <div className="w-full max-w-md mb-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-2 pl-2">
-            {isDesktop ? (
-              <>
-                <Monitor size={15} className="text-blue-600 dark:text-blue-400" />
-                <span className="font-semibold text-slate-800 dark:text-slate-200">Laptop / Desktop Mode</span>
-              </>
-            ) : (
-              <>
-                <Smartphone size={15} className="text-indigo-600 dark:text-indigo-400" />
-                <span className="font-semibold text-slate-800 dark:text-slate-200">Mobile Smartphone Mode</span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => setDeviceOverride('desktop')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                isDesktop
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Test Laptop / Desktop login experience"
-            >
-              🖥️ Laptop
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeviceOverride('mobile')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                isMobile
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Test Mobile Phone login experience"
-            >
-              📱 Mobile
-            </button>
-          </div>
-        </div>
 
         <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-5 sm:p-8">
           
