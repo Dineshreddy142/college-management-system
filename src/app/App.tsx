@@ -269,12 +269,12 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
-    if (user?.role === 'Admin') return true;
-    if (user?.role === 'HOD') return ['dashboard', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
-    if (user?.role === 'Accountant') return ['dashboard', 'fees', 'reports', 'settings'].includes(item.id);
-    if (user?.role === 'Librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
-    if (user?.role === 'Placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
-    // Campus Map is Admin-only (not included for other roles above)
+    const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin' || normRole === 'office') return true;
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
+    if (normRole === 'placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
     return true; // Default to all if unknown
   });
 
@@ -422,9 +422,15 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   };
 
   const labels: Record<string, string> = {
-    dashboard: "Dashboard", students: "Student Management", faculty: "Faculty Management",
+    dashboard: "Dashboard",
+    users: "User Access Control",
+    "bulk-data": "Bulk Excel Hub",
+    profile: "Security & Face ID",
+    students: "Student Management", faculty: "Faculty Management",
+    mentors: "Mentor Management",
     attendance: "Attendance", exams: "Examinations", timetable: "Timetable",
     fees: "Fee Management", library: "Library", placement: "Placement",
+    "campus-map": "Interactive Campus Map",
     reports: "Reports & Analytics", settings: "Settings",
   };
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -515,7 +521,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
 // ADMIN MODULES
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DashboardHome() {
+function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }) {
   const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, activeCourses: 0, pendingFees: '₹0', avgAttendance: '0%' });
   
   useEffect(() => {
@@ -526,6 +532,45 @@ function DashboardHome() {
 
   return (
     <div className="space-y-5">
+      {/* Quick Access Security Banner */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/50">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 flex-shrink-0">
+            <Shield size={24} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span>Admin Control & Security Hub</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">Active</span>
+            </h2>
+            <p className="text-xs text-indigo-200/80 mt-0.5">
+              Manage account login status, block/unblock users, and reset 3D Face Biometrics.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate("users")}
+              className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Shield size={15} />
+              <span>User Access Control</span>
+            </button>
+          )}
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate("bulk-data")}
+              className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FileSpreadsheet size={15} />
+              <span>Bulk Data Hub</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Students" value={stats.totalStudents} change="+48 this semester" changeType="up" icon={<GraduationCap size={19} />} color="blue" />
         <StatCard title="Faculty Members" value={stats.totalFaculty} change="+5 new joinings" changeType="up" icon={<Users size={19} />} color="indigo" />
@@ -1557,7 +1602,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
 
   const render = () => {
     switch (mod) {
-      case "dashboard": return <DashboardHome />;
+      case "dashboard": return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
       case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;

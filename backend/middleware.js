@@ -17,7 +17,22 @@ export const authenticateToken = (req, res, next) => {
 
 export const authorizeRole = (allowedRoles) => {
     return (req, res, next) => {
-        if (!req.user || !allowedRoles.includes(req.user.role)) {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({ error: 'Access denied, insufficient permissions' });
+        }
+
+        const userRoleNorm = req.user.role.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const isAllowed = allowedRoles.some(role => {
+            const roleNorm = role.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (roleNorm === userRoleNorm) return true;
+            if ((userRoleNorm === 'admin' || userRoleNorm === 'administrator' || userRoleNorm === 'principal' || userRoleNorm === 'systemadmin' || userRoleNorm === 'office') && 
+                (roleNorm === 'admin' || roleNorm === 'administrator' || roleNorm === 'principal')) {
+                return true;
+            }
+            return false;
+        });
+
+        if (!isAllowed) {
             return res.status(403).json({ error: 'Access denied, insufficient permissions' });
         }
         next();
