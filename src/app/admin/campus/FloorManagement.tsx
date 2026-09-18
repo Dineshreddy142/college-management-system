@@ -771,6 +771,54 @@ export function FloorManagement() {
     return { total, classrooms, labs, offices, facilities, occupied, avgOccupancy };
   }, [rooms, facilityObjects]);
 
+  // Room category counts calculation (Live auto-update)
+  const roomCategoryCounts = useMemo(() => {
+    const counts = {
+      Classroom: 0,
+      Lab: 0,
+      Office: 0,
+      Washroom: 0,
+      Library: 0,
+      'Seminar Hall': 0,
+      Cafeteria: 0,
+      Others: 0
+    };
+
+    rooms.forEach(r => {
+      if (r.roomType === 'Classroom') counts.Classroom++;
+      else if (r.roomType === 'Laboratory' || r.roomType === 'Computer Lab') counts.Lab++;
+      else if (r.roomType === 'Office' || r.roomType === 'Faculty Room' || r.roomType === 'Staff Room') counts.Office++;
+      else if (r.roomType === 'Washroom') counts.Washroom++;
+      else if (r.roomType === 'Library') counts.Library++;
+      else if (r.roomType === 'Seminar Hall' || r.roomType === 'Conference Room') counts['Seminar Hall']++;
+      else if (r.roomType === 'Cafeteria') counts.Cafeteria++;
+      else counts.Others++;
+    });
+
+    return counts;
+  }, [rooms]);
+
+  const ROOM_CATEGORIES = [
+    { key: 'Classroom', label: 'Classroom', icon: <BookOpen className="w-4 h-4 text-indigo-500" />, filterKey: 'Classroom' },
+    { key: 'Lab', label: 'Lab', icon: <Cpu className="w-4 h-4 text-emerald-500" />, filterKey: 'lab' },
+    { key: 'Office', label: 'Office', icon: <Users className="w-4 h-4 text-amber-500" />, filterKey: 'office' },
+    { key: 'Washroom', label: 'Washroom', icon: <Sparkles className="w-4 h-4 text-sky-500" />, filterKey: 'washroom' },
+    { key: 'Library', label: 'Library', icon: <BookOpen className="w-4 h-4 text-cyan-500" />, filterKey: 'library' },
+    { key: 'Seminar Hall', label: 'Seminar Hall', icon: <Users className="w-4 h-4 text-purple-500" />, filterKey: 'seminar' },
+    { key: 'Cafeteria', label: 'Cafeteria', icon: <Utensils className="w-4 h-4 text-rose-500" />, filterKey: 'cafeteria' },
+    { key: 'Others', label: 'Others', icon: <Box className="w-4 h-4 text-slate-500" />, filterKey: 'other' }
+  ];
+
+  const handleCategoryClick = (filterKey: string) => {
+    if (selectedTypeFilter.toLowerCase() === filterKey.toLowerCase()) {
+      setSelectedTypeFilter('all');
+      triggerToast('Showing all room categories');
+    } else {
+      setSelectedTypeFilter(filterKey);
+      triggerToast(`Filtered floor plan by "${filterKey}"`);
+    }
+  };
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3200);
@@ -2042,64 +2090,103 @@ export function FloorManagement() {
         </div>
 
         {/* ───────────────────────────────────────────────────────────────────────────── */}
-        {/* RIGHT INSPECTOR PANEL (TABS: ROOMS, FACILITIES, FLOORS, BUILDINGS) */}
+        {/* RIGHT INSPECTOR PANEL (TABS: ROOMS, BUILDINGS, FLOORS) */}
         {/* ───────────────────────────────────────────────────────────────────────────── */}
         <div className="w-full lg:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col flex-shrink-0">
           
-          <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+          <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-1.5 gap-1.5">
             <button
               onClick={() => setActiveRightTab('rooms')}
               className={cn(
-                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
-                activeRightTab === 'rooms' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
+                "flex-1 py-2 px-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 border shadow-sm",
+                activeRightTab === 'rooms'
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-slate-200 dark:border-slate-700 shadow-md"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"
               )}
             >
-              <DoorOpen className="w-3.5 h-3.5" /> Rooms ({filteredRooms.length})
-            </button>
-
-            <button
-              onClick={() => setActiveRightTab('facilities')}
-              className={cn(
-                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
-                activeRightTab === 'facilities' ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
-              )}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> Facilities ({facilityObjects.length})
-            </button>
-
-            <button
-              onClick={() => setActiveRightTab('floors')}
-              className={cn(
-                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
-                activeRightTab === 'floors' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
-              )}
-            >
-              <Layers className="w-3.5 h-3.5" /> Floors ({buildingFloors.length})
+              <DoorOpen className="w-3.5 h-3.5" /> ROOMS ({rooms.length})
             </button>
 
             <button
               onClick={() => setActiveRightTab('buildings')}
               className={cn(
-                "flex-1 py-3 px-2 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1",
-                activeRightTab === 'buildings' ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900" : "border-transparent text-slate-500"
+                "flex-1 py-2 px-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 border shadow-sm",
+                activeRightTab === 'buildings'
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-slate-200 dark:border-slate-700 shadow-md"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"
               )}
             >
-              <Building2 className="w-3.5 h-3.5" /> Buildings ({buildings.length})
+              <Building2 className="w-3.5 h-3.5" /> BUILDINGS ({buildings.length})
+            </button>
+
+            <button
+              onClick={() => setActiveRightTab('floors')}
+              className={cn(
+                "flex-1 py-2 px-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 border shadow-sm",
+                activeRightTab === 'floors'
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-slate-200 dark:border-slate-700 shadow-md"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" /> FLOORS ({buildingFloors.length})
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             
-            {/* TAB 1: ROOM DETAILS & INSPECTOR */}
+            {/* ───────────────────────────────────────────────────────────────────────── */}
+            {/* TAB 1: ROOMS TAB */}
+            {/* ───────────────────────────────────────────────────────────────────────── */}
             {activeRightTab === 'rooms' && (
               <>
+                {/* ROOM CATEGORY LIVE COUNTS BREAKDOWN CARD */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-400 uppercase tracking-wider px-1 pb-1.5 border-b border-slate-200 dark:border-slate-700">
+                    <span>Room Category</span>
+                    <span>Live Count</span>
+                  </div>
+                  <div className="space-y-1">
+                    {ROOM_CATEGORIES.map(cat => {
+                      const count = roomCategoryCounts[cat.key as keyof typeof roomCategoryCounts] || 0;
+                      const isActive = selectedTypeFilter.toLowerCase() === cat.filterKey.toLowerCase();
+                      return (
+                        <button
+                          key={cat.key}
+                          type="button"
+                          onClick={() => handleCategoryClick(cat.filterKey)}
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border",
+                            isActive
+                              ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20 font-bold"
+                              : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn("p-1.5 rounded-lg", isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300")}>
+                              {cat.icon}
+                            </div>
+                            <span>{cat.label}</span>
+                          </div>
+                          <span className={cn(
+                            "px-2.5 py-0.5 rounded-full text-xs font-black border",
+                            isActive ? "bg-white text-blue-700 border-transparent" : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-200 dark:border-slate-600"
+                          )}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => handleOpenAddRoomModal('Classroom')}
-                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" /> Add Room Form
                 </button>
 
+                {/* SELECTED ROOM DETAILS INSPECTOR */}
                 {selectedRoom ? (
                   <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
@@ -2148,19 +2235,20 @@ export function FloorManagement() {
                   </div>
                 )}
 
+                {/* ROOMS DIRECTORY LIST */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-                    <span>Rooms Directory ({filteredRooms.length})</span>
+                    <span>Floor Rooms ({filteredRooms.length})</span>
                   </div>
 
-                  <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                     {filteredRooms.map(r => (
                       <div
                         key={r.id}
                         onClick={() => { setSelectedRoomId(r.id); setSelectedFacilityId(null); }}
                         className={cn(
                           "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs",
-                          String(selectedRoomId) === String(r.id) ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 font-bold" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                          String(selectedRoomId) === String(r.id) ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 font-bold shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                         )}
                       >
                         <div>
@@ -2178,97 +2266,147 @@ export function FloorManagement() {
               </>
             )}
 
-            {/* TAB 2: FACILITIES DIRECTORY & INSPECTOR */}
-            {activeRightTab === 'facilities' && (
-              <>
-                <button
-                  onClick={() => handleOpenAddFacilityModal('Stairs')}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Add Facility Object
-                </button>
+            {/* ───────────────────────────────────────────────────────────────────────── */}
+            {/* TAB 2: BUILDINGS TAB */}
+            {/* ───────────────────────────────────────────────────────────────────────── */}
+            {activeRightTab === 'buildings' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Campus Buildings ({buildings.length})</span>
+                  <button
+                    onClick={() => { setEditingBuilding({}); setIsBuildingModalOpen(true); }}
+                    className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Building
+                  </button>
+                </div>
 
-                {selectedFacility ? (
-                  <div className="bg-amber-500/10 dark:bg-slate-800/70 rounded-2xl p-4 border border-amber-500/30 dark:border-slate-700 shadow-sm space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-extrabold border uppercase tracking-wider", getFacilityBadgeColor(selectedFacility.objectType))}>
-                          {selectedFacility.objectType}
-                        </span>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">{selectedFacility.name}</h3>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{selectedFacility.objectType} Facility</p>
-                      </div>
-                      <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600" title="Edit Facility">
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
-                      <div><span className="text-slate-400 block text-[10px]">Object Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedFacility.objectType}</span></div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Status</span>
-                        <span className="font-bold capitalize text-slate-800 dark:text-slate-200">
-                          {typeof selectedFacility.metadata === 'object' ? (selectedFacility.metadata.status || 'Active') : 'Active'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {typeof selectedFacility.metadata === 'object' && selectedFacility.metadata.description && (
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
-                        <span className="text-slate-400 block text-[10px] font-semibold">Description</span>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed mt-0.5">{selectedFacility.metadata.description}</p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
-                      <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedFacility.x}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedFacility.y}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedFacility.width}×{selectedFacility.height}</span></div>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-2">
-                      <button onClick={() => handleOpenEditFacilityModal(selectedFacility)} className="flex-1 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 flex items-center justify-center gap-1">
-                        <Edit3 className="w-3.5 h-3.5" /> Edit Details
-                      </button>
-                      <button onClick={() => handleDeleteFacility(selectedFacility.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
-                    Click any facility object (Stairs, Lift, Washroom, Exit, etc.) on the canvas to inspect details and edit.
-                  </div>
-                )}
-
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-                    <span>Facility Objects ({facilityObjects.length})</span>
-                  </div>
-
-                  <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
-                    {facilityObjects.map(fo => (
+                <div className="space-y-2">
+                  {buildings.map(b => {
+                    const isSelected = String(selectedBuildingId) === String(b.id);
+                    const bFloorsCount = b.floorsCount || b.total_floors || 1;
+                    return (
                       <div
-                        key={fo.id}
-                        onClick={() => { setSelectedFacilityId(fo.id); setSelectedRoomId(null); }}
+                        key={b.id}
+                        onClick={() => {
+                          setSelectedBuildingId(b.id);
+                          triggerToast(`Opened Building ${b.name}`);
+                        }}
                         className={cn(
-                          "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs",
-                          String(selectedFacilityId) === String(fo.id) ? "bg-amber-50 dark:bg-amber-950/60 border-amber-500 font-bold" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                          "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 relative group",
+                          isSelected
+                            ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                         )}
                       >
-                        <div className="flex items-center gap-2">
-                          {getFacilityIcon(fo.objectType)}
-                          <div>
-                            <span className="font-extrabold text-slate-900 dark:text-white block">{fo.name}</span>
-                            <span className={cn("px-1.5 py-0.2 rounded text-[9px] font-semibold uppercase border", getFacilityBadgeColor(fo.objectType))}>{fo.objectType}</span>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn("p-2 rounded-xl", isSelected ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300")}>
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <span>{b.name}</span>
+                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">({b.code})</span>
+                              </h4>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{b.description || 'Campus Block'}</p>
+                            </div>
                           </div>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[10px] font-extrabold border",
+                            b.status === 'Active' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-300"
+                          )}>
+                            {b.status}
+                          </span>
                         </div>
-                        <span className="font-mono text-[10px] text-slate-400">{fo.x},{fo.y}</span>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{bFloorsCount} Floors</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                            Open Building <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              </>
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────────────────── */}
+            {/* TAB 3: FLOORS TAB */}
+            {/* ───────────────────────────────────────────────────────────────────────── */}
+            {activeRightTab === 'floors' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">Floors in {selectedBuilding.name}</span>
+                    <span className="text-[10px] text-slate-400">{buildingFloors.length} Levels Available</span>
+                  </div>
+                  <button
+                    onClick={() => { setEditingFloor({ buildingId: selectedBuildingId, floorNumber: buildingFloors.length }); setIsFloorModalOpen(true); }}
+                    className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Floor
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {buildingFloors.map(f => {
+                    const isSelected = String(selectedFloorId) === String(f.id);
+                    const floorRoomCount = rooms.filter(r => String(r.floorId) === String(f.id)).length;
+                    const floorFacilityCount = facilityObjects.filter(fo => String(fo.floorId) === String(f.id)).length;
+
+                    return (
+                      <div
+                        key={f.id}
+                        onClick={() => {
+                          setSelectedFloorId(f.id);
+                          triggerToast(`Switched to ${f.name}`);
+                        }}
+                        className={cn(
+                          "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 relative group",
+                          isSelected
+                            ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn("p-2 rounded-xl", isSelected ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300")}>
+                              <Layers className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <span>{f.name}</span>
+                                <span className="text-[10px] font-bold text-slate-400">(Level {f.floorNumber})</span>
+                              </h4>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{f.description || 'Floor plan level'}</p>
+                            </div>
+                          </div>
+
+                          {f.publishStatus === 'PUBLISHED' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300">
+                              Published
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-300">
+                              Draft
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{floorRoomCount} Rooms &bull; {floorFacilityCount} Facilities</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                            Open Floor <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
           </div>
