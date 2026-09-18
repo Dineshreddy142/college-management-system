@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, UserCheck, BookOpen, Clock, FileText, 
   Award, BarChart3, DollarSign, Library as LibraryIcon, Briefcase, 
   CalendarDays, Calendar, MessageSquare, Folder, AlertCircle, 
-  Zap, TrendingUp, GraduationCap, ChevronLeft, Map 
+  Zap, TrendingUp, GraduationCap, ChevronLeft, Map, X 
 } from "lucide-react";
 import { cn } from "../App";
 
@@ -80,7 +80,7 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
             }} 
             className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
-            {mobileOpen ? <ChevronLeft size={18} /> : (!collapsed && <ChevronLeft size={15} className="hidden lg:block" />)}
+            {mobileOpen ? <X size={20} className="text-slate-600 dark:text-slate-300" /> : (!collapsed && <ChevronLeft size={15} className="hidden lg:block" />)}
           </button>
         </div>
 

@@ -1,7 +1,7 @@
 import { 
   Home, Users, UserCheck, Award, FileText, Calendar, 
   CheckCircle, DollarSign, BookOpen, Trophy, Flag, 
-  Clock, MessageSquare, Settings, ChevronLeft, ChevronRight, Map
+  Clock, MessageSquare, Settings, ChevronLeft, ChevronRight, Map, X
 } from "lucide-react";
 import { cn } from "../App";
 
@@ -59,6 +59,14 @@ export function ParentSidebar({ active, onChange, collapsed, onToggle, onNav, mo
             {(!collapsed || mobileOpen) && <span className="text-sm font-bold text-slate-900 dark:text-white">EduERP</span>}
             {(!collapsed || mobileOpen) && <span className="text-xs text-slate-400 font-medium">· Parent</span>}
           </div>
+          {mobileOpen && (
+            <button
+              onClick={onMobileClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors lg:hidden"
+            >
+              <X size={20} className="text-slate-600 dark:text-slate-300" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">

@@ -430,7 +430,11 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   return (
     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
-        <button onClick={onToggleSidebar} className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors lg:hidden">
+        <button 
+          onClick={onToggleSidebar} 
+          className={`p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${collapsed ? 'block' : 'block lg:hidden'}`}
+          aria-label="Toggle Navigation Menu"
+        >
           <Menu size={20} />
         </button>
         <h2 className="text-lg font-bold text-slate-900 dark:text-white capitalize">{labels[module] || module}</h2>
