@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
 import {
   Save, Download, Phone, MapPin, HeartPulse, Shield, Smartphone,
   Activity, ScanFace, CheckCircle2, AlertCircle, Trash2, Camera,
-  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck, User
+  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck, User, Plus, Fingerprint
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
-import { FaceAuthModal } from "../../components/FaceAuthModal";
+import { PasskeyAuthModal } from "../../components/PasskeyAuthModal";
 
 export function ProfileModule() {
   const savedUser = (() => {
@@ -30,8 +29,10 @@ export function ProfileModule() {
   const [activeTab, setActiveTab] = useState<'general' | 'security'>('general');
 
   // Face Biometrics state
+  // Face & WebAuthn Biometrics state
   const [faceRegistered, setFaceRegistered] = useState(false);
   const [faceRegisteredAt, setFaceRegisteredAt] = useState<string | null>(null);
+  const [passkeys, setPasskeys] = useState<any[]>([]);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceActionLoading, setFaceActionLoading] = useState(false);
 
@@ -49,7 +50,19 @@ export function ProfileModule() {
   useEffect(() => {
     fetchProfile();
     fetchFaceStatus();
+    fetchPasskeys();
   }, []);
+
+  const fetchPasskeys = async () => {
+    try {
+      const res = await client.get('/webauthn/credentials');
+      if (res.data?.success) {
+        setPasskeys(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch passkeys:', err);
+    }
+  };
 
   const fetchProfile = () => {
     client.get('/profile').then(res => {
@@ -394,7 +407,7 @@ export function ProfileModule() {
             </div>
           </Card>
 
-          {/* Face Biometrics Management Card */}
+          {/* WebAuthn / Passkey Biometrics Card */}
           <Card className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
@@ -402,16 +415,16 @@ export function ProfileModule() {
                   <ScanFace size={24} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Face Biometrics Authentication</h3>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">FIDO2 / WebAuthn Biometric Passkeys</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    AES-256 encrypted vector templates with anti-duplicate enforcement & liveness detection.
+                    Hardware-secured Face ID, Touch ID, Fingerprint, and Device PIN authentication. Zero raw biometric data stored.
                   </p>
                 </div>
               </div>
 
               <div>
-                {faceRegistered ? (
-                  <Badge variant="success">Face ID Active</Badge>
+                {passkeys.length > 0 || faceRegistered ? (
+                  <Badge variant="success">Passkeys Active ({passkeys.length})</Badge>
                 ) : (
                   <Badge variant="warning">Not Configured</Badge>
                 )}
@@ -420,42 +433,69 @@ export function ProfileModule() {
 
             <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                {faceRegistered ? (
-                  <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 font-medium">
+                {passkeys.length > 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                     <CheckCircle2 size={16} />
-                    <span>Face registered {faceRegisteredAt ? `on ${new Date(faceRegisteredAt).toLocaleDateString()}` : ''}</span>
+                    <span>{passkeys.length} trusted device passkey(s) registered for 1-click biometric sign-in.</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                     <AlertCircle size={16} />
-                    <span>No biometric face registered. Setup to enable 1-click passwordless login.</span>
+                    <span>No biometric passkey registered. Link your device hardware to enable 1-click sign in.</span>
                   </div>
                 )}
               </div>
 
               <div className="flex items-center gap-3">
-                {faceRegistered && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveFace}
-                    disabled={faceActionLoading}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/50 transition-all flex items-center gap-1.5"
-                  >
-                    <Trash2 size={14} />
-                    <span>Remove Face ID</span>
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={() => setShowFaceModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <Camera size={14} />
-                  <span>{faceRegistered ? 'Re-scan / Update Face' : 'Register Face ID'}</span>
+                  <Plus size={14} />
+                  <span>Register Device / Add Passkey</span>
                 </button>
               </div>
             </div>
+
+            {/* List of Registered Passkey Devices */}
+            {passkeys.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Registered Trusted Devices</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {passkeys.map(pk => (
+                    <div key={pk.id} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <Smartphone size={16} className="text-indigo-600 dark:text-indigo-400" />
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">{pk.device_label || 'Mobile Passkey'}</p>
+                          <p className="text-[10px] text-slate-400">{new Date(pk.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Remove passkey device "${pk.device_label || 'Mobile Passkey'}"?`)) return;
+                          try {
+                            await client.delete(`/webauthn/credentials/${pk.id}`);
+                            fetchPasskeys();
+                            fetchFaceStatus();
+                            setMessage('Passkey device removed successfully.');
+                          } catch (e) {
+                            setMessage('Failed to remove passkey device.');
+                          }
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                        title="Remove passkey"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Standard Authentication Info */}
@@ -464,7 +504,7 @@ export function ProfileModule() {
               <Shield size={16} className="text-slate-500" /> Account Security & Role Access
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Your account is isolated with Role-Based Access Control (RBAC), signed JSON Web Tokens (JWT), and bcrypt password hashing.
+              Your account is isolated with Role-Based Access Control (RBAC), signed JSON Web Tokens (JWT), and WebAuthn FIDO2 Passkey standards.
             </p>
           </Card>
         </div>
@@ -572,16 +612,20 @@ export function ProfileModule() {
         </div>
       )}
 
-      {/* FACE REGISTRATION MODAL */}
-      {showFaceModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <FaceAuthModal
-            mode="register"
-            onSuccess={handleFaceSuccess}
-            onCancel={() => setShowFaceModal(false)}
-          />
-        </div>
-      )}
+      {/* WEBAUTHN PASSKEY REGISTRATION MODAL */}
+      <PasskeyAuthModal
+        isOpen={showFaceModal}
+        onClose={() => setShowFaceModal(false)}
+        mode="register"
+        identifier={profile?.email || profile?.roll_number || profile?.employee_id || savedUser?.email || ''}
+        onSuccess={() => {
+          setShowFaceModal(false);
+          fetchPasskeys();
+          fetchFaceStatus();
+          setMessage('Biometric Passkey registered successfully!');
+          setTimeout(() => setMessage(''), 4000);
+        }}
+      />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import departmentRoutes from './routes/departmentRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
+import webauthnRoutes from './routes/webauthnRoutes.js';
 
 import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
@@ -68,6 +69,7 @@ app.get('/api/health', (req, res) => {
 // --- AUTHENTICATION ROUTES ---
 app.use('/api', authRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/webauthn', webauthnRoutes);
 
 // --- EMAIL NOTIFICATION & DIAGNOSTIC ROUTES ---
 app.use('/api/email', emailRoutes);

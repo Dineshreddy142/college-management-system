@@ -26,3 +26,26 @@ const pool = mysql.createPool({
 });
 
 export default pool;
+
+// Auto-create webauthn_credentials table if missing
+(async () => {
+  try {
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS webauthn_credentials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        credential_id VARCHAR(512) NOT NULL UNIQUE,
+        public_key TEXT NOT NULL,
+        counter INT DEFAULT 0,
+        device_label VARCHAR(100) DEFAULT 'Mobile Passkey',
+        transports VARCHAR(255) DEFAULT '["internal"]',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] Table webauthn_credentials verified/created.');
+  } catch (err) {
+    console.error('[DB] Failed to ensure webauthn_credentials table:', err.message);
+  }
+})();
+

@@ -356,6 +356,7 @@ router.post('/admin/users/reset-face', authenticateToken, authorizeRole(['Admin'
         }
 
         await pool.execute('DELETE FROM face_embeddings WHERE user_id = ?', [userId]);
+        await pool.execute('DELETE FROM webauthn_credentials WHERE user_id = ?', [userId]);
         await pool.execute('UPDATE users SET face_registered = 0 WHERE id = ?', [userId]);
 
         // Hot-reload Python Face Service cache
