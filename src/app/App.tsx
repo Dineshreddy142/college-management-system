@@ -14,6 +14,7 @@ import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
 import { CampusMapEditor } from "./admin/campus-map/CampusMapEditor";
 import { CampusMap } from "./campus-map/CampusMap";
+import { FloorManagement } from "./admin/campus/FloorManagement";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
@@ -30,7 +31,7 @@ import {
   Home, Send, Building, AlertTriangle, Info,
   Zap, Lock, Key, Smartphone, AlertCircle,
   BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
-  FileSpreadsheet, Sparkles
+  FileSpreadsheet, Sparkles, Layers, DoorOpen
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -244,18 +245,29 @@ const SIDEBAR_ITEMS = [
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
   { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
-  { id: "academic", label: "Academic & Subjects", icon: BookOpen, badge: "New" },
   { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
   { id: "faculty", label: "Faculty", icon: Users, badge: null },
-  { id: "mentors", label: "Mentors", icon: Shield, badge: "New" },
+  { id: "academic", label: "Academics", icon: BookOpen, badge: "New" },
+  {
+    id: "campus",
+    label: "Campus",
+    icon: Building,
+    badge: null,
+    children: [
+      { id: "campus-map", label: "Campus Map", icon: Map, badge: null },
+      { id: "campus-buildings", label: "Buildings", icon: Building, badge: null },
+      { id: "floor-management", label: "Floor Management", icon: Layers, badge: "Editor" },
+      { id: "campus-rooms", label: "Rooms", icon: DoorOpen, badge: null },
+      { id: "campus-facilities", label: "Facilities", icon: Sparkles, badge: null },
+    ]
+  },
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "3" },
   { id: "exams", label: "Examinations", icon: FileText, badge: null },
   { id: "timetable", label: "Timetable", icon: CalendarDays, badge: null },
   { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: BookOpen, badge: null },
+  { id: "hostel", label: "Hostel", icon: Home, badge: null },
   { id: "placement", label: "Placement", icon: Briefcase, badge: "New" },
-  { id: "campus-map", label: "Campus Map", icon: Map, badge: "Editor" },
-
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
   { id: "settings", label: "Settings", icon: Settings, badge: null },
 ];
@@ -266,12 +278,14 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   mobileOpen?: boolean; onMobileClose?: () => void;
 }) {
   const { user, logout } = useAuth();
+  const isCampusActive = active.startsWith("campus") || active === "floor-management";
+  const [campusExpanded, setCampusExpanded] = useState<boolean>(true);
   
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin' || normRole === 'office') return true;
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'campus'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
@@ -332,8 +346,74 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin">
           {filteredItems.map(item => {
             const Icon = item.icon;
-            const isActive = active === item.id;
+            const hasChildren = item.children && item.children.length > 0;
+            const isChildActive = hasChildren && item.children!.some(c => c.id === active);
+            const isActive = active === item.id || isChildActive;
             const isCollapsedDesktop = collapsed && !mobileOpen;
+
+            if (hasChildren) {
+              return (
+                <div key={item.id} className="space-y-0.5">
+                  <button
+                    onClick={() => {
+                      if (isCollapsedDesktop) {
+                        handleItemClick(item.children![0].id);
+                      } else {
+                        setCampusExpanded(!campusExpanded);
+                      }
+                    }}
+                    title={isCollapsedDesktop ? item.label : undefined}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                      isActive ? "bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-semibold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                      isCollapsedDesktop && "lg:justify-center"
+                    )}
+                  >
+                    <Icon size={17} className="flex-shrink-0" />
+                    {(!collapsed || mobileOpen) && (
+                      <>
+                        <span className="flex-1 text-left truncate">{item.label}</span>
+                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (campusExpanded || isChildActive) && "rotate-180")} />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Submenu Accordion */}
+                  {(!collapsed || mobileOpen) && (campusExpanded || isChildActive) && (
+                    <div className="pl-4 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 ml-5 my-1">
+                      {item.children!.map(child => {
+                        const ChildIcon = child.icon;
+                        const isSubActive = active === child.id;
+                        return (
+                          <button
+                            key={child.id}
+                            onClick={() => handleItemClick(child.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150",
+                              isSubActive
+                                ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                            )}
+                          >
+                            <ChildIcon size={14} className="flex-shrink-0" />
+                            <span className="flex-1 text-left truncate">{child.label}</span>
+                            {child.badge && (
+                              <span className={cn(
+                                "text-[10px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider",
+                                isSubActive ? "bg-white/20 text-white" : "bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
+                              )}>
+                                {child.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <button key={item.id} onClick={() => handleItemClick(item.id)}
                 title={isCollapsedDesktop ? item.label : undefined}
@@ -1616,6 +1696,11 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
       case "campus-map": return <CampusMap isAdmin={true} theme={theme as any} onToggleTheme={toggleTheme} onBackToDashboard={() => setMod("dashboard")} />;
+      case "floor-management":
+      case "campus-buildings":
+      case "campus-rooms":
+      case "campus-facilities":
+        return <FloorManagement />;
 
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
@@ -1648,7 +1733,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
             }
           }} 
         />
-        <main className={cn("flex-1 min-w-0", mod === "campus-map" ? "overflow-hidden p-0" : "overflow-y-auto p-3 sm:p-5 scrollbar-thin")}>{render()}</main>
+        <main className={cn("flex-1 min-w-0", (mod === "campus-map" || mod === "floor-management" || mod.startsWith("campus-")) ? "overflow-hidden p-0 flex flex-col min-h-0" : "overflow-y-auto p-3 sm:p-5 scrollbar-thin")}>{render()}</main>
       </div>
     </div>
   );
