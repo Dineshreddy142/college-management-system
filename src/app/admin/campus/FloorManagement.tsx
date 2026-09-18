@@ -3,7 +3,7 @@ import {
   Building2, Layers, DoorOpen, Search, Edit3, Save, Send, Plus, 
   ZoomIn, ZoomOut, Maximize2, Grid, Eye, Trash2, CheckCircle2, 
   AlertCircle, ChevronRight, Sparkles, Users, Cpu, BookOpen, 
-  ChevronDown, RefreshCw, X, AlertTriangle, ShieldCheck, Info
+  ChevronDown, RefreshCw, X, AlertTriangle, ArrowUp, ArrowDown, Copy, Type
 } from 'lucide-react';
 import { cn } from '../../../components/ui/Btn';
 import client from '../../../api/client';
@@ -25,13 +25,17 @@ export interface BuildingInfo {
 
 export interface FloorInfo {
   id: string | number;
+  buildingId: string | number;
   building_id?: string | number;
-  buildingId?: string | number;
-  level: number;
   name: string;
-  roomsCount: number;
-  area: string;
-  status?: string;
+  floorNumber: number;
+  floor_number?: number;
+  displayOrder?: number;
+  description?: string;
+  roomsCount?: number;
+  area?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RoomItem {
@@ -56,8 +60,8 @@ export interface RoomItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const INITIAL_BUILDINGS: BuildingInfo[] = [
-  { id: 'b1', name: 'Main Block', code: 'MB-01', description: 'Central Executive & Administration Complex', total_floors: 4, status: 'Active' },
   { id: 'b2', name: 'Academic Block', code: 'AB-MAIN', description: 'Main Academic Classrooms & Lecture Halls', total_floors: 4, status: 'Active' },
+  { id: 'b1', name: 'Main Block', code: 'MB-01', description: 'Central Executive & Administration Complex', total_floors: 4, status: 'Active' },
   { id: 'b3', name: 'Science Block', code: 'SB-02', description: 'Physics, Chemistry & Life Sciences Labs', total_floors: 5, status: 'Active' },
   { id: 'b4', name: 'Engineering Block', code: 'ENG-WNG', description: 'Computer Science, Mechanical & Robotics Labs', total_floors: 3, status: 'Active' },
   { id: 'b5', name: 'Administrative Block', code: 'ADM-01', description: 'Principal Office, Accounts & Registrar Offices', total_floors: 3, status: 'Active' },
@@ -67,31 +71,31 @@ const INITIAL_BUILDINGS: BuildingInfo[] = [
 
 const INITIAL_FLOORS: FloorInfo[] = [
   // Academic Block Floors
-  { id: 'f1', buildingId: 'b2', level: 1, name: 'Floor 1 (Ground Floor)', roomsCount: 18, area: '1,200 sq.m' },
-  { id: 'f2', buildingId: 'b2', level: 2, name: 'Floor 2 (First Floor)', roomsCount: 16, area: '1,150 sq.m' },
-  { id: 'f3', buildingId: 'b2', level: 3, name: 'Floor 3 (Second Floor)', roomsCount: 16, area: '1,150 sq.m' },
-  { id: 'f4', buildingId: 'b2', level: 4, name: 'Floor 4 (Third Floor)', roomsCount: 18, area: '1,100 sq.m' },
+  { id: 'f1', buildingId: 'b2', floorNumber: 0, name: 'Ground Floor', description: 'Main Lobby, Seminar Halls & Student Helpdesk', roomsCount: 18, area: '1,200 sq.m', displayOrder: 1 },
+  { id: 'f2', buildingId: 'b2', floorNumber: 1, name: '1st Floor', description: 'Computer Science Classrooms & Smart Labs', roomsCount: 16, area: '1,150 sq.m', displayOrder: 2 },
+  { id: 'f3', buildingId: 'b2', floorNumber: 2, name: '2nd Floor', description: 'Electronics & Communication Lecture Halls', roomsCount: 16, area: '1,150 sq.m', displayOrder: 3 },
+  { id: 'f4', buildingId: 'b2', floorNumber: 3, name: '3rd Floor', description: 'Post Graduate Research Labs & HOD Suites', roomsCount: 18, area: '1,100 sq.m', displayOrder: 4 },
 
   // Main Block Floors
-  { id: 'f5', buildingId: 'b1', level: 1, name: 'Floor 1 (Ground Floor)', roomsCount: 12, area: '1,500 sq.m' },
-  { id: 'f6', buildingId: 'b1', level: 2, name: 'Floor 2 (Executive Suite)', roomsCount: 10, area: '1,400 sq.m' },
+  { id: 'f5', buildingId: 'b1', floorNumber: 0, name: 'Ground Floor', description: 'Executive Reception & Board Room', roomsCount: 12, area: '1,500 sq.m', displayOrder: 1 },
+  { id: 'f6', buildingId: 'b1', floorNumber: 1, name: '1st Floor', description: 'Principal & Vice Chancellor Offices', roomsCount: 10, area: '1,400 sq.m', displayOrder: 2 },
 
   // Science Block Floors
-  { id: 'f7', buildingId: 'b3', level: 1, name: 'Floor 1 (Physics Wing)', roomsCount: 14, area: '1,300 sq.m' },
-  { id: 'f8', buildingId: 'b3', level: 2, name: 'Floor 2 (Chemistry Wing)', roomsCount: 15, area: '1,300 sq.m' },
+  { id: 'f7', buildingId: 'b3', floorNumber: 0, name: 'Ground Floor', description: 'Physics & Applied Mechanics Wing', roomsCount: 14, area: '1,300 sq.m', displayOrder: 1 },
+  { id: 'f8', buildingId: 'b3', floorNumber: 1, name: '1st Floor', description: 'Chemistry & Biotechnology Labs', roomsCount: 15, area: '1,300 sq.m', displayOrder: 2 },
 
   // Engineering Block Floors
-  { id: 'f9', buildingId: 'b4', level: 1, name: 'Floor 1 (CS & AI Labs)', roomsCount: 14, area: '1,250 sq.m' },
-  { id: 'f10', buildingId: 'b4', level: 2, name: 'Floor 2 (Robotics & CAD)', roomsCount: 12, area: '1,250 sq.m' },
+  { id: 'f9', buildingId: 'b4', floorNumber: 0, name: 'Ground Floor', description: 'Heavy Machinery & Mechanical Workshops', roomsCount: 14, area: '1,250 sq.m', displayOrder: 1 },
+  { id: 'f10', buildingId: 'b4', floorNumber: 1, name: '1st Floor', description: 'Robotics, IoT & CAD Design Studios', roomsCount: 12, area: '1,250 sq.m', displayOrder: 2 },
 
   // Administrative Block Floors
-  { id: 'f11', buildingId: 'b5', level: 1, name: 'Floor 1 (Registrar & Fees)', roomsCount: 10, area: '1,000 sq.m' },
+  { id: 'f11', buildingId: 'b5', floorNumber: 0, name: 'Ground Floor', description: 'Accounts, Admissions & Registrar Counter', roomsCount: 10, area: '1,000 sq.m', displayOrder: 1 },
 
   // Library Block Floors
-  { id: 'f12', buildingId: 'b6', level: 1, name: 'Floor 1 (Main Reading Hall)', roomsCount: 8, area: '1,600 sq.m' },
+  { id: 'f12', buildingId: 'b6', floorNumber: 0, name: 'Ground Floor', description: 'Central Digital Reading Room & E-Journals', roomsCount: 8, area: '1,600 sq.m', displayOrder: 1 },
 
   // Hostel Block Floors
-  { id: 'f13', buildingId: 'b7', level: 1, name: 'Floor 1 (Dining & Lobby)', roomsCount: 24, area: '1,800 sq.m' },
+  { id: 'f13', buildingId: 'b7', floorNumber: 0, name: 'Ground Floor', description: 'Hostel Mess Hall, Gym & Warden Office', roomsCount: 24, area: '1,800 sq.m', displayOrder: 1 },
 ];
 
 const INITIAL_ROOMS: RoomItem[] = [
@@ -121,21 +125,20 @@ export function FloorManagement() {
   // Buildings & Floors State
   const [buildings, setBuildings] = useState<BuildingInfo[]>(INITIAL_BUILDINGS);
   const [floors, setFloors] = useState<FloorInfo[]>(INITIAL_FLOORS);
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string | number>('b2'); // Academic Block
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | number>('b2'); // Academic Block default
   const [selectedFloorId, setSelectedFloorId] = useState<string | number>('f1');
   
-  // Floor Canvas Rooms State
+  // Rooms & Filters State
   const [rooms, setRooms] = useState<RoomItem[]>(INITIAL_ROOMS);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [buildingSearchQuery, setBuildingSearchQuery] = useState<string>('');
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>('r1');
   const [editMode, setEditMode] = useState<boolean>(false);
-  const [activeRightTab, setActiveRightTab] = useState<'rooms' | 'buildings' | 'floors'>('rooms');
+  const [activeRightTab, setActiveRightTab] = useState<'rooms' | 'buildings' | 'floors'>('floors');
   
   // Canvas Viewport Controls
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [showGrid, setShowGrid] = useState<boolean>(true);
-  const [showHeatmap, setShowHeatmap] = useState<boolean>(false);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
   
   // Modals & Feedback
@@ -147,19 +150,23 @@ export function FloorManagement() {
   const [editingBuilding, setEditingBuilding] = useState<Partial<BuildingInfo> | null>(null);
   const [deletingBuilding, setDeletingBuilding] = useState<BuildingInfo | null>(null);
 
+  // Floor Management Modals & Validation
+  const [isFloorModalOpen, setIsFloorModalOpen] = useState<boolean>(false);
+  const [editingFloor, setEditingFloor] = useState<Partial<FloorInfo> | null>(null);
+  const [deletingFloor, setDeletingFloor] = useState<FloorInfo | null>(null);
+  const [floorValidationError, setFloorValidationError] = useState<string | null>(null);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isLoadingBackend, setIsLoadingBackend] = useState<boolean>(false);
 
-  // Fetch buildings & floors from backend API on mount
+  // Fetch campus buildings and floors from API on mount
   useEffect(() => {
     async function loadCampusData() {
-      setIsLoadingBackend(true);
       try {
-        const res = await client.get('/campus/buildings');
-        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: BuildingInfo[] = res.data.map((b: any) => ({
+        const bRes = await client.get('/campus/buildings');
+        if (bRes.data && Array.isArray(bRes.data) && bRes.data.length > 0) {
+          const mappedB: BuildingInfo[] = bRes.data.map((b: any) => ({
             id: b.id,
             name: b.name,
             code: b.code,
@@ -169,17 +176,31 @@ export function FloorManagement() {
             status: b.status || 'Active',
             created_at: b.created_at
           }));
-          setBuildings(mapped);
+          setBuildings(mappedB);
           
-          // Select first building if current selection not found
-          if (!mapped.some(b => String(b.id) === String(selectedBuildingId))) {
-            setSelectedBuildingId(mapped[0].id);
+          const targetBId = mappedB.some(b => String(b.id) === String(selectedBuildingId)) ? selectedBuildingId : mappedB[0].id;
+          
+          // Fetch floors for target building
+          const fRes = await client.get(`/campus/buildings/${targetBId}/floors`);
+          if (fRes.data && Array.isArray(fRes.data) && fRes.data.length > 0) {
+            const mappedF: FloorInfo[] = fRes.data.map((f: any) => ({
+              id: f.id,
+              buildingId: f.buildingId || f.building_id || targetBId,
+              name: f.name,
+              floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
+              description: f.description || '',
+              displayOrder: f.displayOrder || f.display_order || 0,
+              roomsCount: 12,
+              area: '1,200 sq.m'
+            }));
+            setFloors(prev => {
+              const otherFloors = prev.filter(p => String(p.buildingId) !== String(targetBId));
+              return [...mappedF, ...otherFloors];
+            });
           }
         }
       } catch (err) {
-        console.log('Using initial client buildings state (API fallback)');
-      } finally {
-        setIsLoadingBackend(false);
+        console.log('Using initial client campus state (API fallback)');
       }
     }
     loadCampusData();
@@ -187,37 +208,40 @@ export function FloorManagement() {
 
   // Filter floors for selected building ONLY
   const buildingFloors = useMemo(() => {
-    return floors.filter(f => String(f.buildingId || f.building_id) === String(selectedBuildingId));
+    return floors
+      .filter(f => String(f.buildingId || f.building_id) === String(selectedBuildingId))
+      .sort((a, b) => (a.floorNumber ?? 0) - (b.floorNumber ?? 0));
   }, [floors, selectedBuildingId]);
 
-  // Ensure valid floor selection whenever building changes
+  // Sync selectedFloorId when selected building changes
   useEffect(() => {
     if (buildingFloors.length > 0) {
       if (!buildingFloors.some(f => String(f.id) === String(selectedFloorId))) {
         setSelectedFloorId(buildingFloors[0].id);
       }
     } else {
-      // Create a fallback floor for buildings without entries
-      const fallbackFloor: FloorInfo = {
-        id: `f-b${selectedBuildingId}-1`,
+      // Auto create Ground Floor fallback if empty
+      const fallback: FloorInfo = {
+        id: `f-${selectedBuildingId}-0`,
         buildingId: selectedBuildingId,
-        level: 1,
-        name: 'Floor 1 (Ground Floor)',
-        roomsCount: 10,
+        floorNumber: 0,
+        name: 'Ground Floor',
+        description: 'Ground Floor level layout',
+        roomsCount: 12,
         area: '1,200 sq.m'
       };
-      setFloors(prev => [...prev, fallbackFloor]);
-      setSelectedFloorId(fallbackFloor.id);
+      setFloors(prev => [...prev, fallback]);
+      setSelectedFloorId(fallback.id);
     }
   }, [selectedBuildingId, buildingFloors]);
 
   // Selected Building and Floor objects
   const selectedBuilding = useMemo(() => {
-    return buildings.find(b => String(b.id) === String(selectedBuildingId)) || buildings[0] || { id: 'b1', name: 'Main Block', code: 'MB-01', description: '', total_floors: 4, status: 'Active' };
+    return buildings.find(b => String(b.id) === String(selectedBuildingId)) || buildings[0] || { id: 'b2', name: 'Academic Block', code: 'AB-MAIN', description: '', total_floors: 4, status: 'Active' };
   }, [buildings, selectedBuildingId]);
 
   const selectedFloor = useMemo(() => {
-    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', name: 'Floor 1 (Ground Floor)', level: 1, roomsCount: 18, area: '1,200 sq.m' };
+    return floors.find(f => String(f.id) === String(selectedFloorId)) || buildingFloors[0] || { id: 'f1', name: 'Ground Floor', floorNumber: 0, roomsCount: 18, area: '1,200 sq.m' };
   }, [floors, buildingFloors, selectedFloorId]);
 
   const selectedRoom = rooms.find(r => r.id === selectedRoomId) || null;
@@ -278,7 +302,205 @@ export function FloorManagement() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // BUILDING MANAGEMENT HANDLERS (CREATE, EDIT, DELETE)
+  // FLOOR MANAGEMENT HANDLERS (ADD, EDIT, RENAME, DUPLICATE, DELETE, REORDER)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const handleOpenAddFloorModal = () => {
+    const nextNum = buildingFloors.length > 0 ? Math.max(...buildingFloors.map(f => f.floorNumber ?? 0)) + 1 : 0;
+    const nextName = nextNum === 0 ? 'Ground Floor' : `${nextNum}${nextNum === 1 ? 'st' : nextNum === 2 ? 'nd' : nextNum === 3 ? 'rd' : 'th'} Floor`;
+    setEditingFloor({
+      buildingId: selectedBuildingId,
+      name: nextName,
+      floorNumber: nextNum,
+      description: `Classrooms & facilities for ${nextName}`,
+      displayOrder: nextNum + 1
+    });
+    setFloorValidationError(null);
+    setIsFloorModalOpen(true);
+  };
+
+  const handleOpenEditFloorModal = (f: FloorInfo) => {
+    setEditingFloor({ ...f });
+    setFloorValidationError(null);
+    setIsFloorModalOpen(true);
+  };
+
+  const handleSaveFloorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFloor || editingFloor.name === undefined || editingFloor.floorNumber === undefined) {
+      setFloorValidationError('Floor Name and Floor Number are required.');
+      return;
+    }
+
+    const targetBId = editingFloor.buildingId || selectedBuildingId;
+    const numFloor = Number(editingFloor.floorNumber);
+
+    // Validation: prevent duplicate floorNumber inside same building
+    const isDuplicate = floors.some(f => 
+      String(f.buildingId) === String(targetBId) && 
+      f.floorNumber === numFloor && 
+      String(f.id) !== String(editingFloor.id)
+    );
+
+    if (isDuplicate) {
+      setFloorValidationError(`Floor Number ${numFloor} already exists in ${selectedBuilding.name}.`);
+      return;
+    }
+
+    const payload = {
+      buildingId: targetBId,
+      name: editingFloor.name.trim(),
+      floorNumber: numFloor,
+      description: editingFloor.description || '',
+      displayOrder: editingFloor.displayOrder ?? numFloor,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      if (editingFloor.id) {
+        // Edit / Rename existing floor
+        await client.put(`/campus/floors/${editingFloor.id}`, payload).catch(() => {});
+        setFloors(prev => prev.map(f => String(f.id) === String(editingFloor.id) ? { ...f, ...payload } as FloorInfo : f));
+        triggerToast(`Updated floor "${payload.name}" (Level ${payload.floorNumber})`);
+      } else {
+        // Create new floor
+        let newFloorObj: FloorInfo = {
+          id: `f-${targetBId}-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          roomsCount: 12,
+          area: '1,200 sq.m',
+          ...payload
+        };
+
+        try {
+          const res = await client.post('/campus/floors', payload);
+          if (res.data && res.data.floor) {
+            newFloorObj = {
+              id: res.data.floor.id,
+              buildingId: res.data.floor.buildingId || targetBId,
+              name: res.data.floor.name,
+              floorNumber: res.data.floor.floorNumber,
+              description: res.data.floor.description || '',
+              displayOrder: res.data.floor.displayOrder || numFloor,
+              createdAt: res.data.floor.createdAt,
+              updatedAt: res.data.floor.updatedAt,
+              roomsCount: 12,
+              area: '1,200 sq.m'
+            };
+          }
+        } catch (apiErr) {
+          console.log('API fallback for floor creation');
+        }
+
+        setFloors(prev => [...prev, newFloorObj]);
+        setSelectedFloorId(newFloorObj.id);
+        triggerToast(`Created new floor "${payload.name}" in ${selectedBuilding.code}`);
+      }
+
+      setIsFloorModalOpen(false);
+      setEditingFloor(null);
+      setFloorValidationError(null);
+    } catch (err: any) {
+      console.error('Save floor error:', err);
+      setFloorValidationError(err.response?.data?.error || 'Failed to save floor details.');
+    }
+  };
+
+  const handleDuplicateFloor = async (f: FloorInfo) => {
+    try {
+      // API call or local state duplication
+      const nextNum = Math.max(...buildingFloors.map(fl => fl.floorNumber ?? 0)) + 1;
+      let duplicatedObj: FloorInfo = {
+        id: `f-${f.buildingId}-${Date.now()}`,
+        buildingId: f.buildingId,
+        name: `${f.name} (Copy)`,
+        floorNumber: nextNum,
+        description: f.description || 'Duplicated floor layout',
+        displayOrder: nextNum + 1,
+        roomsCount: f.roomsCount || 12,
+        area: f.area || '1,200 sq.m',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const res = await client.post(`/campus/floors/${f.id}/duplicate`);
+        if (res.data && res.data.floor) {
+          duplicatedObj = {
+            id: res.data.floor.id,
+            buildingId: res.data.floor.buildingId || f.buildingId,
+            name: res.data.floor.name,
+            floorNumber: res.data.floor.floorNumber,
+            description: res.data.floor.description,
+            displayOrder: res.data.floor.displayOrder,
+            roomsCount: 12,
+            area: '1,200 sq.m'
+          };
+        }
+      } catch (e) {
+        console.log('API fallback for duplicate floor');
+      }
+
+      setFloors(prev => [...prev, duplicatedObj]);
+      setSelectedFloorId(duplicatedObj.id);
+      triggerToast(`Duplicated "${f.name}" as "${duplicatedObj.name}"`);
+    } catch (err) {
+      triggerToast('Failed to duplicate floor');
+    }
+  };
+
+  const handleConfirmDeleteFloor = async () => {
+    if (!deletingFloor) return;
+    const targetId = deletingFloor.id;
+    const targetName = deletingFloor.name;
+
+    try {
+      await client.delete(`/campus/floors/${targetId}`).catch(() => {});
+      setFloors(prev => prev.filter(f => String(f.id) !== String(targetId)));
+
+      // Select next available floor if deleted floor was active
+      if (String(selectedFloorId) === String(targetId)) {
+        const remaining = buildingFloors.filter(f => String(f.id) !== String(targetId));
+        if (remaining.length > 0) setSelectedFloorId(remaining[0].id);
+      }
+
+      triggerToast(`Floor "${targetName}" deleted successfully`);
+    } catch (err) {
+      triggerToast('Error deleting floor');
+    } finally {
+      setDeletingFloor(null);
+    }
+  };
+
+  const handleMoveFloorUp = (index: number) => {
+    if (index <= 0) return;
+    const newFloors = [...buildingFloors];
+    const tempNum = newFloors[index].floorNumber;
+    newFloors[index].floorNumber = newFloors[index - 1].floorNumber;
+    newFloors[index - 1].floorNumber = tempNum;
+
+    setFloors(prev => {
+      const otherBuildingFloors = prev.filter(p => String(p.buildingId) !== String(selectedBuildingId));
+      return [...newFloors, ...otherBuildingFloors];
+    });
+    triggerToast(`Reordered floor position for ${newFloors[index - 1].name}`);
+  };
+
+  const handleMoveFloorDown = (index: number) => {
+    if (index >= buildingFloors.length - 1) return;
+    const newFloors = [...buildingFloors];
+    const tempNum = newFloors[index].floorNumber;
+    newFloors[index].floorNumber = newFloors[index + 1].floorNumber;
+    newFloors[index + 1].floorNumber = tempNum;
+
+    setFloors(prev => {
+      const otherBuildingFloors = prev.filter(p => String(p.buildingId) !== String(selectedBuildingId));
+      return [...newFloors, ...otherBuildingFloors];
+    });
+    triggerToast(`Reordered floor position for ${newFloors[index + 1].name}`);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BUILDING MANAGEMENT HANDLERS
   // ─────────────────────────────────────────────────────────────────────────────
 
   const handleOpenAddBuildingModal = () => {
@@ -314,12 +536,10 @@ export function FloorManagement() {
 
     try {
       if (editingBuilding.id) {
-        // Update existing building
         await client.put(`/campus/buildings/${editingBuilding.id}`, payload).catch(() => {});
         setBuildings(prev => prev.map(b => String(b.id) === String(editingBuilding.id) ? { ...b, ...payload } as BuildingInfo : b));
         triggerToast(`Updated building "${payload.name}" (${payload.code})`);
       } else {
-        // Create new building
         let newBuildingObj: BuildingInfo = {
           id: `b-${Date.now()}`,
           ...payload
@@ -341,24 +561,22 @@ export function FloorManagement() {
           console.log('API fallback for new building creation');
         }
 
-        // Add to buildings state
         setBuildings(prev => [newBuildingObj, ...prev]);
 
-        // Auto generate floor entries for the newly created building
+        // Auto generate default floor entries for newly created building
         const newFloors: FloorInfo[] = [];
-        for (let i = 1; i <= payload.total_floors; i++) {
+        for (let i = 0; i < payload.total_floors; i++) {
           newFloors.push({
             id: `f-${newBuildingObj.id}-${i}`,
             buildingId: newBuildingObj.id,
-            level: i,
-            name: `Floor ${i} (${i === 1 ? 'Ground Floor' : `${i - 1} Floor`})`,
+            floorNumber: i,
+            name: i === 0 ? 'Ground Floor' : `${i}${i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th'} Floor`,
+            description: `Floor Level ${i}`,
             roomsCount: 10 + i * 2,
             area: '1,200 sq.m'
           });
         }
         setFloors(prev => [...newFloors, ...prev]);
-
-        // Auto select newly created building
         setSelectedBuildingId(newBuildingObj.id);
         triggerToast(`Created new building "${payload.name}" (${payload.code})`);
       }
@@ -366,7 +584,6 @@ export function FloorManagement() {
       setIsBuildingModalOpen(false);
       setEditingBuilding(null);
     } catch (err: any) {
-      console.error('Save building error:', err);
       triggerToast('Error saving building details');
     }
   };
@@ -379,9 +596,8 @@ export function FloorManagement() {
     try {
       await client.delete(`/campus/buildings/${targetId}`).catch(() => {});
       setBuildings(prev => prev.filter(b => String(b.id) !== String(targetId)));
-      setFloors(prev => prev.filter(f => String(f.buildingId || f.building_id) !== String(targetId)));
+      setFloors(prev => prev.filter(f => String(f.buildingId) !== String(targetId)));
 
-      // If current building was deleted, select next available
       if (String(selectedBuildingId) === String(targetId)) {
         const remaining = buildings.filter(b => String(b.id) !== String(targetId));
         if (remaining.length > 0) setSelectedBuildingId(remaining[0].id);
@@ -556,8 +772,8 @@ export function FloorManagement() {
           </div>
 
           {/* Floor Select Dropdown (Filtered for selected building ONLY) */}
-          <div className="relative min-w-[170px]">
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Select Floor Level</label>
+          <div className="relative min-w-[180px]">
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Floor Dropdown ({buildingFloors.length})</label>
             <div className="relative">
               <select
                 value={selectedFloorId}
@@ -565,7 +781,7 @@ export function FloorManagement() {
                 className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 pr-8 text-xs font-semibold text-slate-900 dark:text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {buildingFloors.map(f => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
+                  <option key={f.id} value={f.id}>{f.name} (Level {f.floorNumber})</option>
                 ))}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -900,15 +1116,15 @@ export function FloorManagement() {
           {/* Panel Header Tabs */}
           <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
             <button
-              onClick={() => setActiveRightTab('rooms')}
+              onClick={() => setActiveRightTab('floors')}
               className={cn(
                 "flex-1 py-3 px-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5",
-                activeRightTab === 'rooms'
+                activeRightTab === 'floors'
                   ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400"
               )}
             >
-              <DoorOpen className="w-4 h-4" /> Rooms ({filteredRooms.length})
+              <Layers className="w-4 h-4" /> Floors ({buildingFloors.length})
             </button>
 
             <button
@@ -924,15 +1140,15 @@ export function FloorManagement() {
             </button>
 
             <button
-              onClick={() => setActiveRightTab('floors')}
+              onClick={() => setActiveRightTab('rooms')}
               className={cn(
                 "flex-1 py-3 px-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5",
-                activeRightTab === 'floors'
+                activeRightTab === 'rooms'
                   ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400"
               )}
             >
-              <Layers className="w-4 h-4" /> Floors ({buildingFloors.length})
+              <DoorOpen className="w-4 h-4" /> Rooms ({filteredRooms.length})
             </button>
           </div>
 
@@ -940,11 +1156,233 @@ export function FloorManagement() {
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             
             {/* ───────────────────────────────────────────────────────────── */}
-            {/* TAB 1: ROOMS LIST & INSPECTOR */}
+            {/* TAB 1: FLOORS MANAGEMENT DIRECTORY */}
+            {/* ───────────────────────────────────────────────────────────── */}
+            {activeRightTab === 'floors' && (
+              <div className="space-y-3">
+                
+                {/* Active Building Context Badge */}
+                <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl shadow-md space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider text-blue-200">Selected Building</span>
+                    <span className="px-2 py-0.5 bg-white/20 rounded-md text-[10px] font-bold font-mono">{selectedBuilding.code}</span>
+                  </div>
+                  <h3 className="text-base font-black truncate">{selectedBuilding.name}</h3>
+                  <p className="text-xs text-blue-100 flex items-center justify-between pt-1 border-t border-white/20">
+                    <span>{buildingFloors.length} Floors Configured</span>
+                    <span className="font-semibold text-emerald-300">{stats.total} Total Rooms</span>
+                  </p>
+                </div>
+
+                {/* Add Floor Button */}
+                <button
+                  onClick={handleOpenAddFloorModal}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add New Floor Level
+                </button>
+
+                {/* Floor List Header */}
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1 pt-1">
+                  <span>Floors in {selectedBuilding.name}</span>
+                  <span>{buildingFloors.length} Levels</span>
+                </div>
+
+                {/* Floors List with Reorder, Duplicate, Rename, Delete */}
+                <div className="space-y-2">
+                  {buildingFloors.map((f, index) => {
+                    const isSelected = String(selectedFloorId) === String(f.id);
+                    return (
+                      <div
+                        key={f.id}
+                        onClick={() => setSelectedFloorId(f.id)}
+                        className={cn(
+                          "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 group",
+                          isSelected
+                            ? "bg-blue-50 dark:bg-blue-950/60 border-blue-500 shadow-md ring-2 ring-blue-500/20"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            {/* Level Badge */}
+                            <div className={cn(
+                              "w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center flex-shrink-0 shadow-xs",
+                              isSelected ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                            )}>
+                              L{f.floorNumber}
+                            </div>
+
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={cn("text-sm font-black", isSelected ? "text-blue-700 dark:text-blue-400" : "text-slate-900 dark:text-white")}>
+                                  {f.name}
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[9px] font-extrabold uppercase bg-blue-600 text-white px-1.5 py-0.2 rounded-md">Active</span>
+                                )}
+                              </div>
+                              {f.description && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{f.description}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Reorder Up / Down */}
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMoveFloorUp(index); }}
+                              disabled={index === 0}
+                              className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-30"
+                              title="Move Floor Up"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMoveFloorDown(index); }}
+                              disabled={index === buildingFloors.length - 1}
+                              className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 disabled:opacity-30"
+                              title="Move Floor Down"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Floor Action Toolbar */}
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                          <span className="font-semibold text-[11px] text-slate-600 dark:text-slate-400">
+                            Floor Number: {f.floorNumber}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleOpenEditFloorModal(f); }}
+                              className="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-950 text-slate-700 dark:text-slate-300 hover:text-blue-600 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
+                              title="Rename / Edit Floor"
+                            >
+                              <Edit3 className="w-3 h-3" /> Edit / Rename
+                            </button>
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDuplicateFloor(f); }}
+                              className="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300 hover:text-emerald-600 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
+                              title="Duplicate Floor"
+                            >
+                              <Copy className="w-3 h-3" /> Duplicate
+                            </button>
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeletingFloor(f); }}
+                              className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="Delete Floor"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────── */}
+            {/* TAB 2: BUILDINGS MANAGEMENT */}
+            {/* ───────────────────────────────────────────────────────────── */}
+            {activeRightTab === 'buildings' && (
+              <div className="space-y-3">
+                
+                <button
+                  onClick={handleOpenAddBuildingModal}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add New Building
+                </button>
+
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search buildings by name or code..."
+                    value={buildingSearchQuery}
+                    onChange={e => setBuildingSearchQuery(e.target.value)}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  {filteredBuildings.map(b => {
+                    const isSelected = String(b.id) === String(selectedBuildingId);
+                    return (
+                      <div
+                        key={b.id}
+                        onClick={() => setSelectedBuildingId(b.id)}
+                        className={cn(
+                          "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 group",
+                          isSelected
+                            ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 shadow-md"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm text-slate-900 dark:text-white group-hover:text-blue-600">
+                                {b.name}
+                              </span>
+                              <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-1.5 py-0.2 rounded font-mono">
+                                {b.code}
+                              </span>
+                            </div>
+                            {b.description && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{b.description}</p>
+                            )}
+                          </div>
+
+                          <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase flex-shrink-0", getBuildingStatusBadge(b.status))}>
+                            {b.status}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {b.total_floors || b.floorsCount || 1} Floors Total
+                          </span>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleOpenEditBuildingModal(b); }}
+                              className="p-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950 text-slate-400 hover:text-blue-600 transition-colors"
+                              title="Edit Building"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeletingBuilding(b); }}
+                              className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="Delete Building"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────── */}
+            {/* TAB 3: ROOMS LIST */}
             {/* ───────────────────────────────────────────────────────────── */}
             {activeRightTab === 'rooms' && (
               <>
-                {/* Selected Room Detailed Inspector Card */}
                 {selectedRoom ? (
                   <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 shadow-sm space-y-3">
                     <div className="flex items-start justify-between">
@@ -984,28 +1422,6 @@ export function FloorManagement() {
                         <span className="font-medium text-slate-800 dark:text-slate-200">{selectedRoom.assignedTo}</span>
                       </div>
                     )}
-
-                    {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                        <span className="text-slate-400 block text-[10px] font-semibold mb-1.5">Room Facilities & Tech</span>
-                        <div className="flex flex-wrap gap-1">
-                          {selectedRoom.equipment.map((eq, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md text-[10px] font-semibold border border-slate-200 dark:border-slate-600">
-                              {eq}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {editMode && (
-                      <button
-                        onClick={() => handleDeleteRoom(selectedRoom.id)}
-                        className="w-full mt-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Remove Room from Floor
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
@@ -1013,7 +1429,6 @@ export function FloorManagement() {
                   </div>
                 )}
 
-                {/* Rooms List */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
                     <span>Floor Rooms List</span>
@@ -1053,188 +1468,148 @@ export function FloorManagement() {
               </>
             )}
 
-            {/* ───────────────────────────────────────────────────────────── */}
-            {/* TAB 2: BUILDINGS MANAGEMENT & DIRECTORY */}
-            {/* ───────────────────────────────────────────────────────────── */}
-            {activeRightTab === 'buildings' && (
-              <div className="space-y-3">
-                
-                {/* Add Building CTA Button */}
-                <button
-                  onClick={handleOpenAddBuildingModal}
-                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Add New Building
-                </button>
-
-                {/* Building Search Input */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search buildings by name or code..."
-                    value={buildingSearchQuery}
-                    onChange={e => setBuildingSearchQuery(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Selected Building Details Hero Card */}
-                <div className="p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl space-y-2 border border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400">Selected Building View</span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-extrabold border", getBuildingStatusBadge(selectedBuilding.status))}>
-                      {selectedBuilding.status}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-black">{selectedBuilding.name}</h3>
-                  <p className="text-xs text-slate-300 font-mono">Code: {selectedBuilding.code}</p>
-                  {selectedBuilding.description && (
-                    <p className="text-xs text-slate-400 leading-relaxed italic line-clamp-2">{selectedBuilding.description}</p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/80 text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Floors Count</span>
-                      <span className="font-extrabold text-white text-base">{selectedBuilding.total_floors || selectedBuilding.floorsCount || 1} Floors</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Floors Available</span>
-                      <span className="font-extrabold text-emerald-400 text-base">{buildingFloors.length} Configured</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Buildings List */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-                    <span>Campus Buildings Directory</span>
-                    <span>{filteredBuildings.length} Total</span>
-                  </div>
-
-                  {filteredBuildings.map(b => {
-                    const isSelected = String(b.id) === String(selectedBuildingId);
-                    return (
-                      <div
-                        key={b.id}
-                        onClick={() => setSelectedBuildingId(b.id)}
-                        className={cn(
-                          "p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 group relative",
-                          isSelected
-                            ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 shadow-md"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-400"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-sm text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                                {b.name}
-                              </span>
-                              <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-1.5 py-0.2 rounded font-mono">
-                                {b.code}
-                              </span>
-                            </div>
-                            {b.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{b.description}</p>
-                            )}
-                          </div>
-
-                          <span className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase flex-shrink-0", getBuildingStatusBadge(b.status))}>
-                            {b.status}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {b.total_floors || b.floorsCount || 1} Floors
-                          </span>
-
-                          {/* Building Action Buttons */}
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleOpenEditBuildingModal(b); }}
-                              className="p-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950 text-slate-400 hover:text-blue-600 transition-colors"
-                              title="Edit Building"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDeletingBuilding(b); }}
-                              className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-600 transition-colors"
-                              title="Delete Building"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ───────────────────────────────────────────────────────────── */}
-            {/* TAB 3: FLOORS DIRECTORY */}
-            {/* ───────────────────────────────────────────────────────────── */}
-            {activeRightTab === 'floors' && (
-              <div className="space-y-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 text-xs">
-                  <span className="font-bold text-blue-900 dark:text-blue-300">Showing floors for: </span>
-                  <span className="font-black text-blue-700 dark:text-blue-400">{selectedBuilding.name} ({selectedBuilding.code})</span>
-                </div>
-
-                <div className="flex items-center justify-between px-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Building Floors List</h4>
-                  <button
-                    onClick={() => triggerToast('Floor creation module ready')}
-                    className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Add Floor
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {buildingFloors.map(f => (
-                    <div
-                      key={f.id}
-                      onClick={() => setSelectedFloorId(f.id)}
-                      className={cn(
-                        "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
-                        String(selectedFloorId) === String(f.id)
-                          ? "bg-blue-600 text-white border-blue-700 shadow-md"
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                      )}
-                    >
-                      <div>
-                        <span className={cn("text-xs font-bold block", String(selectedFloorId) === String(f.id) ? "text-white" : "text-slate-900 dark:text-white")}>
-                          {f.name}
-                        </span>
-                        <span className={cn("text-[11px]", String(selectedFloorId) === String(f.id) ? "text-blue-100" : "text-slate-400")}>
-                          Level {f.level} • {f.area}
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <span className={cn("text-xs font-bold block", String(selectedFloorId) === String(f.id) ? "text-white" : "text-slate-700 dark:text-slate-300")}>
-                          {f.roomsCount} Rooms
-                        </span>
-                        {String(selectedFloorId) === String(f.id) && (
-                          <span className="text-[10px] font-extrabold uppercase bg-white/20 px-2 py-0.5 rounded-md text-white">Active</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
           </div>
 
         </div>
 
       </div>
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* ADD / EDIT FLOOR MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {isFloorModalOpen && editingFloor && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-blue-500" />
+                {editingFloor.id ? 'Edit / Rename Floor' : `Add Floor to ${selectedBuilding.name}`}
+              </h3>
+              <button onClick={() => setIsFloorModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {floorValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{floorValidationError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveFloorSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Target Building</label>
+                <input
+                  type="text"
+                  disabled
+                  value={`${selectedBuilding.name} (${selectedBuilding.code})`}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-500 opacity-80"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ground Floor, 1st Floor, 2nd Floor"
+                  value={editingFloor.name || ''}
+                  onChange={e => {
+                    setEditingFloor(prev => ({ ...prev, name: e.target.value }));
+                    setFloorValidationError(null);
+                  }}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Number * (0 for Ground, 1 for 1st Floor)</label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  max={20}
+                  value={editingFloor.floorNumber !== undefined ? editingFloor.floorNumber : 0}
+                  onChange={e => {
+                    setEditingFloor(prev => ({ ...prev, floorNumber: Number(e.target.value) }));
+                    setFloorValidationError(null);
+                  }}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Computer Science Labs & Classrooms"
+                  value={editingFloor.description || ''}
+                  onChange={e => setEditingFloor(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsFloorModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md"
+                >
+                  {editingFloor.id ? 'Save Changes' : 'Create Floor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE FLOOR CONFIRMATION DIALOG */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {deletingFloor && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Floor Level</h3>
+                <p className="text-xs text-slate-400">Confirmation Required</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{deletingFloor.name}</strong> (Level {deletingFloor.floorNumber}) from <strong className="text-slate-900 dark:text-white">{selectedBuilding.name}</strong>? 
+              All rooms on this floor will be unassigned.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingFloor(null)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteFloor}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Floor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* ADD / EDIT BUILDING MODAL */}
@@ -1281,7 +1656,7 @@ export function FloorManagement() {
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                 <textarea
                   rows={2}
-                  placeholder="Describe building purpose, departments, or wing facilities..."
+                  placeholder="Describe building purpose..."
                   value={editingBuilding.description || ''}
                   onChange={e => setEditingBuilding(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1438,40 +1813,6 @@ export function FloorManagement() {
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-500 mb-1">Assigned Department</label>
-                <input
-                  type="text"
-                  value={editingRoom.dept || ''}
-                  onChange={e => setEditingRoom(prev => ({ ...prev, dept: e.target.value }))}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-500 mb-1">Status</label>
-                <select
-                  value={editingRoom.status || 'available'}
-                  onChange={e => setEditingRoom(prev => ({ ...prev, status: e.target.value as any }))}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-white"
-                >
-                  <option value="available">Available</option>
-                  <option value="occupied">Occupied</option>
-                  <option value="maintenance">Under Maintenance</option>
-                  <option value="reserved">Reserved</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-500 mb-1">Current Class / Activity</label>
-                <input
-                  type="text"
-                  value={editingRoom.assignedTo || ''}
-                  onChange={e => setEditingRoom(prev => ({ ...prev, assignedTo: e.target.value }))}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
-                />
               </div>
             </div>
 
