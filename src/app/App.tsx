@@ -258,9 +258,10 @@ const SIDEBAR_ITEMS = [
   { id: "settings", label: "Settings", icon: Settings, badge: null },
 ];
 
-function Sidebar({ active, onChange, collapsed, onToggle, onNav }: {
+function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {
   active: string; onChange: (m: string) => void;
   collapsed: boolean; onToggle: () => void; onNav: (v: string) => void;
+  mobileOpen?: boolean; onMobileClose?: () => void;
 }) {
   const { user, logout } = useAuth();
   
@@ -274,85 +275,111 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav }: {
     // Campus Map is Admin-only (not included for other roles above)
     return true; // Default to all if unknown
   });
+
+  const handleItemClick = (id: string) => {
+    onChange(id);
+    if (onMobileClose) onMobileClose();
+  };
+
   return (
-    <div className={cn("h-screen bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0", collapsed ? "w-16" : "w-64")}>
-      {/* Logo */}
-      <div className={cn("flex items-center h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 px-4", collapsed ? "justify-center" : "justify-between px-5")}>
-        {!collapsed && (
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          onClick={onMobileClose}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <div className={cn(
+        "h-screen bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 z-50",
+        "lg:static fixed top-0 bottom-0 left-0",
+        mobileOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0",
+        collapsed ? "lg:w-16" : "lg:w-64"
+      )}>
+        {/* Logo */}
+        <div className={cn("flex items-center h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-5")}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
               <GraduationCap size={15} className="text-white" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white leading-none">EduERP</p>
-              <p className="text-xs text-slate-400 mt-0.5">{user?.role || 'Admin'} Portal</p>
-            </div>
+            {(!collapsed || mobileOpen) && (
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white leading-none">EduERP</p>
+                <p className="text-xs text-slate-400 mt-0.5">{user?.role || 'Admin'} Portal</p>
+              </div>
+            )}
           </div>
-        )}
-        {collapsed && (
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-            <GraduationCap size={15} className="text-white" />
-          </div>
-        )}
-        {!collapsed && (
-          <button onClick={onToggle} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            <ChevronLeft size={15} />
-          </button>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin">
-        {filteredItems.map(item => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
-          return (
-            <button key={item.id} onClick={() => onChange(item.id)}
-              title={collapsed ? item.label : undefined}
-              className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                isActive ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
-                collapsed && "justify-center")}>
-              <Icon size={17} className="flex-shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left truncate">{item.label}</span>
-                  {item.badge && (
-                    <span className={cn("text-xs px-1.5 py-0.5 rounded-md font-medium",
-                      item.badge === "New" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* User */}
-      <div className={cn("border-t border-slate-100 dark:border-slate-800 p-3")}>
-        {!collapsed ? (
-          <div 
-            onClick={() => onChange("profile")}
-            className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-            title="Open Security & Face ID"
+          
+          <button 
+            onClick={() => {
+              if (mobileOpen && onMobileClose) {
+                onMobileClose();
+              } else {
+                onToggle();
+              }
+            }} 
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
-            <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
-              <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">Security & Face ID</p>
-            </div>
-            <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
-              <LogOut size={14} />
-            </button>
-          </div>
-        ) : (
-          <button onClick={() => onChange("profile")} className="w-full flex justify-center p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="Security & Face ID">
-            <UserCheck size={16} className="text-indigo-500" />
+            {mobileOpen ? <X size={18} /> : (collapsed ? <ChevronRight size={15} className="hidden lg:block" /> : <ChevronLeft size={15} className="hidden lg:block" />)}
           </button>
-        )}
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin">
+          {filteredItems.map(item => {
+            const Icon = item.icon;
+            const isActive = active === item.id;
+            const isCollapsedDesktop = collapsed && !mobileOpen;
+            return (
+              <button key={item.id} onClick={() => handleItemClick(item.id)}
+                title={isCollapsedDesktop ? item.label : undefined}
+                className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                  isActive ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                  isCollapsedDesktop && "lg:justify-center")}>
+                <Icon size={17} className="flex-shrink-0" />
+                {(!collapsed || mobileOpen) && (
+                  <>
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                    {item.badge && (
+                      <span className={cn("text-xs px-1.5 py-0.5 rounded-md font-medium",
+                        item.badge === "New" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className={cn("border-t border-slate-100 dark:border-slate-800 p-3")}>
+          {(!collapsed || mobileOpen) ? (
+            <div 
+              onClick={() => handleItemClick("profile")}
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              title="Open Security & Face ID"
+            >
+              <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
+                <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">Security & Face ID</p>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => handleItemClick("profile")} className="w-full flex justify-center p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="Security & Face ID">
+              <UserCheck size={16} className="text-indigo-500" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1520,6 +1547,7 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
 function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const render = () => {
     switch (mod) {
@@ -1544,11 +1572,31 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-      <Sidebar active={mod} onChange={setMod} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onNav={onNav} />
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+      <Sidebar 
+        active={mod} 
+        onChange={setMod} 
+        collapsed={collapsed} 
+        onToggle={() => setCollapsed(!collapsed)} 
+        onNav={onNav} 
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <TopNav module={mod} theme={theme} toggleTheme={toggleTheme} collapsed={collapsed} onToggleSidebar={() => setCollapsed(!collapsed)} />
-        <main className={cn("flex-1 min-w-0", mod === "campus-map" ? "overflow-hidden p-0" : "overflow-y-auto p-5")}>{render()}</main>
+        <TopNav 
+          module={mod} 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          collapsed={collapsed} 
+          onToggleSidebar={() => {
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+              setMobileOpen(prev => !prev);
+            } else {
+              setCollapsed(prev => !prev);
+            }
+          }} 
+        />
+        <main className={cn("flex-1 min-w-0", mod === "campus-map" ? "overflow-hidden p-0" : "overflow-y-auto p-3 sm:p-5 scrollbar-thin")}>{render()}</main>
       </div>
     </div>
   );

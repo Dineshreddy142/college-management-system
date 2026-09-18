@@ -868,7 +868,7 @@ export function CampusMapEditor() {
     <div className="flex flex-col h-full bg-slate-100 dark:bg-slate-950 -m-5 overflow-hidden" style={{ height: "calc(100vh - 64px)" }}>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-10">
+      <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-10 overflow-x-auto scrollbar-thin">
         {/* Title */}
         <div className="flex items-center gap-2 mr-2">
           <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">

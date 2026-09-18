@@ -21,6 +21,7 @@ import { Bot } from "lucide-react";
 export function ParentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [activeModule, setActiveModule] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -45,24 +46,32 @@ export function ParentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: stri
   };
 
   return (
-    <div className={`flex h-screen overflow-hidden ${theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
+    <div className={`flex h-screen overflow-hidden relative ${theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
       <ParentSidebar 
         active={activeModule} 
         onChange={setActiveModule} 
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
         onNav={onNav}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
       />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
         <ParentTopNav 
           module={activeModule} 
           theme={theme} 
           toggleTheme={toggleTheme}
           collapsed={collapsed}
-          onToggleSidebar={() => setCollapsed(!collapsed)}
+          onToggleSidebar={() => {
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+              setMobileOpen(prev => !prev);
+            } else {
+              setCollapsed(prev => !prev);
+            }
+          }}
           onNav={onNav}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 scrollbar-thin min-w-0">
           <div className="max-w-7xl mx-auto pb-20">
             {renderModule()}
           </div>

@@ -247,7 +247,7 @@ export const FacultyMarksEntry: React.FC = () => {
           ) : studentsRoster.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400">No registered students found for this examination and subject.</div>
           ) : (
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[600px]">
               <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-4 py-3">Roll Number</th>

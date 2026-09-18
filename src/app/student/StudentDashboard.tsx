@@ -24,21 +24,7 @@ import { CampusMap } from "../campus-map/CampusMap";
 export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [activeModule, setActiveModule] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Auto-collapse sidebar on mobile
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setSidebarCollapsed(true);
-      } else {
-        setSidebarCollapsed(false);
-      }
-    };
-    
-    handleResize(); // Init
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -67,24 +53,32 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
       <StudentSidebar 
         active={activeModule} 
         onChange={setActiveModule} 
         collapsed={sidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
         onNav={onNav}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
       />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         <StudentTopNav 
           module={activeModule} 
           theme={theme} 
           toggleTheme={toggleTheme} 
           collapsed={sidebarCollapsed} 
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onToggleSidebar={() => {
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+              setMobileOpen(prev => !prev);
+            } else {
+              setSidebarCollapsed(prev => !prev);
+            }
+          }}
           onNav={onNav}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin min-w-0">
           <div className="max-w-7xl mx-auto pb-20">
             {renderModule()}
           </div>

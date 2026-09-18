@@ -385,7 +385,7 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
   const strokeDashoffset = circumference - (registrationProgress / 100) * circumference;
 
   return (
-    <div className="bg-slate-900/95 backdrop-blur-xl text-white rounded-3xl shadow-2xl border border-slate-800/80 p-6 md:p-8 max-w-lg w-full relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+    <div className="bg-slate-900/95 backdrop-blur-xl text-white rounded-3xl shadow-2xl border border-slate-800/80 p-4 sm:p-6 md:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto scrollbar-thin relative animate-in fade-in zoom-in-95 duration-300">
       
       {/* Ambient Glows */}
       <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />

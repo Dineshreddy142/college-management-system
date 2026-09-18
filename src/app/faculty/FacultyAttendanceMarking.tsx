@@ -269,13 +269,14 @@ export const FacultyAttendanceMarking: React.FC = () => {
             </div>
 
             {/* Roster Table */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 max-h-[60vh] overflow-y-auto">
               {isLoadingRoster ? (
                 <div className="p-8 text-center text-xs text-slate-400">Loading registered student roster...</div>
               ) : rosterStudents.length === 0 ? (
                 <div className="p-8 text-center text-xs text-slate-400">No Phase 4 registered students found for this subject and section.</div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[500px]">
                   <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
                     <tr>
                       <th className="px-4 py-2.5">Roll Number</th>
@@ -321,6 +322,7 @@ export const FacultyAttendanceMarking: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 

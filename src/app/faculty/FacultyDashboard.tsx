@@ -23,6 +23,7 @@ import { FacultyAttendanceMarking } from "./FacultyAttendanceMarking";
 export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const render = () => {
     switch (mod) {
@@ -33,7 +34,7 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "attendance": return <FacultyAttendanceMarking />;
       case "assignments": return <AssignmentsModule />;
       case "exams": return <ExamsModule />;
-      case "marks": return <ExamsModule />; // Combined for simplicity
+      case "marks": return <ExamsModule />;
       case "students": return <StudentsModule />;
       case "leaves": return <LeavesModule />;
       case "timetable": return <TimetableModule />;
@@ -48,11 +49,32 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-      <FacultySidebar active={mod} onChange={setMod} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} onNav={onNav} />
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+      <FacultySidebar 
+        active={mod} 
+        onChange={setMod} 
+        collapsed={collapsed} 
+        onToggle={() => setCollapsed(!collapsed)} 
+        onNav={onNav} 
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <FacultyTopNav module={mod} theme={theme} toggleTheme={toggleTheme} collapsed={collapsed} onToggleSidebar={() => setCollapsed(!collapsed)} onNav={onNav} />
-        <main className="flex-1 overflow-y-auto p-5">{render()}</main>
+        <FacultyTopNav 
+          module={mod} 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          collapsed={collapsed} 
+          onToggleSidebar={() => {
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+              setMobileOpen(prev => !prev);
+            } else {
+              setCollapsed(prev => !prev);
+            }
+          }} 
+          onNav={onNav} 
+        />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 scrollbar-thin min-w-0">{render()}</main>
       </div>
     </div>
   );

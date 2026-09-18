@@ -442,7 +442,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
           </div>
         </div>
 
-        <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
+        <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-5 sm:p-8">
           
           {/* Header */}
           <div className="mb-4">
@@ -553,7 +553,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1">Account Role</label>
                   <select
