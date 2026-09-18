@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { 
   LayoutDashboard, User, UserCheck, BookOpen, Clock, FileText, 
   Award, BarChart3, DollarSign, Library as LibraryIcon, Briefcase, 
   CalendarDays, Calendar, MessageSquare, Folder, AlertCircle, 
-  Zap, TrendingUp, GraduationCap, ChevronLeft, Map, X 
+  Zap, TrendingUp, GraduationCap, ChevronLeft, Map, X, Building, Layers, ChevronDown
 } from "lucide-react";
 import { cn } from "../App";
 
@@ -12,6 +13,17 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "88%" },
   { id: "my-subjects", label: "My Subjects", icon: BookOpen, badge: "Registration" },
   { id: "academics", label: "Academics", icon: BookOpen, badge: null },
+  {
+    id: "campus",
+    label: "Campus",
+    icon: Building,
+    badge: null,
+    children: [
+      { id: "campus-map", label: "Campus Map", icon: Map, badge: null },
+      { id: "campus-buildings", label: "Buildings", icon: Building, badge: null },
+      { id: "floor-management", label: "Floor Plan", icon: Layers, badge: "Interactive" },
+    ]
+  },
   { id: "timetable", label: "Timetable", icon: Clock, badge: null },
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3 Due" },
   { id: "examination", label: "Examination", icon: Award, badge: null },
@@ -25,7 +37,6 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "documents", label: "Documents", icon: Folder, badge: null },
   { id: "complaints", label: "Complaints", icon: AlertCircle, badge: null },
   { id: "analytics", label: "Analytics", icon: TrendingUp, badge: null },
-  { id: "campus-map", label: "Campus Map", icon: Map, badge: "Virtual" },
   { id: "ai", label: "AI Assistant", icon: Zap, badge: "Beta" },
 ];
 
@@ -34,6 +45,8 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
   collapsed: boolean; onToggle: () => void; onNav: (v: string) => void;
   mobileOpen?: boolean; onMobileClose?: () => void;
 }) {
+  const [campusExpanded, setCampusExpanded] = useState<boolean>(true);
+
   const handleItemClick = (id: string) => {
     onChange(id);
     if (onMobileClose) onMobileClose();
@@ -88,8 +101,66 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin">
           {STUDENT_SIDEBAR_ITEMS.map(item => {
             const Icon = item.icon;
-            const isActive = active === item.id;
+            const hasChildren = (item as any).children && (item as any).children.length > 0;
+            const isChildActive = hasChildren && (item as any).children!.some((c: any) => c.id === active);
+            const isActive = active === item.id || isChildActive;
             const isCollapsedDesktop = collapsed && !mobileOpen;
+
+            if (hasChildren) {
+              return (
+                <div key={item.id} className="space-y-0.5">
+                  <button
+                    onClick={() => {
+                      if (isCollapsedDesktop) {
+                        handleItemClick((item as any).children![0].id);
+                      } else {
+                        setCampusExpanded(!campusExpanded);
+                      }
+                    }}
+                    title={isCollapsedDesktop ? item.label : undefined}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left",
+                      isActive ? "bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-semibold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                      isCollapsedDesktop && "lg:justify-center"
+                    )}
+                  >
+                    <Icon size={18} className="flex-shrink-0" />
+                    {(!collapsed || mobileOpen) && (
+                      <>
+                        <span className="flex-1 text-left truncate text-sm">{item.label}</span>
+                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (campusExpanded || isChildActive) && "rotate-180")} />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Submenu Accordion */}
+                  {(!collapsed || mobileOpen) && (campusExpanded || isChildActive) && (
+                    <div className="pl-4 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 ml-5 my-1">
+                      {(item as any).children!.map((child: any) => {
+                        const ChildIcon = child.icon;
+                        const isSubActive = active === child.id;
+                        return (
+                          <button
+                            key={child.id}
+                            onClick={() => handleItemClick(child.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150",
+                              isSubActive
+                                ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
+                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                            )}
+                          >
+                            <ChildIcon size={14} className="flex-shrink-0" />
+                            <span className="flex-1 text-left truncate">{child.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <button
                 key={item.id}

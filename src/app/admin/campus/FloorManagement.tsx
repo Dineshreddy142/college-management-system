@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../components/ui/Btn';
 import client from '../../../api/client';
+import { useAuth } from '../../portal/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & INTERFACES
@@ -302,6 +303,11 @@ const INITIAL_FACILITY_OBJECTS: FloorPlanObjectRecord[] = [
 ];
 
 export function FloorManagement() {
+  const authContext = useAuth();
+  const user = authContext?.user;
+  const userRole = (user?.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isAdmin = ['admin', 'administrator', 'principal', 'office', 'systemadmin'].includes(userRole);
+
   // Buildings & Floors State
   const [buildings, setBuildings] = useState<BuildingInfo[]>(INITIAL_BUILDINGS);
   const [floors, setFloors] = useState<FloorInfo[]>(INITIAL_FLOORS);
@@ -317,9 +323,11 @@ export function FloorManagement() {
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | number | null>(null);
 
   const [activeTool, setActiveTool] = useState<string>('select');
-  const [editMode, setEditMode] = useState<boolean>(true);
+  const [editMode, setEditMode] = useState<boolean>(false);
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
   const GRID_SIZE = 20;
+
+  const activeEditMode = isAdmin && editMode;
 
   // Viewport & Pan/Zoom Controls
   const [zoomLevel, setZoomLevel] = useState<number>(100);
@@ -415,6 +423,59 @@ export function FloorManagement() {
   useEffect(() => {
     async function loadFloorData() {
       if (!selectedFloorId) return;
+
+      // For Non-Admins (Students & Faculty), fetch published floor plan version
+      if (!isAdmin) {
+        try {
+          const pubRes = await client.get(`/campus/floors/${selectedFloorId}/published`);
+          if (pubRes.data) {
+            if (pubRes.data.rooms && Array.isArray(pubRes.data.rooms)) {
+              const mappedRooms: RoomRecord[] = pubRes.data.rooms.map((r: any) => ({
+                id: r.id,
+                floorId: r.floorId || r.floor_id || selectedFloorId,
+                buildingId: r.buildingId || r.building_id || selectedBuildingId,
+                roomNumber: String(r.roomNumber || r.room_number || ''),
+                roomName: r.roomName || r.room_name || 'Classroom',
+                roomType: r.roomType || r.room_type || 'Classroom',
+                capacity: Number(r.capacity) || 30,
+                department: r.department || 'General',
+                description: r.description || '',
+                status: r.status || 'Available',
+                x: Number(r.x) || 40,
+                y: Number(r.y) || 40,
+                width: Number(r.width) || 200,
+                height: Number(r.height) || 150,
+                rotation: Number(r.rotation) || 0,
+                shape: (r.shape as RoomShape) || 'rectangle',
+                createdAt: r.createdAt || r.created_at,
+                updatedAt: r.updatedAt || r.updated_at
+              }));
+              setRooms(mappedRooms);
+            }
+            if (pubRes.data.objects && Array.isArray(pubRes.data.objects)) {
+              const mappedObjs: FloorPlanObjectRecord[] = pubRes.data.objects.map((o: any) => ({
+                id: o.id,
+                floorId: o.floorId || o.floor_id || selectedFloorId,
+                objectType: o.objectType || o.object_type || 'Stairs',
+                name: o.name || 'Facility Object',
+                x: Number(o.x) || 100,
+                y: Number(o.y) || 100,
+                width: Number(o.width) || 140,
+                height: Number(o.height) || 100,
+                rotation: Number(o.rotation) || 0,
+                shape: o.shape || 'rectangle',
+                metadata: typeof o.metadata === 'string' ? JSON.parse(o.metadata) : (o.metadata || {})
+              }));
+              setFacilityObjects(mappedObjs);
+            }
+          }
+          return;
+        } catch (err) {
+          console.log('Error loading published floor plan, loading default view');
+        }
+      }
+
+      // For Admin, fetch current draft layout
       try {
         // Fetch rooms
         const rRes = await client.get(`/campus/floors/${selectedFloorId}/rooms`);
@@ -1633,51 +1694,59 @@ export function FloorManagement() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => setEditMode(false)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all",
-                !editMode ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-              )}
-            >
-              <Eye className="w-3.5 h-3.5 text-blue-500" /> View
-            </button>
-            <button
-              onClick={() => setEditMode(true)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all",
-                editMode ? "bg-amber-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-              )}
-            >
-              <Edit3 className="w-3.5 h-3.5" /> Edit Mode
-            </button>
-          </div>
+          {isAdmin ? (
+            <>
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setEditMode(false)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all",
+                    !editMode ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                  )}
+                >
+                  <Eye className="w-3.5 h-3.5 text-blue-500" /> View
+                </button>
+                <button
+                  onClick={() => setEditMode(true)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all",
+                    editMode ? "bg-amber-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                  )}
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Edit Mode
+                </button>
+              </div>
 
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm border border-slate-700"
-          >
-            {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Save className="w-3.5 h-3.5 text-blue-400" />}
-            <span>Save</span>
-          </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm border border-slate-700"
+              >
+                {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Save className="w-3.5 h-3.5 text-blue-400" />}
+                <span>Save</span>
+              </button>
 
-          <button
-            onClick={handleOpenPublishConfirm}
-            disabled={isPublishing}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
-          >
-            {isPublishing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            <span>Publish</span>
-          </button>
+              <button
+                onClick={handleOpenPublishConfirm}
+                disabled={isPublishing}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+              >
+                {isPublishing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                <span>Publish</span>
+              </button>
+            </>
+          ) : (
+            <span className="px-3.5 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-200 dark:border-blue-900 flex items-center gap-1.5 shadow-sm">
+              <Eye className="w-3.5 h-3.5 text-blue-500" /> View Mode (Published Only)
+            </span>
+          )}
         </div>
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* EDITOR TOOLBAR & ACTION PALETTE */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      {editMode && (
+      {activeEditMode && (
         <div className="bg-slate-900 text-white border-b border-slate-800 px-6 py-2 flex items-center justify-between overflow-x-auto scrollbar-none z-30 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-max">
             <button
@@ -2179,12 +2248,14 @@ export function FloorManagement() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleOpenAddRoomModal('Classroom')}
-                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Add Room Form
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleOpenAddRoomModal('Classroom')}
+                    className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Room Form
+                  </button>
+                )}
 
                 {/* SELECTED ROOM DETAILS INSPECTOR */}
                 {selectedRoom ? (
@@ -2197,9 +2268,11 @@ export function FloorManagement() {
                         <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">Room {selectedRoom.roomNumber}: {selectedRoom.roomName}</h3>
                         <p className="text-xs text-slate-500">{selectedRoom.department} Department</p>
                       </div>
-                      <button onClick={() => handleOpenEditModal(selectedRoom)} className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600" title="Edit Config">
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => handleOpenEditModal(selectedRoom)} className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600" title="Edit Config">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
@@ -2214,24 +2287,28 @@ export function FloorManagement() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
-                      <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedRoom.x}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedRoom.y}px</span></div>
-                      <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedRoom.width}×{selectedRoom.height}</span></div>
-                    </div>
+                    {isAdmin && (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px]">
+                          <div><span className="text-slate-400 block text-[9px]">Position X</span><span className="font-mono font-bold">{selectedRoom.x}px</span></div>
+                          <div><span className="text-slate-400 block text-[9px]">Position Y</span><span className="font-mono font-bold">{selectedRoom.y}px</span></div>
+                          <div><span className="text-slate-400 block text-[9px]">Size</span><span className="font-mono font-bold">{selectedRoom.width}×{selectedRoom.height}</span></div>
+                        </div>
 
-                    <div className="flex items-center gap-2 pt-2">
-                      <button onClick={() => handleOpenEditModal(selectedRoom)} className="flex-1 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center justify-center gap-1">
-                        <Edit3 className="w-3.5 h-3.5" /> Edit Details
-                      </button>
-                      <button onClick={() => handleDeleteRoom(selectedRoom.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </div>
+                        <div className="flex items-center gap-2 pt-2">
+                          <button onClick={() => handleOpenEditModal(selectedRoom)} className="flex-1 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center justify-center gap-1">
+                            <Edit3 className="w-3.5 h-3.5" /> Edit Details
+                          </button>
+                          <button onClick={() => handleDeleteRoom(selectedRoom.id)} className="py-1.5 px-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1">
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
-                    Click any room on the vector floor plan canvas to inspect details and edit.
+                    Click any room on the vector floor plan canvas to inspect information.
                   </div>
                 )}
 
@@ -2273,12 +2350,14 @@ export function FloorManagement() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Campus Buildings ({buildings.length})</span>
-                  <button
-                    onClick={() => { setEditingBuilding({}); setIsBuildingModalOpen(true); }}
-                    className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Building
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { setEditingBuilding({}); setIsBuildingModalOpen(true); }}
+                      className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Building
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -2343,12 +2422,14 @@ export function FloorManagement() {
                     <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">Floors in {selectedBuilding.name}</span>
                     <span className="text-[10px] text-slate-400">{buildingFloors.length} Levels Available</span>
                   </div>
-                  <button
-                    onClick={() => { setEditingFloor({ buildingId: selectedBuildingId, floorNumber: buildingFloors.length }); setIsFloorModalOpen(true); }}
-                    className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Floor
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { setEditingFloor({ buildingId: selectedBuildingId, floorNumber: buildingFloors.length }); setIsFloorModalOpen(true); }}
+                      className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm hover:bg-blue-700"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Floor
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-2">

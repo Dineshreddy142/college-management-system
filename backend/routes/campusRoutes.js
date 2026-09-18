@@ -1,7 +1,14 @@
 import express from 'express';
 import pool from '../db.js';
+import { authenticateToken, authorizeRole } from '../middleware.js';
 
 const router = express.Router();
+
+// Role authorization middleware for Admin editing actions
+const requireAdmin = [
+  authenticateToken,
+  authorizeRole(['admin', 'administrator', 'principal', 'office', 'systemadmin'])
+];
 
 // Initial Default Buildings to Seed if DB Table is empty
 const INITIAL_BUILDINGS = [
@@ -149,8 +156,8 @@ router.get('/buildings/:id', async (req, res) => {
   }
 });
 
-// POST /api/campus/buildings - Add new building
-router.post('/buildings', async (req, res) => {
+// POST /api/campus/buildings - Add new building (Admin Only)
+router.post('/buildings', ...requireAdmin, async (req, res) => {
   try {
     const { name, code, description, total_floors, status } = req.body;
     if (!name || !code) {
@@ -189,8 +196,8 @@ router.post('/buildings', async (req, res) => {
   }
 });
 
-// PUT /api/campus/buildings/:id - Edit building
-router.put('/buildings/:id', async (req, res) => {
+// PUT /api/campus/buildings/:id - Edit building (Admin Only)
+router.put('/buildings/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, code, description, total_floors, status } = req.body;
@@ -213,8 +220,8 @@ router.put('/buildings/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/campus/buildings/:id - Delete building
-router.delete('/buildings/:id', async (req, res) => {
+// DELETE /api/campus/buildings/:id - Delete building (Admin Only)
+router.delete('/buildings/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const [existing] = await pool.execute('SELECT * FROM campus_buildings WHERE id = ?', [id]);
@@ -267,8 +274,8 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors - Add new floor to building
-router.post('/floors', async (req, res) => {
+// POST /api/campus/floors - Add new floor to building (Admin Only)
+router.post('/floors', ...requireAdmin, async (req, res) => {
   try {
     const { buildingId, name, floorNumber, description, displayOrder } = req.body;
     if (!buildingId || name === undefined || floorNumber === undefined) {
@@ -306,8 +313,8 @@ router.post('/floors', async (req, res) => {
   }
 });
 
-// PUT /api/campus/floors/:id - Edit / Rename Floor
-router.put('/floors/:id', async (req, res) => {
+// PUT /api/campus/floors/:id - Edit / Rename Floor (Admin Only)
+router.put('/floors/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { buildingId, name, floorNumber, description, displayOrder } = req.body;
@@ -345,8 +352,8 @@ router.put('/floors/:id', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors/:id/duplicate - Duplicate floor
-router.post('/floors/:id/duplicate', async (req, res) => {
+// POST /api/campus/floors/:id/duplicate - Duplicate floor (Admin Only)
+router.post('/floors/:id/duplicate', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
@@ -377,8 +384,8 @@ router.post('/floors/:id/duplicate', async (req, res) => {
   }
 });
 
-// DELETE /api/campus/floors/:id - Delete floor
-router.delete('/floors/:id', async (req, res) => {
+// DELETE /api/campus/floors/:id - Delete floor (Admin Only)
+router.delete('/floors/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
@@ -416,11 +423,11 @@ router.get('/floors/:id/status', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors/:id/save - Save floor plan draft
-router.post('/floors/:id/save', async (req, res) => {
+// POST /api/campus/floors/:id/save - Save floor plan draft (Admin Only)
+router.post('/floors/:id/save', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedBy = req.body.updatedBy || 'Admin';
+    const updatedBy = req.body.updatedBy || req.user?.username || 'Admin';
 
     const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
     if (existing.length === 0) return res.status(404).json({ error: 'Floor not found' });
@@ -455,11 +462,11 @@ router.post('/floors/:id/save', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors/:id/publish - Publish floor plan draft
-router.post('/floors/:id/publish', async (req, res) => {
+// POST /api/campus/floors/:id/publish - Publish floor plan draft (Admin Only)
+router.post('/floors/:id/publish', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedBy = req.body.updatedBy || 'Admin';
+    const updatedBy = req.body.updatedBy || req.user?.username || 'Admin';
 
     const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
     if (existing.length === 0) return res.status(404).json({ error: 'Floor not found' });
@@ -633,8 +640,8 @@ router.get('/floors/:floorId/rooms', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors/:floorId/rooms - Add new room to floor
-router.post('/floors/:floorId/rooms', async (req, res) => {
+// POST /api/campus/floors/:floorId/rooms - Add new room to floor (Admin Only)
+router.post('/floors/:floorId/rooms', ...requireAdmin, async (req, res) => {
   try {
     const { floorId } = req.params;
     const {
@@ -721,8 +728,8 @@ router.post('/floors/:floorId/rooms', async (req, res) => {
   }
 });
 
-// PUT /api/campus/rooms/:id - Update existing room details and position
-router.put('/rooms/:id', async (req, res) => {
+// PUT /api/campus/rooms/:id - Update existing room details and position (Admin Only)
+router.put('/rooms/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -811,8 +818,8 @@ router.put('/rooms/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/campus/rooms/:id - Delete room
-router.delete('/rooms/:id', async (req, res) => {
+// DELETE /api/campus/rooms/:id - Delete room (Admin Only)
+router.delete('/rooms/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const [existing] = await pool.execute('SELECT * FROM campus_rooms WHERE id = ?', [id]);
@@ -867,8 +874,8 @@ router.get('/floors/:floorId/objects', async (req, res) => {
   }
 });
 
-// POST /api/campus/floors/:floorId/objects - Add facility object to floor
-router.post('/floors/:floorId/objects', async (req, res) => {
+// POST /api/campus/floors/:floorId/objects - Add facility object to floor (Admin Only)
+router.post('/floors/:floorId/objects', ...requireAdmin, async (req, res) => {
   try {
     const { floorId } = req.params;
     const {
@@ -938,8 +945,8 @@ router.post('/floors/:floorId/objects', async (req, res) => {
   }
 });
 
-// PUT /api/campus/objects/:id - Update facility object
-router.put('/objects/:id', async (req, res) => {
+// PUT /api/campus/objects/:id - Update facility object (Admin Only)
+router.put('/objects/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -1019,8 +1026,8 @@ router.put('/objects/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/campus/objects/:id - Delete facility object
-router.delete('/objects/:id', async (req, res) => {
+// DELETE /api/campus/objects/:id - Delete facility object (Admin Only)
+router.delete('/objects/:id', ...requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const [existing] = await pool.execute('SELECT * FROM floor_plan_objects WHERE id = ?', [id]);
