@@ -22,9 +22,9 @@ export function useDeviceType(): DeviceInfo {
 
     const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
     
-    // Check Mobile / Tablet User Agents
-    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|Silk/i;
-    const isMobileUA = mobileRegex.test(ua);
+    // Check Phone User Agents (excluding Tablets where screen width >= 768px)
+    const phoneRegex = /Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|mobile/i;
+    const isPhoneUA = phoneRegex.test(ua);
 
     // Touch screen detection
     const hasTouch = (
@@ -33,12 +33,12 @@ export function useDeviceType(): DeviceInfo {
       window.matchMedia('(pointer: coarse)').matches
     );
 
-    // Screen width check
+    // Screen width check (< 768px for mobile phone viewports)
     const screenWidth = window.innerWidth;
-    const isSmallScreen = screenWidth <= 768;
+    const isSmallScreen = screenWidth < 768;
 
-    // A device is considered mobile if user-agent is mobile, or if it has coarse touch & small screen
-    const isMobile = isMobileUA || (hasTouch && isSmallScreen);
+    // Mobile smartphone classification (Strictly excludes Tablets, Laptops & Desktops)
+    const isMobile = (isPhoneUA || (hasTouch && isSmallScreen)) && screenWidth < 768;
     const isDesktop = !isMobile;
 
     return {

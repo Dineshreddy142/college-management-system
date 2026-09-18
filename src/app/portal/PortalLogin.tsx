@@ -656,41 +656,43 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </form>
           ) : (
             <>
-              {/* Primary / Secondary Method Tabs */}
-              <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-6">
-                {/* Password Login Tab (Default) */}
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod('password')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    loginMethod === 'password'
-                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <KeyRound size={16} />
-                  <span>Password</span>
-                </button>
+              {/* Primary / Secondary Method Tabs — Show Face Biometrics ONLY on Mobile */}
+              {isMobile && (
+                <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-6">
+                  {/* Password Login Tab */}
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod('password')}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      loginMethod === 'password'
+                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <KeyRound size={16} />
+                    <span>Password</span>
+                  </button>
 
-                {/* Face Biometrics Tab */}
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod('face')}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    loginMethod === 'face'
-                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <ScanFace size={16} />
-                  <span>Face Biometrics</span>
-                </button>
-              </div>
+                  {/* Face Biometrics Tab (Mobile Only) */}
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod('face')}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      loginMethod === 'face'
+                        ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <ScanFace size={16} />
+                    <span>Face Biometrics</span>
+                  </button>
+                </div>
+              )}
 
               {/* ============================================================ */}
-              {/* FACE BIOMETRICS HERO CARD                                    */}
+              {/* FACE BIOMETRICS HERO CARD (Mobile Only)                      */}
               {/* ============================================================ */}
-              {loginMethod === 'face' && (
+              {isMobile && loginMethod === 'face' && (
                 <div className="space-y-6 animate-in fade-in zoom-in duration-300">
                   <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/60 to-blue-50/40 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
                     <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 shadow-inner">
