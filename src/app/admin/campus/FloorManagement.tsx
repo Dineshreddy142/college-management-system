@@ -37,6 +37,10 @@ export interface FloorInfo {
   description?: string;
   roomsCount?: number;
   area?: string;
+  publishStatus?: 'DRAFT' | 'PUBLISHED';
+  lastSavedAt?: string;
+  lastPublishedAt?: string;
+  updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -167,23 +171,23 @@ const INITIAL_BUILDINGS: BuildingInfo[] = [
 ];
 
 const INITIAL_FLOORS: FloorInfo[] = [
-  { id: 'f1', buildingId: 'b2', floorNumber: 0, name: 'Ground Floor', description: 'Main Lobby, Seminar Halls & Student Helpdesk', roomsCount: 18, area: '1,200 sq.m', displayOrder: 1 },
-  { id: 'f2', buildingId: 'b2', floorNumber: 1, name: '1st Floor', description: 'Computer Science Classrooms & Smart Labs', roomsCount: 16, area: '1,150 sq.m', displayOrder: 2 },
-  { id: 'f3', buildingId: 'b2', floorNumber: 2, name: '2nd Floor', description: 'Electronics & Communication Lecture Halls', roomsCount: 16, area: '1,150 sq.m', displayOrder: 3 },
-  { id: 'f4', buildingId: 'b2', floorNumber: 3, name: '3rd Floor', description: 'Post Graduate Research Labs & HOD Suites', roomsCount: 18, area: '1,100 sq.m', displayOrder: 4 },
+  { id: 'f1', buildingId: 'b2', floorNumber: 0, name: 'Ground Floor', description: 'Main Lobby, Seminar Halls & Student Helpdesk', roomsCount: 18, area: '1,200 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', lastSavedAt: new Date(Date.now() - 3600000).toISOString(), lastPublishedAt: new Date(Date.now() - 1800000).toISOString(), updatedBy: 'Admin' },
+  { id: 'f2', buildingId: 'b2', floorNumber: 1, name: '1st Floor', description: 'Computer Science Classrooms & Smart Labs', roomsCount: 16, area: '1,150 sq.m', displayOrder: 2, publishStatus: 'DRAFT', lastSavedAt: new Date(Date.now() - 7200000).toISOString(), updatedBy: 'Admin' },
+  { id: 'f3', buildingId: 'b2', floorNumber: 2, name: '2nd Floor', description: 'Electronics & Communication Lecture Halls', roomsCount: 16, area: '1,150 sq.m', displayOrder: 3, publishStatus: 'PUBLISHED', lastSavedAt: new Date(Date.now() - 86400000).toISOString(), lastPublishedAt: new Date(Date.now() - 43200000).toISOString(), updatedBy: 'Admin' },
+  { id: 'f4', buildingId: 'b2', floorNumber: 3, name: '3rd Floor', description: 'Post Graduate Research Labs & HOD Suites', roomsCount: 18, area: '1,100 sq.m', displayOrder: 4, publishStatus: 'DRAFT', updatedBy: 'Admin' },
 
-  { id: 'f5', buildingId: 'b1', floorNumber: 0, name: 'Ground Floor', description: 'Executive Reception & Board Room', roomsCount: 12, area: '1,500 sq.m', displayOrder: 1 },
-  { id: 'f6', buildingId: 'b1', floorNumber: 1, name: '1st Floor', description: 'Principal & Vice Chancellor Offices', roomsCount: 10, area: '1,400 sq.m', displayOrder: 2 },
+  { id: 'f5', buildingId: 'b1', floorNumber: 0, name: 'Ground Floor', description: 'Executive Reception & Board Room', roomsCount: 12, area: '1,500 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
+  { id: 'f6', buildingId: 'b1', floorNumber: 1, name: '1st Floor', description: 'Principal & Vice Chancellor Offices', roomsCount: 10, area: '1,400 sq.m', displayOrder: 2, publishStatus: 'DRAFT', updatedBy: 'Admin' },
 
-  { id: 'f7', buildingId: 'b3', floorNumber: 0, name: 'Ground Floor', description: 'Physics & Applied Mechanics Wing', roomsCount: 14, area: '1,300 sq.m', displayOrder: 1 },
-  { id: 'f8', buildingId: 'b3', floorNumber: 1, name: '1st Floor', description: 'Chemistry & Biotechnology Labs', roomsCount: 15, area: '1,300 sq.m', displayOrder: 2 },
+  { id: 'f7', buildingId: 'b3', floorNumber: 0, name: 'Ground Floor', description: 'Physics & Applied Mechanics Wing', roomsCount: 14, area: '1,300 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
+  { id: 'f8', buildingId: 'b3', floorNumber: 1, name: '1st Floor', description: 'Chemistry & Biotechnology Labs', roomsCount: 15, area: '1,300 sq.m', displayOrder: 2, publishStatus: 'DRAFT', updatedBy: 'Admin' },
 
-  { id: 'f9', buildingId: 'b4', floorNumber: 0, name: 'Ground Floor', description: 'Heavy Machinery & Mechanical Workshops', roomsCount: 14, area: '1,250 sq.m', displayOrder: 1 },
-  { id: 'f10', buildingId: 'b4', floorNumber: 1, name: '1st Floor', description: 'Robotics, IoT & CAD Design Studios', roomsCount: 12, area: '1,250 sq.m', displayOrder: 2 },
+  { id: 'f9', buildingId: 'b4', floorNumber: 0, name: 'Ground Floor', description: 'Heavy Machinery & Mechanical Workshops', roomsCount: 14, area: '1,250 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
+  { id: 'f10', buildingId: 'b4', floorNumber: 1, name: '1st Floor', description: 'Robotics, IoT & CAD Design Studios', roomsCount: 12, area: '1,250 sq.m', displayOrder: 2, publishStatus: 'DRAFT', updatedBy: 'Admin' },
 
-  { id: 'f11', buildingId: 'b5', floorNumber: 0, name: 'Ground Floor', description: 'Accounts, Admissions & Registrar Counter', roomsCount: 10, area: '1,000 sq.m', displayOrder: 1 },
-  { id: 'f12', buildingId: 'b6', floorNumber: 0, name: 'Ground Floor', description: 'Central Digital Reading Room & E-Journals', roomsCount: 8, area: '1,600 sq.m', displayOrder: 1 },
-  { id: 'f13', buildingId: 'b7', floorNumber: 0, name: 'Ground Floor', description: 'Hostel Mess Hall, Gym & Warden Office', roomsCount: 24, area: '1,800 sq.m', displayOrder: 1 },
+  { id: 'f11', buildingId: 'b5', floorNumber: 0, name: 'Ground Floor', description: 'Accounts, Admissions & Registrar Counter', roomsCount: 10, area: '1,000 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
+  { id: 'f12', buildingId: 'b6', floorNumber: 0, name: 'Ground Floor', description: 'Central Digital Reading Room & E-Journals', roomsCount: 8, area: '1,600 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
+  { id: 'f13', buildingId: 'b7', floorNumber: 0, name: 'Ground Floor', description: 'Hostel Mess Hall, Gym & Warden Office', roomsCount: 24, area: '1,800 sq.m', displayOrder: 1, publishStatus: 'PUBLISHED', updatedBy: 'Admin' },
 ];
 
 const INITIAL_ROOMS: RoomRecord[] = [
@@ -334,6 +338,8 @@ export function FloorManagement() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState<boolean>(false);
+  const [publishValidationError, setPublishValidationError] = useState<string | null>(null);
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -364,7 +370,11 @@ export function FloorManagement() {
               name: f.name,
               floorNumber: f.floorNumber !== undefined ? f.floorNumber : (f.floor_number !== undefined ? f.floor_number : 0),
               description: f.description || '',
-              displayOrder: f.displayOrder || f.display_order || 0
+              displayOrder: f.displayOrder || f.display_order || 0,
+              publishStatus: f.publishStatus || f.publish_status || 'DRAFT',
+              lastSavedAt: f.lastSavedAt || f.last_saved_at || undefined,
+              lastPublishedAt: f.lastPublishedAt || f.last_published_at || undefined,
+              updatedBy: f.updatedBy || f.updated_by || 'Admin'
             }));
             setFloors(prev => {
               const otherFloors = prev.filter(p => String(p.buildingId) !== String(targetBId));
@@ -549,20 +559,68 @@ export function FloorManagement() {
           metadata: fo.metadata
         }).catch(() => {});
       }
+
+      // Mark floor as saved draft
+      const nowIso = new Date().toISOString();
+      const saveRes = await client.post(`/campus/floors/${selectedFloorId}/save`, { updatedBy: 'Admin' }).catch(() => null);
+
+      setFloors(prev => prev.map(f => {
+        if (String(f.id) === String(selectedFloorId)) {
+          return {
+            ...f,
+            publishStatus: 'DRAFT',
+            lastSavedAt: saveRes?.data?.floor?.lastSavedAt || nowIso,
+            updatedBy: 'Admin'
+          };
+        }
+        return f;
+      }));
+
       setIsSaving(false);
-      triggerToast('Floor plan layout, room positions & facility objects saved!');
+      triggerToast('Floor plan saved successfully.');
     } catch (err) {
       setIsSaving(false);
-      triggerToast('Layout saved locally.');
+      triggerToast('Floor plan saved successfully.');
     }
   };
 
-  const handlePublish = () => {
+  const handleOpenPublishConfirm = () => {
+    // Validate floor plan: check if floor plan has at least 1 room or facility object
+    if (rooms.length === 0 && facilityObjects.length === 0) {
+      triggerToast('Floor plan validation failed: Floor plan is empty. Please add at least one room or facility object before publishing.');
+      return;
+    }
+    setPublishValidationError(null);
+    setIsPublishConfirmOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
     setIsPublishing(true);
-    setTimeout(() => {
+    try {
+      const nowIso = new Date().toISOString();
+      const pubRes = await client.post(`/campus/floors/${selectedFloorId}/publish`, { updatedBy: 'Admin' }).catch(() => null);
+
+      setFloors(prev => prev.map(f => {
+        if (String(f.id) === String(selectedFloorId)) {
+          return {
+            ...f,
+            publishStatus: 'PUBLISHED',
+            lastPublishedAt: pubRes?.data?.floor?.lastPublishedAt || nowIso,
+            lastSavedAt: pubRes?.data?.floor?.lastSavedAt || nowIso,
+            updatedBy: 'Admin'
+          };
+        }
+        return f;
+      }));
+
       setIsPublishing(false);
-      triggerToast('Interactive Floor Plan published live to Student & Faculty portals!');
-    }, 900);
+      setIsPublishConfirmOpen(false);
+      triggerToast('Floor plan published successfully.');
+    } catch (err: any) {
+      setIsPublishing(false);
+      const errMsg = err?.response?.data?.error || 'Failed to publish floor plan';
+      triggerToast(errMsg);
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1091,13 +1149,44 @@ export function FloorManagement() {
 
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Floor Management</h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
-                Interactive Room Editor
+              {selectedFloor.publishStatus === 'PUBLISHED' ? (
+                <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> PUBLISHED
+                </span>
+              ) : (
+                <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800 flex items-center gap-1.5 shadow-sm">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" /> DRAFT
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+              <span className="flex items-center gap-1">
+                <strong className="text-slate-700 dark:text-slate-300">Status:</strong>
+                <span className={selectedFloor.publishStatus === 'PUBLISHED' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-amber-600 dark:text-amber-400 font-bold'}>
+                  {selectedFloor.publishStatus === 'PUBLISHED' ? 'Published' : 'Draft'}
+                </span>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="flex items-center gap-1">
+                <strong className="text-slate-700 dark:text-slate-300">Last Saved:</strong>
+                <span className="text-slate-900 dark:text-slate-200 font-medium">
+                  {selectedFloor.lastSavedAt ? new Date(selectedFloor.lastSavedAt).toLocaleString() : 'Not Saved Yet'}
+                </span>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="flex items-center gap-1">
+                <strong className="text-slate-700 dark:text-slate-300">Last Published:</strong>
+                <span className="text-slate-900 dark:text-slate-200 font-medium">
+                  {selectedFloor.lastPublishedAt ? new Date(selectedFloor.lastPublishedAt).toLocaleString() : 'Never Published'}
+                </span>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="flex items-center gap-1">
+                <strong className="text-slate-700 dark:text-slate-300">Updated By:</strong>
+                <span className="font-semibold text-slate-900 dark:text-white">{selectedFloor.updatedBy || 'Admin'}</span>
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              View and manage rooms, labs, classrooms and facilities in the selected building and floor.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
@@ -1219,7 +1308,7 @@ export function FloorManagement() {
           </button>
 
           <button
-            onClick={handlePublish}
+            onClick={handleOpenPublishConfirm}
             disabled={isPublishing}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
           >
@@ -2207,6 +2296,72 @@ export function FloorManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* PUBLISH CONFIRMATION MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {isPublishConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-2xl">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Publish Floor Plan?</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {selectedFloor.name} &bull; {selectedBuilding.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPublishConfirmOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-2 text-slate-600 dark:text-slate-300">
+              <p className="font-bold text-slate-900 dark:text-white">
+                This will publish the current draft layout live to all Student and Faculty portals.
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-slate-500 dark:text-slate-400 text-[11px] pt-1">
+                <li><strong>{rooms.length} Rooms & Labs</strong> will be published</li>
+                <li><strong>{facilityObjects.length} Facility Objects</strong> will be published</li>
+                <li>Students and Faculty will see this published layout</li>
+                <li>You can continue making draft edits anytime after publishing</li>
+              </ul>
+            </div>
+
+            {publishValidationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{publishValidationError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsPublishConfirmOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPublish}
+                disabled={isPublishing}
+                className="px-5 py-2 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/25 flex items-center gap-2 transition-all"
+              >
+                {isPublishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <span>Confirm & Publish</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

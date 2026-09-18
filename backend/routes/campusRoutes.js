@@ -22,12 +22,29 @@ async function seedBuildingsIfEmpty() {
       await pool.execute('ALTER TABLE campus_floors ADD COLUMN display_order INT DEFAULT 0');
     } catch (e) {}
 
+    // Ensure publish columns exist on campus_floors
+    try {
+      await pool.execute("ALTER TABLE campus_floors ADD COLUMN publish_status VARCHAR(20) DEFAULT 'DRAFT'");
+    } catch (e) {}
+    try {
+      await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_saved_at TIMESTAMP NULL");
+    } catch (e) {}
+    try {
+      await pool.execute("ALTER TABLE campus_floors ADD COLUMN last_published_at TIMESTAMP NULL");
+    } catch (e) {}
+    try {
+      await pool.execute("ALTER TABLE campus_floors ADD COLUMN updated_by VARCHAR(100) DEFAULT 'Admin'");
+    } catch (e) {}
+
     // Ensure columns exist on campus_rooms
     try {
       await pool.execute('ALTER TABLE campus_rooms ADD COLUMN room_type VARCHAR(50) DEFAULT "Classroom"');
     } catch (e) {}
     try {
       await pool.execute('ALTER TABLE campus_rooms ADD COLUMN shape VARCHAR(30) DEFAULT "rectangle"');
+    } catch (e) {}
+    try {
+      await pool.execute("ALTER TABLE campus_rooms ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'");
     } catch (e) {}
 
     // Ensure campus_room_types has at least one fallback entry
@@ -55,11 +72,15 @@ async function seedBuildingsIfEmpty() {
           rotation FLOAT NOT NULL DEFAULT 0,
           shape VARCHAR(50) DEFAULT 'rectangle',
           metadata JSON NULL,
+          version_status VARCHAR(20) DEFAULT 'DRAFT',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (floor_id) REFERENCES campus_floors(id) ON DELETE CASCADE
         )
       `);
+      try {
+        await pool.execute("ALTER TABLE floor_plan_objects ADD COLUMN version_status VARCHAR(20) DEFAULT 'DRAFT'");
+      } catch (e) {}
     } catch (e) {
       console.error('Error initializing floor_plan_objects table:', e.message);
     }
@@ -217,10 +238,29 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
     await seedBuildingsIfEmpty();
     const { buildingId } = req.params;
     const [floors] = await pool.execute(
-      'SELECT id, building_id as buildingId, name, floor_number as floorNumber, description, display_order as displayOrder, created_at as createdAt, updated_at as updatedAt FROM campus_floors WHERE building_id = ? ORDER BY floor_number ASC, display_order ASC',
+      `SELECT 
+        id, 
+        building_id as buildingId, 
+        name, 
+        floor_number as floorNumber, 
+        description, 
+        display_order as displayOrder, 
+        publish_status as publishStatus,
+        last_saved_at as lastSavedAt,
+        last_published_at as lastPublishedAt,
+        updated_by as updatedBy,
+        created_at as createdAt, 
+        updated_at as updatedAt 
+      FROM campus_floors 
+      WHERE building_id = ? 
+      ORDER BY floor_number ASC, display_order ASC`,
       [buildingId]
     );
-    res.json(floors);
+    res.json(floors.map(f => ({
+      ...f,
+      publishStatus: f.publishStatus || 'DRAFT',
+      updatedBy: f.updatedBy || 'Admin'
+    })));
   } catch (err) {
     console.error('Error fetching floors:', err);
     res.status(500).json({ error: 'Failed to fetch floors' });
@@ -349,6 +389,206 @@ router.delete('/floors/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting floor:', err);
     res.status(500).json({ error: 'Failed to delete floor: ' + err.message });
+  }
+});
+
+// GET /api/campus/floors/:id/status - Get status & metadata for floor
+router.get('/floors/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.execute(
+      `SELECT 
+        id, building_id as buildingId, name, floor_number as floorNumber, 
+        publish_status as publishStatus, last_saved_at as lastSavedAt, 
+        last_published_at as lastPublishedAt, updated_by as updatedBy 
+      FROM campus_floors WHERE id = ?`,
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Floor not found' });
+    res.json({
+      ...rows[0],
+      publishStatus: rows[0].publishStatus || 'DRAFT',
+      updatedBy: rows[0].updatedBy || 'Admin'
+    });
+  } catch (err) {
+    console.error('Error fetching floor status:', err);
+    res.status(500).json({ error: 'Failed to fetch floor status' });
+  }
+});
+
+// POST /api/campus/floors/:id/save - Save floor plan draft
+router.post('/floors/:id/save', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedBy = req.body.updatedBy || 'Admin';
+
+    const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Floor not found' });
+
+    await pool.execute(
+      `UPDATE campus_floors 
+       SET publish_status = 'DRAFT', last_saved_at = NOW(), updated_by = ? 
+       WHERE id = ?`,
+      [updatedBy, id]
+    );
+
+    const [updated] = await pool.execute(
+      `SELECT 
+        id, building_id as buildingId, name, floor_number as floorNumber, 
+        publish_status as publishStatus, last_saved_at as lastSavedAt, 
+        last_published_at as lastPublishedAt, updated_by as updatedBy 
+      FROM campus_floors WHERE id = ?`,
+      [id]
+    );
+
+    res.json({
+      message: 'Floor plan saved successfully.',
+      floor: {
+        ...updated[0],
+        publishStatus: updated[0].publishStatus || 'DRAFT',
+        updatedBy: updated[0].updatedBy || 'Admin'
+      }
+    });
+  } catch (err) {
+    console.error('Error saving floor plan:', err);
+    res.status(500).json({ error: 'Failed to save floor plan: ' + err.message });
+  }
+});
+
+// POST /api/campus/floors/:id/publish - Publish floor plan draft
+router.post('/floors/:id/publish', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedBy = req.body.updatedBy || 'Admin';
+
+    const [existing] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [id]);
+    if (existing.length === 0) return res.status(404).json({ error: 'Floor not found' });
+
+    // Validation: Check if floor contains at least one room or facility object
+    const [draftRooms] = await pool.execute(
+      "SELECT id FROM campus_rooms WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)",
+      [id]
+    );
+    const [draftObjs] = await pool.execute(
+      "SELECT id FROM floor_plan_objects WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)",
+      [id]
+    );
+
+    if (draftRooms.length === 0 && draftObjs.length === 0) {
+      return res.status(400).json({
+        error: 'Floor plan validation failed: The floor plan is empty. Please add at least one room or facility object before publishing.'
+      });
+    }
+
+    // Delete existing PUBLISHED items for this floor
+    await pool.execute("DELETE FROM campus_rooms WHERE floor_id = ? AND version_status = 'PUBLISHED'", [id]);
+    await pool.execute("DELETE FROM floor_plan_objects WHERE floor_id = ? AND version_status = 'PUBLISHED'", [id]);
+
+    // Promote DRAFT rooms to PUBLISHED version
+    await pool.execute(`
+      INSERT INTO campus_rooms (
+        building_id, floor_id, room_type_id, room_number, room_name, room_type, 
+        capacity, department, description, status, x, y, width, height, rotation, shape, version_status
+      )
+      SELECT 
+        building_id, floor_id, room_type_id, room_number, room_name, room_type, 
+        capacity, department, description, status, x, y, width, height, rotation, shape, 'PUBLISHED'
+      FROM campus_rooms 
+      WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)
+    `, [id]);
+
+    // Promote DRAFT facility objects to PUBLISHED version
+    await pool.execute(`
+      INSERT INTO floor_plan_objects (
+        floor_id, object_type, name, x, y, width, height, rotation, shape, metadata, version_status
+      )
+      SELECT 
+        floor_id, object_type, name, x, y, width, height, rotation, shape, metadata, 'PUBLISHED'
+      FROM floor_plan_objects 
+      WHERE floor_id = ? AND (version_status = 'DRAFT' OR version_status IS NULL)
+    `, [id]);
+
+    // Update floor status to PUBLISHED and set timestamps
+    await pool.execute(
+      `UPDATE campus_floors 
+       SET publish_status = 'PUBLISHED', last_published_at = NOW(), last_saved_at = NOW(), updated_by = ? 
+       WHERE id = ?`,
+      [updatedBy, id]
+    );
+
+    const [updated] = await pool.execute(
+      `SELECT 
+        id, building_id as buildingId, name, floor_number as floorNumber, 
+        publish_status as publishStatus, last_saved_at as lastSavedAt, 
+        last_published_at as lastPublishedAt, updated_by as updatedBy 
+      FROM campus_floors WHERE id = ?`,
+      [id]
+    );
+
+    res.json({
+      message: 'Floor plan published successfully.',
+      floor: {
+        ...updated[0],
+        publishStatus: updated[0].publishStatus || 'PUBLISHED',
+        updatedBy: updated[0].updatedBy || 'Admin'
+      }
+    });
+  } catch (err) {
+    console.error('Error publishing floor plan:', err);
+    res.status(500).json({ error: 'Failed to publish floor plan: ' + err.message });
+  }
+});
+
+// GET /api/campus/floors/:floorId/published - Public endpoint for Students & Faculty
+router.get('/floors/:floorId/published', async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const [floorRows] = await pool.execute('SELECT * FROM campus_floors WHERE id = ?', [floorId]);
+    if (floorRows.length === 0) return res.status(404).json({ error: 'Floor not found' });
+
+    const floorInfo = floorRows[0];
+    if (floorInfo.publish_status !== 'PUBLISHED') {
+      return res.status(404).json({ error: 'Published floor plan not available yet.' });
+    }
+
+    const [rooms] = await pool.execute(
+      `SELECT id, floor_id as floorId, building_id as buildingId, room_number as roomNumber, 
+              room_name as roomName, room_type as roomType, capacity, department, description, 
+              status, x, y, width, height, rotation, shape, created_at as createdAt 
+       FROM campus_rooms 
+       WHERE floor_id = ? AND version_status = 'PUBLISHED' 
+       ORDER BY id ASC`,
+      [floorId]
+    );
+
+    const [objects] = await pool.execute(
+      `SELECT id, floor_id as floorId, object_type as objectType, name, x, y, width, height, 
+              rotation, shape, metadata, created_at as createdAt 
+       FROM floor_plan_objects 
+       WHERE floor_id = ? AND version_status = 'PUBLISHED' 
+       ORDER BY id ASC`,
+      [floorId]
+    );
+
+    const formattedObjects = objects.map(o => ({
+      ...o,
+      metadata: typeof o.metadata === 'string' ? JSON.parse(o.metadata) : (o.metadata || {})
+    }));
+
+    res.json({
+      floor: {
+        id: floorInfo.id,
+        name: floorInfo.name,
+        buildingId: floorInfo.building_id,
+        publishStatus: floorInfo.publish_status,
+        lastPublishedAt: floorInfo.last_published_at
+      },
+      rooms,
+      objects: formattedObjects
+    });
+  } catch (err) {
+    console.error('Error fetching published floor plan:', err);
+    res.status(500).json({ error: 'Failed to fetch published floor plan' });
   }
 });
 
