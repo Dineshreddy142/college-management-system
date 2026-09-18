@@ -543,7 +543,11 @@ const normalizeRoleName = (r) => {
     if (!r) return '';
     const clean = r.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (clean === 'placementofficer' || clean === 'placement') return 'placement';
-    if (clean === 'officestaff' || clean === 'office' || clean === 'accountant' || clean === 'accounts') return 'office';
+    if (clean === 'officestaff' || clean === 'office' || clean === 'accountant' || clean === 'accounts' || clean === 'librarian') return 'office';
+    if (clean === 'administrator' || clean === 'admin' || clean === 'systemadmin' || clean === 'principal' || clean === 'superadmin' || clean === 'systemadministrator') return 'admin';
+    if (clean === 'facultymember' || clean === 'faculty' || clean === 'teacher' || clean === 'professor' || clean === 'hod' || clean === 'headofdepartment') return 'faculty';
+    if (clean === 'student') return 'student';
+    if (clean === 'parent') return 'parent';
     return clean;
 };
 
@@ -840,17 +844,12 @@ router.post('/auth/face-login', upload.single('image'), async (req, res) => {
         const user = targetUser;
 
         // Validate portal role isolation
-        const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (portalRole) {
-            const normDb = normalizeRole(user.role_name);
-            const normPortal = normalizeRole(portalRole);
-            if (normDb !== normPortal && !normDb.includes(normPortal) && !normPortal.includes(normDb)) {
-                return res.status(403).json({
-                    success: false,
-                    code: 'ROLE_MISMATCH',
-                    message: `Your role (${user.role_name}) does not have permission to access the ${portalRole.toUpperCase()} portal.`
-                });
-            }
+        if (portalRole && !isRoleAllowedForPortal(user.role_name, portalRole)) {
+            return res.status(403).json({
+                success: false,
+                code: 'ROLE_MISMATCH',
+                message: `Access Denied: Your account role (${user.role_name}) is not authorized to access the ${portalRole.toUpperCase()} portal.`
+            });
         }
 
         const token = jwt.sign(

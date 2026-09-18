@@ -357,7 +357,10 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
         }
       } catch (err: any) {
         const msg = err.response?.data?.message || err.message || '';
-        if (!isAutomatic) {
+        if (err.response?.status === 403) {
+          setErrorMessage(msg || 'Access Denied: Your account role is not authorized for this portal.');
+          setPoseFeedback('Role mismatch. Please log in through your assigned portal.');
+        } else if (!isAutomatic) {
           setErrorMessage(msg || 'Face identification failed.');
           setPoseFeedback('Verification error. Please retry or use password.');
         } else {
