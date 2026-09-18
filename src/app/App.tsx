@@ -1767,7 +1767,7 @@ function RegisterPage({ onNav }: { onNav: (v: string) => void }) {
 
           <button onClick={() => onNav("login")}
             className="w-full py-3 mt-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/40 text-sm">
-            Create Account →
+            Sign In to Portal →
           </button>
 
           <p className="text-center text-xs text-blue-300/70 mt-4">
