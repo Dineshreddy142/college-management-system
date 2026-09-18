@@ -392,6 +392,12 @@ export function FloorManagement() {
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
 
+  // Building Canvas Dimensions & Resizing State
+  const [canvasWidth, setCanvasWidth] = useState<number>(1160);
+  const [canvasHeight, setCanvasHeight] = useState<number>(740);
+  const [isResizingCanvas, setIsResizingCanvas] = useState<boolean>(false);
+  const [canvasResizeStart, setCanvasResizeStart] = useState<{ x: number; y: number; startW: number; startH: number }>({ x: 0, y: 0, startW: 1160, startH: 740 });
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
@@ -1491,6 +1497,18 @@ export function FloorManagement() {
 
     const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
 
+    // 1. Building Canvas Resizing
+    if (isResizingCanvas) {
+      const deltaX = (e.clientX - canvasResizeStart.x) * (100 / Math.max(10, zoomLevel));
+      const deltaY = (e.clientY - canvasResizeStart.y) * (100 / Math.max(10, zoomLevel));
+      const newW = Math.max(600, Math.min(3200, snap(canvasResizeStart.startW + deltaX)));
+      const newH = Math.max(400, Math.min(2400, snap(canvasResizeStart.startH + deltaY)));
+      setCanvasWidth(newW);
+      setCanvasHeight(newH);
+      return;
+    }
+
+    // 2. Room Dragging & Resizing
     if (selectedRoomId) {
       if (isDraggingObj) {
         const newX = snap(e.clientX - dragOffset.x);
@@ -1499,16 +1517,36 @@ export function FloorManagement() {
       } else if (resizeHandle) {
         setRooms(prev => prev.map(r => {
           if (String(r.id) !== String(selectedRoomId)) return r;
+          let newX = r.x;
+          let newY = r.y;
           let newW = r.width;
           let newH = r.height;
 
           if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - r.x));
-          if (resizeHandle.includes('s')) newH = Math.max(60, snap(e.clientY - r.y));
+          if (resizeHandle.includes('s')) newH = Math.max(50, snap(e.clientY - r.y));
+          if (resizeHandle.includes('w')) {
+            const right = r.x + r.width;
+            const proposedX = Math.max(0, snap(e.clientX));
+            if (right - proposedX >= 60) {
+              newX = proposedX;
+              newW = right - proposedX;
+            }
+          }
+          if (resizeHandle.includes('n')) {
+            const bottom = r.y + r.height;
+            const proposedY = Math.max(0, snap(e.clientY));
+            if (bottom - proposedY >= 50) {
+              newY = proposedY;
+              newH = bottom - proposedY;
+            }
+          }
 
-          return { ...r, width: newW, height: newH };
+          return { ...r, x: newX, y: newY, width: newW, height: newH };
         }));
       }
-    } else if (selectedFacilityId) {
+    } 
+    // 3. Facility Object Dragging & Resizing
+    else if (selectedFacilityId) {
       if (isDraggingObj) {
         const newX = snap(e.clientX - dragOffset.x);
         const newY = snap(e.clientY - dragOffset.y);
@@ -1516,22 +1554,41 @@ export function FloorManagement() {
       } else if (resizeHandle) {
         setFacilityObjects(prev => prev.map(fo => {
           if (String(fo.id) !== String(selectedFacilityId)) return fo;
+          let newX = fo.x;
+          let newY = fo.y;
           let newW = fo.width;
           let newH = fo.height;
 
-          if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - fo.x));
-          if (resizeHandle.includes('s')) newH = Math.max(60, snap(e.clientY - fo.y));
+          if (resizeHandle.includes('e')) newW = Math.max(40, snap(e.clientX - fo.x));
+          if (resizeHandle.includes('s')) newH = Math.max(20, snap(e.clientY - fo.y));
+          if (resizeHandle.includes('w')) {
+            const right = fo.x + fo.width;
+            const proposedX = Math.max(0, snap(e.clientX));
+            if (right - proposedX >= 40) {
+              newX = proposedX;
+              newW = right - proposedX;
+            }
+          }
+          if (resizeHandle.includes('n')) {
+            const bottom = fo.y + fo.height;
+            const proposedY = Math.max(0, snap(e.clientY));
+            if (bottom - proposedY >= 20) {
+              newY = proposedY;
+              newH = bottom - proposedY;
+            }
+          }
 
-          return { ...fo, width: newW, height: newH };
+          return { ...fo, x: newX, y: newY, width: newW, height: newH };
         }));
       }
     }
-  }, [isPanning, panStart, editMode, selectedRoomId, selectedFacilityId, isDraggingObj, dragOffset, resizeHandle, snapToGrid]);
+  }, [isPanning, panStart, editMode, selectedRoomId, selectedFacilityId, isDraggingObj, dragOffset, resizeHandle, snapToGrid, isResizingCanvas, canvasResizeStart, zoomLevel]);
 
   const handleMouseUpCanvas = () => {
     setIsPanning(false);
     setIsDraggingObj(false);
     setResizeHandle(null);
+    setIsResizingCanvas(false);
   };
 
   // Viewport Fit & Navigation
@@ -1959,6 +2016,32 @@ export function FloorManagement() {
             >
               <Grid className="w-3.5 h-3.5" /> Snap Grid: {snapToGrid ? 'ON' : 'OFF'}
             </button>
+
+            {/* Building Canvas Preset Controls */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 px-1.5">Building Size:</span>
+              <button
+                type="button"
+                onClick={() => { setCanvasWidth(1160); setCanvasHeight(740); triggerToast('Set Canvas to Standard (1160x740)'); }}
+                className={cn("px-2 py-1 rounded-lg text-[10px] font-bold transition-all", canvasWidth === 1160 && canvasHeight === 740 ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white")}
+              >
+                1160×740
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCanvasWidth(1500); setCanvasHeight(950); triggerToast('Set Canvas to Large (1500x950)'); }}
+                className={cn("px-2 py-1 rounded-lg text-[10px] font-bold transition-all", canvasWidth === 1500 && canvasHeight === 950 ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white")}
+              >
+                1500×950
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCanvasWidth(1900); setCanvasHeight(1150); triggerToast('Set Canvas to XL (1900x1150)'); }}
+                className={cn("px-2 py-1 rounded-lg text-[10px] font-bold transition-all", canvasWidth === 1900 && canvasHeight === 1150 ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white")}
+              >
+                1900×1150
+              </button>
+            </div>
           </div>
 
         </div>
@@ -2136,11 +2219,13 @@ export function FloorManagement() {
           >
             <div
               style={{
+                width: `${canvasWidth}px`,
+                height: `${canvasHeight}px`,
                 transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel / 100})`,
                 transformOrigin: 'center center',
-                transition: isPanning || isDraggingObj ? 'none' : 'transform 0.1s ease-out'
+                transition: isPanning || isDraggingObj || isResizingCanvas ? 'none' : 'transform 0.1s ease-out'
               }}
-              className="relative w-[1160px] h-[740px] bg-slate-900 rounded-3xl shadow-2xl border-4 border-slate-800 overflow-hidden flex-shrink-0 transition-all canvas-bg bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]"
+              className="relative bg-slate-900 rounded-3xl shadow-2xl border-4 border-slate-800 overflow-hidden flex-shrink-0 transition-all canvas-bg bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]"
             >
 
               {/* Building Floor Label Watermark */}
@@ -2232,7 +2317,13 @@ export function FloorManagement() {
                           <RotateCw className="w-3.5 h-3.5" />
                         </div>
 
-                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
+                        {/* Flexible Corner & Edge Resize Handles */}
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-se-resize shadow-md hover:scale-125 transition-transform" title="Resize SE" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-sw-resize shadow-md hover:scale-125 transition-transform" title="Resize SW" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-ne-resize shadow-md hover:scale-125 transition-transform" title="Resize NE" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-blue-600 border-2 border-white rounded-full cursor-nw-resize shadow-md hover:scale-125 transition-transform" title="Resize NW" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'e')} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-4 bg-blue-600 border-2 border-white rounded-sm cursor-e-resize shadow-md" title="Resize Width" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 's')} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-blue-600 border-2 border-white rounded-sm cursor-s-resize shadow-md" title="Resize Height" />
 
                         {/* Quick Shape Selector */}
                         <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900 text-white px-2 py-1 rounded-xl shadow-2xl border border-slate-700 text-[10px] font-bold z-30">
@@ -2336,7 +2427,13 @@ export function FloorManagement() {
                           <RotateCw className="w-3.5 h-3.5" />
                         </div>
 
-                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
+                        {/* Flexible Corner & Edge Resize Handles */}
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-se-resize shadow-md hover:scale-125 transition-transform" title="Resize SE" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-sw-resize shadow-md hover:scale-125 transition-transform" title="Resize SW" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-ne-resize shadow-md hover:scale-125 transition-transform" title="Resize NE" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-amber-500 border-2 border-white rounded-full cursor-nw-resize shadow-md hover:scale-125 transition-transform" title="Resize NW" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 'e')} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-4 bg-amber-500 border-2 border-white rounded-sm cursor-e-resize shadow-md" title="Resize Width" />
+                        <div onMouseDown={(e) => handleMouseDownResizeHandle(e, 's')} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-amber-500 border-2 border-white rounded-sm cursor-s-resize shadow-md" title="Resize Height" />
 
                         <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900 text-white px-2 py-1 rounded-xl shadow-2xl border border-slate-700 text-[10px] font-bold z-30">
                           <button onClick={() => handleOpenEditFacilityModal(fo)} className="px-1.5 py-0.5 bg-slate-700 text-amber-300">Edit</button>
@@ -2348,6 +2445,22 @@ export function FloorManagement() {
                   </div>
                 );
               })}
+
+              {/* Interactive Building Canvas Corner Resize Handle */}
+              {editMode && isAdmin && (
+                <div
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setIsResizingCanvas(true);
+                    setCanvasResizeStart({ x: e.clientX, y: e.clientY, startW: canvasWidth, startH: canvasHeight });
+                  }}
+                  className="absolute bottom-2 right-2 px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-2xl border border-blue-400 cursor-se-resize flex items-center gap-1.5 text-[10px] font-black z-30 select-none"
+                  title="Drag to resize building canvas footprint"
+                >
+                  <Maximize className="w-3 h-3" />
+                  <span>Building Size ({canvasWidth} × {canvasHeight}px)</span>
+                </div>
+              )}
 
             </div>
           </div>
@@ -2909,6 +3022,30 @@ export function FloorManagement() {
                 </select>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Room Width (px)</label>
+                  <input
+                    type="number"
+                    min={60}
+                    value={editingRoom.width || 200}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, width: Number(e.target.value) }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Room Height (px)</label>
+                  <input
+                    type="number"
+                    min={50}
+                    value={editingRoom.height || 150}
+                    onChange={e => setEditingRoom(prev => ({ ...prev, height: Number(e.target.value) }))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                 <textarea
@@ -2994,6 +3131,32 @@ export function FloorManagement() {
                   onChange={e => setEditingBuilding(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Canvas Width (px)</label>
+                  <input
+                    type="number"
+                    min={600}
+                    max={3200}
+                    value={canvasWidth}
+                    onChange={e => setCanvasWidth(Math.max(600, Number(e.target.value)))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Canvas Height (px)</label>
+                  <input
+                    type="number"
+                    min={400}
+                    max={2400}
+                    value={canvasHeight}
+                    onChange={e => setCanvasHeight(Math.max(400, Number(e.target.value)))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
