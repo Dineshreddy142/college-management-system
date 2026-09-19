@@ -2328,8 +2328,6 @@ export function FloorManagement() {
                         {/* Quick Shape Selector */}
                         <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900 text-white px-2 py-1 rounded-xl shadow-2xl border border-slate-700 text-[10px] font-bold z-30">
                           <button onClick={() => handleChangeRoomShape(rm.id, 'rectangle')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'rectangle' && "bg-blue-600")}>Rect</button>
-                          <button onClick={() => handleChangeRoomShape(rm.id, 'square')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'square' && "bg-blue-600")}>Square</button>
-                          <button onClick={() => handleChangeRoomShape(rm.id, 'l-shape')} className={cn("px-1.5 py-0.5 rounded", rm.shape === 'l-shape' && "bg-blue-600")}>L-Shape</button>
                           <button onClick={() => handleOpenEditModal(rm)} className="px-1.5 py-0.5 bg-slate-700 text-blue-300">Edit</button>
                           <button onClick={() => handleDeleteRoom(rm.id)} className="px-1.5 py-0.5 bg-rose-900 text-rose-300">Del</button>
                         </div>
