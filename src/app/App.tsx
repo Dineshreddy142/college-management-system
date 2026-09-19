@@ -11,7 +11,11 @@ import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
-import { ProfileModule } from "./shared/ProfileModule";
+import { BuildingManagement } from "./admin/block-management/BuildingManagement";
+import { FloorManagement } from "./admin/block-management/FloorManagement";
+import { RoomManagement } from "./admin/block-management/RoomManagement";
+import { FloorEditor } from "./admin/block-management/FloorEditor";
+import { FloorVersions } from "./admin/block-management/FloorVersions";
 
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
@@ -29,7 +33,7 @@ import {
   Home, Send, Building, AlertTriangle, Info,
   Zap, Lock, Key, Smartphone, AlertCircle,
   BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
-  FileSpreadsheet, Sparkles, Layers, DoorOpen
+  FileSpreadsheet, Sparkles, Layers, DoorOpen, Edit3, History
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -246,6 +250,19 @@ const SIDEBAR_ITEMS = [
   { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
   { id: "faculty", label: "Faculty", icon: Users, badge: null },
   { id: "academic", label: "Academics", icon: BookOpen, badge: "New" },
+  {
+    id: "block-management",
+    label: "Block Management",
+    icon: Building,
+    badge: null,
+    children: [
+      { id: "building-management", label: "Building Management", icon: Building, badge: null },
+      { id: "floor-management", label: "Floor Management", icon: Layers, badge: null },
+      { id: "room-management", label: "Room Management", icon: DoorOpen, badge: null },
+      { id: "floor-editor", label: "Floor Editor", icon: Edit3, badge: "CAD" },
+      { id: "floor-versions", label: "Floor Versions", icon: History, badge: null },
+    ]
+  },
 
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "3" },
   { id: "exams", label: "Examinations", icon: FileText, badge: null },
@@ -270,7 +287,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin' || normRole === 'office') return true;
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'block-management'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
@@ -1680,6 +1697,11 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
+      case "building-management": return <BuildingManagement onNavigateToFloors={() => setMod("floor-management")} />;
+      case "floor-management": return <FloorManagement onNavigateToEditor={(fId) => { setActiveEditorFloorId(fId); setMod("floor-editor"); }} onNavigateToVersions={() => setMod("floor-versions")} />;
+      case "room-management": return <RoomManagement />;
+      case "floor-editor": return <FloorEditor floorId={activeEditorFloorId || 1} onBack={() => setMod("floor-management")} />;
+      case "floor-versions": return <FloorVersions initialFloorId={activeEditorFloorId || undefined} />;
 
 
       case "reports": return <ReportsAnalytics />;
