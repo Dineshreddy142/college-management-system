@@ -19,8 +19,6 @@ import { DocumentsModule } from "./DocumentsModule";
 import { ComplaintsModule } from "./ComplaintsModule";
 import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { AnalyticsModule } from "./AnalyticsModule";
-import { CampusMap } from "../campus-map/CampusMap";
-import { FloorManagement } from "../admin/campus/FloorManagement";
 
 export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [activeModule, setActiveModule] = useState("dashboard");
@@ -47,12 +45,7 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "documents": return <DocumentsModule />;
       case "complaints": return <ComplaintsModule />;
       case "analytics": return <AnalyticsModule />;
-      case "campus-map": return <CampusMap isAdmin={false} theme={theme as any} onToggleTheme={toggleTheme} onBackToDashboard={() => setActiveModule("dashboard")} />;
-      case "floor-management":
-      case "campus-buildings":
-      case "campus-rooms":
-      case "campus-facilities":
-        return <FloorManagement />;
+
       case "ai": return <AIAssistantModule />;
       default: return <DashboardHome />;
     }

@@ -19,8 +19,6 @@ import { MentorDashboardModule } from "./mentor/MentorDashboardModule";
 import { BulkDataHub } from "../admin/bulk/BulkDataHub";
 
 import { FacultyAttendanceMarking } from "./FacultyAttendanceMarking";
-import { CampusMap } from "../campus-map/CampusMap";
-import { FloorManagement } from "../admin/campus/FloorManagement";
 
 export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [mod, setMod] = useState("dashboard");
@@ -45,12 +43,7 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "meetings": return <MeetingsModule />;
       case "reports": return <ReportsModule />;
       case "profile": return <ProfileModule />;
-      case "campus-map": return <CampusMap isAdmin={false} theme={theme as any} onToggleTheme={toggleTheme} onBackToDashboard={() => setMod("dashboard")} />;
-      case "floor-management":
-      case "campus-buildings":
-      case "campus-rooms":
-      case "campus-facilities":
-        return <FloorManagement />;
+
       case "ai": return <AIAssistantModule />;
       default: return <DashboardHome />;
     }

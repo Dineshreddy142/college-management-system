@@ -13,17 +13,7 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "88%" },
   { id: "my-subjects", label: "My Subjects", icon: BookOpen, badge: "Registration" },
   { id: "academics", label: "Academics", icon: BookOpen, badge: null },
-  {
-    id: "campus",
-    label: "Campus",
-    icon: Building,
-    badge: null,
-    children: [
-      { id: "campus-map", label: "Campus Map", icon: Map, badge: null },
-      { id: "campus-buildings", label: "Buildings", icon: Building, badge: null },
-      { id: "floor-management", label: "Floor Plan", icon: Layers, badge: "Interactive" },
-    ]
-  },
+
   { id: "timetable", label: "Timetable", icon: Clock, badge: null },
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3 Due" },
   { id: "examination", label: "Examination", icon: Award, badge: null },
@@ -45,7 +35,7 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
   collapsed: boolean; onToggle: () => void; onNav: (v: string) => void;
   mobileOpen?: boolean; onMobileClose?: () => void;
 }) {
-  const [campusExpanded, setCampusExpanded] = useState<boolean>(true);
+  const [menuExpanded, setMenuExpanded] = useState<boolean>(true);
 
   const handleItemClick = (id: string) => {
     onChange(id);
@@ -114,7 +104,7 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                       if (isCollapsedDesktop) {
                         handleItemClick((item as any).children![0].id);
                       } else {
-                        setCampusExpanded(!campusExpanded);
+                        setMenuExpanded(!menuExpanded);
                       }
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
@@ -128,13 +118,13 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate text-sm">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (campusExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
 
                   {/* Submenu Accordion */}
-                  {(!collapsed || mobileOpen) && (campusExpanded || isChildActive) && (
+                  {(!collapsed || mobileOpen) && (menuExpanded || isChildActive) && (
                     <div className="pl-4 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 ml-5 my-1">
                       {(item as any).children!.map((child: any) => {
                         const ChildIcon = child.icon;

@@ -12,9 +12,7 @@ import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { ProfileModule } from "./shared/ProfileModule";
-import { CampusMapEditor } from "./admin/campus-map/CampusMapEditor";
-import { CampusMap } from "./campus-map/CampusMap";
-import { FloorManagement } from "./admin/campus/FloorManagement";
+
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
@@ -248,19 +246,7 @@ const SIDEBAR_ITEMS = [
   { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
   { id: "faculty", label: "Faculty", icon: Users, badge: null },
   { id: "academic", label: "Academics", icon: BookOpen, badge: "New" },
-  {
-    id: "campus",
-    label: "Campus",
-    icon: Building,
-    badge: null,
-    children: [
-      { id: "campus-map", label: "Campus Map", icon: Map, badge: null },
-      { id: "campus-buildings", label: "Buildings", icon: Building, badge: null },
-      { id: "floor-management", label: "Floor Management", icon: Layers, badge: "Editor" },
-      { id: "campus-rooms", label: "Rooms", icon: DoorOpen, badge: null },
-      { id: "campus-facilities", label: "Facilities", icon: Sparkles, badge: null },
-    ]
-  },
+
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "3" },
   { id: "exams", label: "Examinations", icon: FileText, badge: null },
   { id: "timetable", label: "Timetable", icon: CalendarDays, badge: null },
@@ -278,14 +264,13 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   mobileOpen?: boolean; onMobileClose?: () => void;
 }) {
   const { user, logout } = useAuth();
-  const isCampusActive = active.startsWith("campus") || active === "floor-management";
-  const [campusExpanded, setCampusExpanded] = useState<boolean>(true);
+  const [menuExpanded, setMenuExpanded] = useState<boolean>(true);
   
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin' || normRole === 'office') return true;
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'campus'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
@@ -359,7 +344,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                       if (isCollapsedDesktop) {
                         handleItemClick(item.children![0].id);
                       } else {
-                        setCampusExpanded(!campusExpanded);
+                        setMenuExpanded(!menuExpanded);
                       }
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
@@ -373,13 +358,13 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (campusExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
 
                   {/* Submenu Accordion */}
-                  {(!collapsed || mobileOpen) && (campusExpanded || isChildActive) && (
+                  {(!collapsed || mobileOpen) && (menuExpanded || isChildActive) && (
                     <div className="pl-4 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 ml-5 my-1">
                       {item.children!.map(child => {
                         const ChildIcon = child.icon;
@@ -1695,12 +1680,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
-      case "campus-map": return <CampusMap isAdmin={true} theme={theme as any} onToggleTheme={toggleTheme} onBackToDashboard={() => setMod("dashboard")} />;
-      case "floor-management":
-      case "campus-buildings":
-      case "campus-rooms":
-      case "campus-facilities":
-        return <FloorManagement />;
+
 
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
@@ -2381,7 +2361,7 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/:role/login" element={<PortalLogin />} />
           <Route path="/login/:role" element={<PortalLogin />} />
           <Route path="/login" element={<PortalLogin />} />
-          <Route path="/campus-map" element={<CampusMap isAdmin={false} theme={theme as any} onToggleTheme={toggleTheme} />} />
+
           <Route path="/map" element={<Navigate to="/campus-map" replace />} />
           <Route path="/forgot-password" element={<PasswordReset />} />
           <Route path="/reset-password" element={<PasswordReset />} />
