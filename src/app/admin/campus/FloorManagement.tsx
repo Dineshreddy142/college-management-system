@@ -391,6 +391,7 @@ export function FloorManagement() {
   const [isDraggingObj, setIsDraggingObj] = useState<boolean>(false);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  const [resizeStartPos, setResizeStartPos] = useState<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number } | null>(null);
 
   // Building Canvas Dimensions & Resizing State
   const [canvasWidth, setCanvasWidth] = useState<number>(1160);
@@ -1462,9 +1463,10 @@ export function FloorManagement() {
     if (!editMode) return;
 
     setIsDraggingObj(true);
+    const scale = Math.max(0.1, zoomLevel / 100);
     setDragOffset({
-      x: e.clientX - rm.x,
-      y: e.clientY - rm.y
+      x: e.clientX / scale - rm.x,
+      y: e.clientY / scale - rm.y
     });
   };
 
@@ -1475,15 +1477,42 @@ export function FloorManagement() {
     if (!editMode) return;
 
     setIsDraggingObj(true);
+    const scale = Math.max(0.1, zoomLevel / 100);
     setDragOffset({
-      x: e.clientX - fo.x,
-      y: e.clientY - fo.y
+      x: e.clientX / scale - fo.x,
+      y: e.clientY / scale - fo.y
     });
   };
 
   const handleMouseDownResizeHandle = (e: React.MouseEvent, handle: string) => {
     e.stopPropagation();
     setResizeHandle(handle);
+
+    if (selectedRoomId) {
+      const targetRoom = rooms.find(r => String(r.id) === String(selectedRoomId));
+      if (targetRoom) {
+        setResizeStartPos({
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          x: targetRoom.x,
+          y: targetRoom.y,
+          w: targetRoom.width,
+          h: targetRoom.height
+        });
+      }
+    } else if (selectedFacilityId) {
+      const targetFo = facilityObjects.find(fo => String(fo.id) === String(selectedFacilityId));
+      if (targetFo) {
+        setResizeStartPos({
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          x: targetFo.x,
+          y: targetFo.y,
+          w: targetFo.width,
+          h: targetFo.height
+        });
+      }
+    }
   };
 
   const handleMouseMoveCanvas = useCallback((e: React.MouseEvent) => {
@@ -1496,11 +1525,12 @@ export function FloorManagement() {
     if (!editMode) return;
 
     const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
+    const scale = Math.max(0.1, zoomLevel / 100);
 
     // 1. Building Canvas Resizing
     if (isResizingCanvas) {
-      const deltaX = (e.clientX - canvasResizeStart.x) * (100 / Math.max(10, zoomLevel));
-      const deltaY = (e.clientY - canvasResizeStart.y) * (100 / Math.max(10, zoomLevel));
+      const deltaX = (e.clientX - canvasResizeStart.x) / scale;
+      const deltaY = (e.clientY - canvasResizeStart.y) / scale;
       const newW = Math.max(600, Math.min(3200, snap(canvasResizeStart.startW + deltaX)));
       const newH = Math.max(400, Math.min(2400, snap(canvasResizeStart.startH + deltaY)));
       setCanvasWidth(newW);
@@ -1511,34 +1541,35 @@ export function FloorManagement() {
     // 2. Room Dragging & Resizing
     if (selectedRoomId) {
       if (isDraggingObj) {
-        const newX = snap(e.clientX - dragOffset.x);
-        const newY = snap(e.clientY - dragOffset.y);
+        const newX = snap(e.clientX / scale - dragOffset.x);
+        const newY = snap(e.clientY / scale - dragOffset.y);
         setRooms(prev => prev.map(r => String(r.id) === String(selectedRoomId) ? { ...r, x: Math.max(0, newX), y: Math.max(0, newY) } : r));
-      } else if (resizeHandle) {
+      } else if (resizeHandle && resizeStartPos) {
+        const deltaX = (e.clientX - resizeStartPos.mouseX) / scale;
+        const deltaY = (e.clientY - resizeStartPos.mouseY) / scale;
+
         setRooms(prev => prev.map(r => {
           if (String(r.id) !== String(selectedRoomId)) return r;
-          let newX = r.x;
-          let newY = r.y;
-          let newW = r.width;
-          let newH = r.height;
+          let newX = resizeStartPos.x;
+          let newY = resizeStartPos.y;
+          let newW = resizeStartPos.w;
+          let newH = resizeStartPos.h;
 
-          if (resizeHandle.includes('e')) newW = Math.max(60, snap(e.clientX - r.x));
-          if (resizeHandle.includes('s')) newH = Math.max(50, snap(e.clientY - r.y));
+          if (resizeHandle.includes('e')) {
+            newW = Math.max(60, snap(resizeStartPos.w + deltaX));
+          }
+          if (resizeHandle.includes('s')) {
+            newH = Math.max(50, snap(resizeStartPos.h + deltaY));
+          }
           if (resizeHandle.includes('w')) {
-            const right = r.x + r.width;
-            const proposedX = Math.max(0, snap(e.clientX));
-            if (right - proposedX >= 60) {
-              newX = proposedX;
-              newW = right - proposedX;
-            }
+            const targetW = Math.max(60, snap(resizeStartPos.w - deltaX));
+            newX = Math.max(0, resizeStartPos.x + (resizeStartPos.w - targetW));
+            newW = targetW;
           }
           if (resizeHandle.includes('n')) {
-            const bottom = r.y + r.height;
-            const proposedY = Math.max(0, snap(e.clientY));
-            if (bottom - proposedY >= 50) {
-              newY = proposedY;
-              newH = bottom - proposedY;
-            }
+            const targetH = Math.max(50, snap(resizeStartPos.h - deltaY));
+            newY = Math.max(0, resizeStartPos.y + (resizeStartPos.h - targetH));
+            newH = targetH;
           }
 
           return { ...r, x: newX, y: newY, width: newW, height: newH };
@@ -1548,46 +1579,48 @@ export function FloorManagement() {
     // 3. Facility Object Dragging & Resizing
     else if (selectedFacilityId) {
       if (isDraggingObj) {
-        const newX = snap(e.clientX - dragOffset.x);
-        const newY = snap(e.clientY - dragOffset.y);
+        const newX = snap(e.clientX / scale - dragOffset.x);
+        const newY = snap(e.clientY / scale - dragOffset.y);
         setFacilityObjects(prev => prev.map(fo => String(fo.id) === String(selectedFacilityId) ? { ...fo, x: Math.max(0, newX), y: Math.max(0, newY) } : fo));
-      } else if (resizeHandle) {
+      } else if (resizeHandle && resizeStartPos) {
+        const deltaX = (e.clientX - resizeStartPos.mouseX) / scale;
+        const deltaY = (e.clientY - resizeStartPos.mouseY) / scale;
+
         setFacilityObjects(prev => prev.map(fo => {
           if (String(fo.id) !== String(selectedFacilityId)) return fo;
-          let newX = fo.x;
-          let newY = fo.y;
-          let newW = fo.width;
-          let newH = fo.height;
+          let newX = resizeStartPos.x;
+          let newY = resizeStartPos.y;
+          let newW = resizeStartPos.w;
+          let newH = resizeStartPos.h;
 
-          if (resizeHandle.includes('e')) newW = Math.max(40, snap(e.clientX - fo.x));
-          if (resizeHandle.includes('s')) newH = Math.max(20, snap(e.clientY - fo.y));
+          if (resizeHandle.includes('e')) {
+            newW = Math.max(40, snap(resizeStartPos.w + deltaX));
+          }
+          if (resizeHandle.includes('s')) {
+            newH = Math.max(20, snap(resizeStartPos.h + deltaY));
+          }
           if (resizeHandle.includes('w')) {
-            const right = fo.x + fo.width;
-            const proposedX = Math.max(0, snap(e.clientX));
-            if (right - proposedX >= 40) {
-              newX = proposedX;
-              newW = right - proposedX;
-            }
+            const targetW = Math.max(40, snap(resizeStartPos.w - deltaX));
+            newX = Math.max(0, resizeStartPos.x + (resizeStartPos.w - targetW));
+            newW = targetW;
           }
           if (resizeHandle.includes('n')) {
-            const bottom = fo.y + fo.height;
-            const proposedY = Math.max(0, snap(e.clientY));
-            if (bottom - proposedY >= 20) {
-              newY = proposedY;
-              newH = bottom - proposedY;
-            }
+            const targetH = Math.max(20, snap(resizeStartPos.h - deltaY));
+            newY = Math.max(0, resizeStartPos.y + (resizeStartPos.h - targetH));
+            newH = targetH;
           }
 
           return { ...fo, x: newX, y: newY, width: newW, height: newH };
         }));
       }
     }
-  }, [isPanning, panStart, editMode, selectedRoomId, selectedFacilityId, isDraggingObj, dragOffset, resizeHandle, snapToGrid, isResizingCanvas, canvasResizeStart, zoomLevel]);
+  }, [isPanning, panStart, editMode, selectedRoomId, selectedFacilityId, isDraggingObj, dragOffset, resizeHandle, resizeStartPos, snapToGrid, isResizingCanvas, canvasResizeStart, zoomLevel]);
 
   const handleMouseUpCanvas = () => {
     setIsPanning(false);
     setIsDraggingObj(false);
     setResizeHandle(null);
+    setResizeStartPos(null);
     setIsResizingCanvas(false);
   };
 
