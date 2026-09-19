@@ -61,7 +61,7 @@ export type RoomType =
   | 'Cafeteria'
   | 'Other';
 
-export type RoomShape = 'rectangle' | 'square' | 'l-shape' | 'polygon';
+export type RoomShape = 'rectangle' | 'polygon';
 
 export interface RoomRecord {
   id: string | number;
@@ -252,11 +252,11 @@ const INITIAL_FLOORS: FloorInfo[] = [
 const INITIAL_ROOMS: RoomRecord[] = [
   { id: 'r101', floorId: 'f1', buildingId: 'b2', roomNumber: '101', roomName: 'Computer Science Classroom', roomType: 'Classroom', capacity: 60, department: 'CSE', description: 'General classroom equipped with 4K projector and AC.', status: 'Occupied', x: 40, y: 40, width: 220, height: 160, rotation: 0, shape: 'rectangle' },
   { id: 'r102', floorId: 'f1', buildingId: 'b2', roomNumber: '102', roomName: 'Advanced Computer Lab', roomType: 'Computer Lab', capacity: 40, department: 'CSE', description: '40 RTX workstations with high-speed internet.', status: 'Available', x: 280, y: 40, width: 240, height: 160, rotation: 0, shape: 'rectangle' },
-  { id: 'r103', floorId: 'f1', buildingId: 'b2', roomNumber: '103', roomName: 'Electronics Lab', roomType: 'Laboratory', capacity: 35, department: 'ECE', description: 'VLSI and CRO testing benches.', status: 'Occupied', x: 540, y: 40, width: 220, height: 160, rotation: 0, shape: 'l-shape' },
+  { id: 'r103', floorId: 'f1', buildingId: 'b2', roomNumber: '103', roomName: 'Electronics Lab', roomType: 'Laboratory', capacity: 35, department: 'ECE', description: 'VLSI and CRO testing benches.', status: 'Occupied', x: 540, y: 40, width: 220, height: 160, rotation: 0, shape: 'rectangle' },
   { id: 'r104', floorId: 'f1', buildingId: 'b2', roomNumber: '104', roomName: 'CSE Faculty Room', roomType: 'Faculty Room', capacity: 12, department: 'CSE', description: 'Faculty cabins and discussion area.', status: 'Available', x: 780, y: 40, width: 220, height: 160, rotation: 0, shape: 'rectangle' },
   { id: 'r105', floorId: 'f1', buildingId: 'b2', roomNumber: '105', roomName: 'Department Seminar Hall', roomType: 'Seminar Hall', capacity: 150, department: 'Academic Affairs', description: 'Audio-visual acoustic hall.', status: 'Occupied', x: 40, y: 240, width: 440, height: 220, rotation: 0, shape: 'polygon' },
   { id: 'r106', floorId: 'f1', buildingId: 'b2', roomNumber: '106', roomName: 'Executive Conference Room', roomType: 'Conference Room', capacity: 25, department: 'Admin', description: 'Board meetings and thesis defense.', status: 'Reserved', x: 500, y: 240, width: 260, height: 220, rotation: 0, shape: 'rectangle' },
-  { id: 'r107', floorId: 'f1', buildingId: 'b2', roomNumber: '107', roomName: 'Staff Washroom Complex', roomType: 'Washroom', capacity: 10, department: 'Facilities', description: 'Sensored clean restroom.', status: 'Available', x: 780, y: 240, width: 220, height: 220, rotation: 0, shape: 'square' },
+  { id: 'r107', floorId: 'f1', buildingId: 'b2', roomNumber: '107', roomName: 'Staff Washroom Complex', roomType: 'Washroom', capacity: 10, department: 'Facilities', description: 'Sensored clean restroom.', status: 'Available', x: 780, y: 240, width: 220, height: 220, rotation: 0, shape: 'rectangle' },
 ];
 
 const INITIAL_FACILITY_OBJECTS: FloorPlanObjectRecord[] = [
@@ -296,7 +296,7 @@ const INITIAL_FACILITY_OBJECTS: FloorPlanObjectRecord[] = [
     width: 100,
     height: 120,
     rotation: 0,
-    shape: 'square',
+    shape: 'rectangle',
     metadata: { description: 'High-speed elevator, 12-person capacity', status: 'Active' }
   },
   {
