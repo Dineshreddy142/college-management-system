@@ -54,6 +54,12 @@ export interface FloorRecord {
   width: number;
   height: number;
   boundary_points?: Point[];
+  building_name?: string;
+  building_code?: string;
+  building_geometry_type?: GeometryType;
+  building_width?: number;
+  building_height?: number;
+  building_boundary_points?: Point[];
   current_version_id?: number | null;
   published_version_id?: number | null;
   publish_status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';

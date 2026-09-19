@@ -298,11 +298,23 @@ router.get('/buildings/:buildingId/floors', async (req, res) => {
 router.get('/floors/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [floors] = await pool.execute('SELECT * FROM floors WHERE id = ?', [id]);
+    const [floors] = await pool.execute(`
+      SELECT f.*, 
+             b.name as building_name, 
+             b.code as building_code, 
+             b.geometry_type as building_geometry_type,
+             b.width as building_width,
+             b.height as building_height,
+             b.boundary_points as building_boundary_points
+      FROM floors f
+      LEFT JOIN buildings b ON f.building_id = b.id
+      WHERE f.id = ?
+    `, [id]);
     if (floors.length === 0) return res.status(404).json({ error: 'Floor not found' });
 
     const floor = floors[0];
     floor.boundary_points = typeof floor.boundary_points === 'string' ? JSON.parse(floor.boundary_points) : (floor.boundary_points || []);
+    floor.building_boundary_points = typeof floor.building_boundary_points === 'string' ? JSON.parse(floor.building_boundary_points) : (floor.building_boundary_points || []);
 
     res.json(floor);
   } catch (err) {

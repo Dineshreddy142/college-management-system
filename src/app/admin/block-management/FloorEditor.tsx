@@ -39,6 +39,7 @@ export const FloorEditor: React.FC<{
   const [showRulers, setShowRulers] = useState(true);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [showBuildingOutline, setShowBuildingOutline] = useState(true);
 
   // Active Tool & Selection State
   const [activeTool, setActiveTool] = useState<string>('select');
@@ -53,6 +54,27 @@ export const FloorEditor: React.FC<{
 
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; objId: string | number } | null>(null);
+
+  // Building Boundary Points Computation
+  const buildingBoundaryPoints: Point[] = React.useMemo(() => {
+    if (floor?.boundary_points && floor.boundary_points.length > 0) {
+      return floor.boundary_points;
+    }
+    if (floor?.building_boundary_points && floor.building_boundary_points.length > 0) {
+      return floor.building_boundary_points;
+    }
+    // Fallback polygon perimeter matching floor or building dimensions
+    const w = floor?.width || floor?.building_width || 600;
+    const h = floor?.height || floor?.building_height || 400;
+    return [
+      { x: 50, y: 50 },
+      { x: 50 + w, y: 50 },
+      { x: 50 + w, y: 50 + Math.round(h * 0.5) },
+      { x: 50 + Math.round(w * 0.6), y: 50 + Math.round(h * 0.5) },
+      { x: 50 + Math.round(w * 0.6), y: 50 + h },
+      { x: 50, y: 50 + h }
+    ];
+  }, [floor]);
 
   useEffect(() => {
     loadFloorAndObjects();
@@ -380,6 +402,92 @@ export const FloorEditor: React.FC<{
     setHasUnsavedChanges(true);
   };
 
+  // Auto-generate outer walls matching building shape perimeter
+  const handleGenerateOuterWalls = () => {
+    if (!buildingBoundaryPoints || buildingBoundaryPoints.length < 3) {
+      showToast('No building boundary points available', 'error');
+      return;
+    }
+
+    const wallObjects: FloorObjectRecord[] = [];
+    const len = buildingBoundaryPoints.length;
+
+    for (let i = 0; i < len; i++) {
+      const p1 = buildingBoundaryPoints[i];
+      const p2 = buildingBoundaryPoints[(i + 1) % len];
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const wallLength = Math.hypot(dx, dy);
+      const angleRad = Math.atan2(dy, dx);
+      const angleDeg = (angleRad * 180) / Math.PI;
+
+      wallObjects.push({
+        id: `wall_gen_${Date.now()}_${i}`,
+        floor_id: floorId,
+        object_type: 'wall',
+        label: `Outer Wall ${i + 1}`,
+        geometry_type: 'RECTANGLE',
+        x: p1.x,
+        y: p1.y,
+        width: Math.round(wallLength),
+        height: 12,
+        rotation: Math.round(angleDeg),
+        fill_color: '#334155',
+        stroke_color: '#94A3B8',
+        stroke_width: 2,
+        locked: false
+      });
+    }
+
+    const updated = [...objects, ...wallObjects];
+    setObjects(updated);
+    pushHistory(updated);
+    setHasUnsavedChanges(true);
+    showToast(`Generated ${wallObjects.length} outer perimeter walls matching building shape!`);
+  };
+
+  // Add preset rooms aligned inside the building outline
+  const handleCreatePresetRoom = (type: 'Classroom' | 'Lab' | 'Office' | 'Washroom') => {
+    const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
+    const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
+
+    const roomWidths = { Classroom: 140, Lab: 180, Office: 100, Washroom: 80 };
+    const roomHeights = { Classroom: 100, Lab: 120, Office: 80, Washroom: 70 };
+    const roomColors = {
+      Classroom: '#3B82F6',
+      Lab: '#8B5CF6',
+      Office: '#10B981',
+      Washroom: '#F59E0B'
+    };
+
+    const count = objects.filter(o => o.object_type === 'room').length + 1;
+
+    const newRoom: FloorObjectRecord = {
+      id: `room_${Date.now()}`,
+      floor_id: floorId,
+      object_type: 'room',
+      label: `${type} R-${100 + count}`,
+      geometry_type: 'RECTANGLE',
+      x: minX + 30 + ((count * 40) % 320),
+      y: minY + 30 + ((count * 30) % 200),
+      width: roomWidths[type],
+      height: roomHeights[type],
+      rotation: 0,
+      fill_color: roomColors[type],
+      stroke_color: '#FFFFFF',
+      stroke_width: 2,
+      locked: false
+    };
+
+    const updated = [...objects, newRoom];
+    setObjects(updated);
+    pushHistory(updated);
+    setSelectedObjectId(newRoom.id);
+    setHasUnsavedChanges(true);
+    showToast(`Added ${type} inside floor boundary`);
+  };
+
   const selectedObj = objects.find(o => String(o.id) === String(selectedObjectId));
 
   if (loading) {
@@ -455,10 +563,23 @@ export const FloorEditor: React.FC<{
           <button onClick={() => setShowGrid(!showGrid)} className={`p-1.5 rounded-lg ${showGrid ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Grid Toggle"><Grid className="w-4 h-4" /></button>
           <button onClick={() => setSnapToGrid(!snapToGrid)} className={`p-1.5 rounded-lg ${snapToGrid ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Snap to Grid"><Sliders className="w-4 h-4" /></button>
           <button onClick={() => setShowRulers(!showRulers)} className={`p-1.5 rounded-lg ${showRulers ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Rulers Toggle"><Ruler className="w-4 h-4" /></button>
+          <button onClick={() => setShowBuildingOutline(!showBuildingOutline)} className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 ${showBuildingOutline ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Toggle Building Outer Boundary Shape">
+            <Building className="w-4 h-4" />
+            <span className="hidden md:inline">Boundary</span>
+          </button>
         </div>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleGenerateOuterWalls}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
+            title="Auto-create walls matching building boundary shape"
+          >
+            <Shield className="w-3.5 h-3.5 text-blue-400" />
+            <span className="hidden sm:inline">Outer Walls</span>
+          </button>
+
           <button
             onClick={handleSaveFloorLayout}
             disabled={saving}
@@ -543,6 +664,69 @@ export const FloorEditor: React.FC<{
             </defs>
 
             {showGrid && <rect width="4000" height="3000" fill="url(#cad-grid)" />}
+
+            {/* RENDER BUILDING OUTER BOUNDARY SHAPE OVERLAY */}
+            {showBuildingOutline && buildingBoundaryPoints.length >= 3 && (
+              <g className="building-outer-boundary-layer pointer-events-none">
+                {/* Outer building footprint fill & architectural dashed stroke */}
+                <polygon
+                  points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="rgba(59, 130, 246, 0.08)"
+                  stroke="#3B82F6"
+                  strokeWidth="3.5"
+                  strokeDasharray="8 4"
+                />
+
+                {/* Inner double architectural wall outline */}
+                <polygon
+                  points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="none"
+                  stroke="#60A5FA"
+                  strokeWidth="1.5"
+                  strokeOpacity="0.7"
+                />
+
+                {/* Perimeter Edge Dimension Callouts */}
+                {buildingBoundaryPoints.map((p1, i) => {
+                  const p2 = buildingBoundaryPoints[(i + 1) % buildingBoundaryPoints.length];
+                  const midX = (p1.x + p2.x) / 2;
+                  const midY = (p1.y + p2.y) / 2;
+                  const distPx = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y));
+                  return (
+                    <g key={`edge_${i}`}>
+                      <rect x={midX - 25} y={midY - 9} width={50} height={18} rx={4} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1} />
+                      <text x={midX} y={midY + 3} fill="#93C5FD" fontSize={9} fontWeight="bold" textAnchor="middle" fontFamily="monospace">
+                        {distPx}px
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Corner Vertex Nodes & Labels */}
+                {buildingBoundaryPoints.map((pt, idx) => (
+                  <g key={`vtx_${idx}`}>
+                    <circle cx={pt.x} cy={pt.y} r={5} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
+                    <text x={pt.x + 8} y={pt.y - 8} fill="#60A5FA" fontSize={10} fontWeight="bold" fontFamily="monospace">
+                      V{idx + 1}
+                    </text>
+                  </g>
+                ))}
+
+                {/* Floating Building Footprint Header Badge */}
+                {(() => {
+                  const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
+                  const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
+                  return (
+                    <g transform={`translate(${minX + 10}, ${minY + 20})`}>
+                      <rect x={-5} y={-14} width={360} height={24} rx={6} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1.5} />
+                      <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={2}>
+                        🏢 BUILDING PERIMETER: {floor?.building_name || 'CSE Main Block'} ({floor?.building_geometry_type || 'POLYGON'})
+                      </text>
+                    </g>
+                  );
+                })()}
+              </g>
+            )}
 
             {/* RENDER FLOOR PLAN OBJECTS */}
             {objects.map((obj) => {
@@ -726,9 +910,75 @@ export const FloorEditor: React.FC<{
               </div>
             </div>
           ) : (
-            <div className="p-6 text-center text-slate-500 space-y-2">
-              <MousePointer2 className="w-8 h-8 mx-auto text-slate-600" />
-              <p className="text-xs">Click any element on canvas to inspect properties.</p>
+            <div className="space-y-4 text-xs">
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-blue-400 font-bold">
+                  <Building className="w-4 h-4" />
+                  <span>Building Boundary Info</span>
+                </div>
+                <div className="space-y-1 text-slate-300 font-medium">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Building:</span>
+                    <span className="font-bold text-white">{floor?.building_name || 'Main Block'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Geometry:</span>
+                    <span className="font-bold text-amber-400">{floor?.building_geometry_type || 'POLYGON'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Boundary Nodes:</span>
+                    <span className="font-bold text-emerald-400">{buildingBoundaryPoints.length} Vertices</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block font-bold text-slate-400">Quick Room Presets</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleCreatePresetRoom('Classroom')}
+                    className="p-2 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl text-blue-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                  >
+                    <span>+ Classroom</span>
+                    <span className="text-[9px] text-blue-400 font-normal">140 x 100 px</span>
+                  </button>
+                  <button
+                    onClick={() => handleCreatePresetRoom('Lab')}
+                    className="p-2 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 rounded-xl text-purple-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                  >
+                    <span>+ Laboratory</span>
+                    <span className="text-[9px] text-purple-400 font-normal">180 x 120 px</span>
+                  </button>
+                  <button
+                    onClick={() => handleCreatePresetRoom('Office')}
+                    className="p-2 bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 rounded-xl text-emerald-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                  >
+                    <span>+ Office Room</span>
+                    <span className="text-[9px] text-emerald-400 font-normal">100 x 80 px</span>
+                  </button>
+                  <button
+                    onClick={() => handleCreatePresetRoom('Washroom')}
+                    className="p-2 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-xl text-amber-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                  >
+                    <span>+ Washroom</span>
+                    <span className="text-[9px] text-amber-400 font-normal">80 x 70 px</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800">
+                <button
+                  onClick={handleGenerateOuterWalls}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Generate Building Outer Walls</span>
+                </button>
+              </div>
+
+              <p className="text-[10px] text-slate-500 text-center italic">
+                Click any element on canvas to select and inspect its properties.
+              </p>
             </div>
           )}
         </div>
