@@ -1681,6 +1681,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeEditorFloorId, setActiveEditorFloorId] = useState<number>(1);
 
   const render = () => {
     switch (mod) {
