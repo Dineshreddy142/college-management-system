@@ -433,6 +433,8 @@ export const FloorEditor: React.FC<{
         width: Math.round(wallLength),
         height: 12,
         rotation: Math.round(angleDeg),
+        z_index: 1,
+        visible: true,
         fill_color: '#334155',
         stroke_color: '#94A3B8',
         stroke_width: 2,
@@ -474,6 +476,8 @@ export const FloorEditor: React.FC<{
       width: roomWidths[type],
       height: roomHeights[type],
       rotation: 0,
+      z_index: 2,
+      visible: true,
       fill_color: roomColors[type],
       stroke_color: '#FFFFFF',
       stroke_width: 2,
@@ -787,7 +791,9 @@ export const FloorEditor: React.FC<{
                   {/* RESIZE & ROTATE HANDLES FOR SELECTED OBJECT */}
                   {isSelected && !obj.locked && (
                     <>
-                      <circle cx={obj.width / 2} cy={-20} r={7} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer" title="Rotate 90°" />
+                      <circle cx={obj.width / 2} cy={-20} r={7} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer">
+                        <title>Rotate 90°</title>
+                      </circle>
                       <rect x={-5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="cursor-nwse-resize" />
                       <rect x={obj.width - 5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="cursor-nesw-resize" />
                       <rect x={obj.width - 5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="cursor-nwse-resize" />

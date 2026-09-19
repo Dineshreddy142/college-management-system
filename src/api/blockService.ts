@@ -92,9 +92,9 @@ export interface FloorObjectRecord {
   rotation: number;
   points?: Point[];
   label?: string;
-  z_index: number;
-  locked: boolean;
-  visible: boolean;
+  z_index?: number;
+  locked?: boolean;
+  visible?: boolean;
   fill_color?: string;
   stroke_color?: string;
   stroke_width?: number;
