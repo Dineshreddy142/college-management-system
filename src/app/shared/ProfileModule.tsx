@@ -9,8 +9,6 @@ import {
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
-import { FaceAuthModal } from "../../components/FaceAuthModal";
-import { PasskeyAuthModal } from "../../components/PasskeyAuthModal";
 
 export function ProfileModule() {
   const savedUser = (() => {
@@ -27,7 +25,7 @@ export function ProfileModule() {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Profile Tab State (17 Tabs)
+  // Profile Tab State (Streamlined 11 Tabs)
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'personal'
@@ -37,15 +35,9 @@ export function ProfileModule() {
     | 'university_ids'
     | 'prev_education'
     | 'performance'
-    | 'sem_history'
-    | 'subjects'
-    | 'attendance'
-    | 'exams'
     | 'backlogs'
     | 'mentor'
     | 'placement'
-    | 'hostel_lib_fees'
-    | 'documents_projects'
   >('overview');
 
   // Editable Contact State
@@ -61,17 +53,6 @@ export function ProfileModule() {
     emergencyContactPhone: '+91 98490 12345'
   });
 
-  // Face & WebAuthn Biometrics state
-  const [faceRegistered, setFaceRegistered] = useState(false);
-  const [faceRegisteredAt, setFaceRegisteredAt] = useState<string | null>(null);
-  const [passkeys, setPasskeys] = useState<any[]>([]);
-  const [showFaceModal, setShowFaceModal] = useState(false);
-
-  // Email Update Modal state
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -79,8 +60,6 @@ export function ProfileModule() {
 
   useEffect(() => {
     fetchProfile();
-    fetchFaceStatus();
-    fetchPasskeys();
   }, []);
 
   const fetchProfile = () => {
@@ -103,22 +82,6 @@ export function ProfileModule() {
       if (savedUser) setProfile(savedUser);
       setLoading(false);
     });
-  };
-
-  const fetchFaceStatus = () => {
-    client.get('/auth/face-status').then(res => {
-      if (res.data?.success) {
-        setFaceRegistered(res.data.data.registered);
-        setFaceRegisteredAt(res.data.data.registered_at);
-      }
-    }).catch(() => {});
-  };
-
-  const fetchPasskeys = async () => {
-    try {
-      const res = await client.get('/webauthn/credentials');
-      if (res.data?.success) setPasskeys(res.data.data || []);
-    } catch (err) {}
   };
 
   const handleSaveContact = async () => {
@@ -155,7 +118,7 @@ export function ProfileModule() {
       )}
 
       {/* ========================================================================= */}
-      {/* 4. STUDENT PROFILE HEADER */}
+      {/* STUDENT PROFILE HEADER */}
       {/* ========================================================================= */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 border border-indigo-800/40 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -220,7 +183,7 @@ export function ProfileModule() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 30. STUDENT PROFILE TABS (17 Tabs Horizontal Scroll bar) */}
+      {/* STREAMLINED STUDENT PROFILE TABS (11 Active Tabs) */}
       {/* ========================================================================= */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2 shadow-xl">
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1">
@@ -232,16 +195,10 @@ export function ProfileModule() {
             { id: 'academic', label: '🎓 Academic Details' },
             { id: 'university_ids', label: '🆔 University IDs' },
             { id: 'prev_education', label: '🏫 Previous Education' },
-            { id: 'performance', label: '📈 Performance & SGPA' },
-            { id: 'sem_history', label: '📜 Semester History' },
-            { id: 'subjects', label: '📚 Registered Subjects' },
-            { id: 'attendance', label: '⏱️ Attendance Log' },
-            { id: 'exams', label: '📝 Exams & Results' },
+            { id: 'performance', label: '📈 Academic Performance' },
             { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
             { id: 'mentor', label: '👨‍🏫 Mentor & HOD' },
             { id: 'placement', label: '💼 Placement & Internships' },
-            { id: 'hostel_lib_fees', label: '🏠 Hostel, Library & Fees' },
-            { id: 'documents_projects', label: '📁 Documents & Projects' },
           ].map(t => (
             <button
               key={t.id}
@@ -264,7 +221,7 @@ export function ProfileModule() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Summary Metric Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
               <span className="text-[11px] text-slate-400 font-bold uppercase">Current CGPA</span>
               <p className="text-2xl sm:text-3xl font-black text-cyan-400 mt-1">8.92</p>
@@ -275,18 +232,6 @@ export function ProfileModule() {
               <span className="text-[11px] text-slate-400 font-bold uppercase">Last SGPA (Sem 6)</span>
               <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">9.10</p>
               <span className="text-[10px] text-slate-400">Top 5% in CSE</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Overall Attendance</span>
-              <p className="text-2xl sm:text-3xl font-black text-indigo-400 mt-1">88.5%</p>
-              <span className="text-[10px] text-emerald-400 font-semibold">✓ Above 75% Limit</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Credits Earned</span>
-              <p className="text-2xl sm:text-3xl font-black text-purple-400 mt-1">142 <span className="text-xs text-slate-400 font-normal">/ 160</span></p>
-              <span className="text-[10px] text-slate-400">18 Credits Remaining</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
@@ -303,7 +248,7 @@ export function ProfileModule() {
           </div>
 
           {/* Quick Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Academic Advisor Card */}
             <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 shadow-xl space-y-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
@@ -317,37 +262,16 @@ export function ProfileModule() {
               </div>
             </div>
 
-            {/* Hostel & Mess Card */}
+            {/* Placement Offer Card */}
             <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 shadow-xl space-y-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Home className="w-4 h-4 text-emerald-400" /> Campus Accommodation
+                <Briefcase className="w-4 h-4 text-amber-400" /> Recruitment & Career Status
               </h3>
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700 text-xs space-y-1">
-                <p className="font-bold text-slate-100">Visweswaraya Hostel (Block B)</p>
-                <p className="text-slate-400">Room 304 • Bed #2</p>
-                <p className="text-emerald-400 font-semibold">Mess Plan: Special South Indian Veg/Non-Veg</p>
-                <p className="text-slate-400 text-[11px] pt-1">Hostel Status: Active Resident</p>
-              </div>
-            </div>
-
-            {/* Fee Overview Card */}
-            <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 shadow-xl space-y-3">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-purple-400" /> Financial Clearance
-              </h3>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700 text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Academic Year Fee</span>
-                  <span className="font-bold text-white">₹1,20,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Amount Paid</span>
-                  <span className="font-bold text-emerald-400">₹1,20,000</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-800 pt-1">
-                  <span className="text-slate-400 font-semibold">Pending Dues</span>
-                  <span className="font-extrabold text-emerald-400">₹0 (CLEARED)</span>
-                </div>
+                <p className="font-bold text-white text-sm">Google Inc.</p>
+                <p className="text-cyan-300 font-semibold">Associate Software Engineer (L3)</p>
+                <p className="text-emerald-400 font-bold">Package: ₹28.5 LPA • Bengaluru (Hybrid)</p>
+                <p className="text-slate-400 text-[11px] pt-1">Status: Official Offer Letter Accepted</p>
               </div>
             </div>
           </div>
@@ -727,148 +651,7 @@ export function ProfileModule() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 9: SEMESTER HISTORY */}
-      {/* ========================================================================= */}
-      {activeTab === 'sem_history' && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-cyan-400" /> Semester-by-Semester Transcript History
-          </h2>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900 text-slate-400 uppercase tracking-wider border-b border-slate-700">
-                <tr>
-                  <th className="py-3 px-4">Semester</th>
-                  <th className="py-3 px-4">Academic Session</th>
-                  <th className="py-3 px-4">SGPA</th>
-                  <th className="py-3 px-4">CGPA</th>
-                  <th className="py-3 px-4">Credits Earned</th>
-                  <th className="py-3 px-4">Result Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/60">
-                {[
-                  { sem: 'Semester 1', session: '2023-24 (Fall)', sgpa: '8.75', cgpa: '8.75', credits: '22 / 22', status: 'PASSED' },
-                  { sem: 'Semester 2', session: '2023-24 (Spring)', sgpa: '8.90', cgpa: '8.82', credits: '24 / 24', status: 'PASSED' },
-                  { sem: 'Semester 3', session: '2024-25 (Fall)', sgpa: '8.80', cgpa: '8.81', credits: '22 / 22', status: 'PASSED' },
-                  { sem: 'Semester 4', session: '2024-25 (Spring)', sgpa: '9.05', cgpa: '8.87', credits: '24 / 24', status: 'PASSED' },
-                  { sem: 'Semester 5', session: '2025-26 (Fall)', sgpa: '8.95', cgpa: '8.89', credits: '24 / 24', status: 'PASSED' },
-                  { sem: 'Semester 6', session: '2025-26 (Spring)', sgpa: '9.10', cgpa: '8.92', credits: '22 / 22', status: 'PASSED' },
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/80 transition">
-                    <td className="py-3.5 px-4 font-bold text-white">{row.sem}</td>
-                    <td className="py-3.5 px-4 text-slate-300">{row.session}</td>
-                    <td className="py-3.5 px-4 font-bold text-emerald-400">{row.sgpa}</td>
-                    <td className="py-3.5 px-4 font-bold text-cyan-400">{row.cgpa}</td>
-                    <td className="py-3.5 px-4 text-slate-200">{row.credits}</td>
-                    <td className="py-3.5 px-4 font-bold text-emerald-400">{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 10: REGISTERED SUBJECTS */}
-      {/* ========================================================================= */}
-      {activeTab === 'subjects' && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-cyan-400" /> Current Semester Course Registrations (Sem {currentSemester})
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { code: 'CS701', name: 'Cloud Computing & Distributed Systems', type: 'Core', credits: '4.0', faculty: 'Dr. K. V. Rao' },
-              { code: 'CS702', name: 'Machine Learning & Neural Networks', type: 'Core', credits: '4.0', faculty: 'Prof. S. Mehra' },
-              { code: 'CS703', name: 'System Design & Architecture', type: 'Core', credits: '3.0', faculty: 'Dr. P. N. Swamy' },
-              { code: 'CS704E', name: 'Natural Language Processing', type: 'Elective', credits: '3.0', faculty: 'Dr. M. Sinha' },
-              { code: 'CS705L', name: 'Cloud & AI Innovation Lab', type: 'Lab', credits: '2.0', faculty: 'Prof. R. Sharma' },
-              { code: 'CS706P', name: 'Major Project Phase 1', type: 'Project', credits: '4.0', faculty: 'Dr. K. V. Rao' }
-            ].map((sub, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-mono text-cyan-400 font-bold text-xs">{sub.code}</span>
-                  <h3 className="font-bold text-white text-sm mt-0.5">{sub.name}</h3>
-                  <p className="text-slate-400 text-[11px] mt-1">Instructor: {sub.faculty}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="px-2.5 py-1 rounded bg-indigo-950 text-indigo-300 font-bold border border-indigo-800 text-[10px]">
-                    {sub.type}
-                  </span>
-                  <span className="block font-black text-emerald-400 text-sm mt-1">{sub.credits} Credits</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 11: ATTENDANCE LOG */}
-      {/* ========================================================================= */}
-      {activeTab === 'attendance' && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-400" /> Attendance Telemetry & Subject Breakdown
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mb-4">
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
-              <span className="text-slate-400 uppercase font-bold">Overall Attendance</span>
-              <p className="text-3xl font-black text-indigo-400 my-1">88.5%</p>
-              <span className="text-emerald-400 font-bold">Eligible for Exams</span>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
-              <span className="text-slate-400 uppercase font-bold">Theory Attendance</span>
-              <p className="text-3xl font-black text-cyan-400 my-1">90.2%</p>
-              <span className="text-slate-300">110 / 122 Classes</span>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
-              <span className="text-slate-400 uppercase font-bold">Lab Attendance</span>
-              <p className="text-3xl font-black text-emerald-400 my-1">85.0%</p>
-              <span className="text-slate-300">34 / 40 Sessions</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 12: EXAMS & RESULTS */}
-      {/* ========================================================================= */}
-      {activeTab === 'exams' && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-400" /> Examination Evaluation & Internal Test Scores
-          </h2>
-
-          <div className="space-y-4">
-            {[
-              { code: 'CS701', name: 'Cloud Computing', mid1: '23/25', mid2: '24/25', endSem: '88/100', grade: 'O (Outstanding)', point: '10' },
-              { code: 'CS702', name: 'Machine Learning', mid1: '22/25', mid2: '23/25', endSem: '84/100', grade: 'A+ (Excellent)', point: '9' },
-              { code: 'CS703', name: 'System Design', mid1: '21/25', mid2: '22/25', endSem: '80/100', grade: 'A (Very Good)', point: '8' }
-            ].map((ex, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center text-xs">
-                <div>
-                  <span className="font-mono text-cyan-400 font-bold">{ex.code}</span>
-                  <h3 className="font-bold text-white text-sm">{ex.name}</h3>
-                  <p className="text-slate-400 text-[11px] mt-1">Mid-1: {ex.mid1} • Mid-2: {ex.mid2} • End-Sem: {ex.endSem}</p>
-                </div>
-                <div className="text-right">
-                  <span className="font-black text-emerald-400 text-sm block">{ex.grade}</span>
-                  <span className="text-slate-400 text-[11px]">Grade Point: {ex.point}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 13: BACKLOGS & ARREARS */}
+      {/* TAB 9: BACKLOGS & ARREARS */}
       {/* ========================================================================= */}
       {activeTab === 'backlogs' && (
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
@@ -882,14 +665,14 @@ export function ProfileModule() {
             </div>
             <h3 className="text-xl font-extrabold text-white">No Active Backlogs / Arrears</h3>
             <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-              Student has cleared all 42 registered course subjects across Semesters 1 through 6 with zero standing backlogs.
+              Student has cleared all registered course subjects across Semesters 1 through 6 with zero standing backlogs.
             </p>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 14: MENTOR & HOD */}
+      {/* TAB 10: MENTOR & HOD */}
       {/* ========================================================================= */}
       {activeTab === 'mentor' && (
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
@@ -924,7 +707,7 @@ export function ProfileModule() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 15: PLACEMENT & INTERNSHIPS */}
+      {/* TAB 11: PLACEMENT & INTERNSHIPS */}
       {/* ========================================================================= */}
       {activeTab === 'placement' && (
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
@@ -945,72 +728,6 @@ export function ProfileModule() {
                 <span className="text-2xl font-black text-emerald-400">₹28.5 LPA</span>
                 <span className="block text-xs text-slate-400">Location: Bengaluru (Hybrid)</span>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 16: HOSTEL, LIBRARY & FEES */}
-      {/* ========================================================================= */}
-      {activeTab === 'hostel_lib_fees' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
-              <Home className="w-4 h-4 text-emerald-400" /> Hostel Residency
-            </h3>
-            <p className="text-xs text-slate-300">Block B, Room 304 (Bed #2)</p>
-            <p className="text-xs text-slate-400">Status: Active Resident</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
-              <LibraryIcon className="w-4 h-4 text-cyan-400" /> Library Account
-            </h3>
-            <p className="text-xs text-slate-300">Books Issued: 3 Active Books</p>
-            <p className="text-xs text-emerald-400">Overdue Fines: ₹0</p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-purple-400" /> Fee Accounts
-            </h3>
-            <p className="text-xs text-slate-300">Semester 7 Tuition Fee: Cleared</p>
-            <p className="text-xs text-emerald-400 font-bold">Outstanding Balance: ₹0</p>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 17: DOCUMENTS & PROJECTS */}
-      {/* ========================================================================= */}
-      {activeTab === 'documents_projects' && (
-        <div className="space-y-6">
-          {/* Documents */}
-          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-cyan-400" /> Verified Student Documents
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {[
-                { name: 'Official Student Identity Card (ID)', date: '14 Aug 2023' },
-                { name: 'University Admission Confirmation Letter', date: '14 Aug 2023' },
-                { name: 'Class 10th Marks Memo & Certificate', date: '10 Aug 2023' },
-                { name: 'Class 12th Marks Memo & Certificate', date: '10 Aug 2023' },
-              ].map((doc, i) => (
-                <div key={i} className="p-3 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-white">{doc.name}</p>
-                    <p className="text-slate-400 text-[10px]">Uploaded: {doc.date}</p>
-                  </div>
-                  <button
-                    onClick={() => triggerToast(`Viewing ${doc.name}`)}
-                    className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold text-[11px]"
-                  >
-                    View Document
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
         </div>
