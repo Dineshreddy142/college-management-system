@@ -25,7 +25,7 @@ export function ProfileModule() {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Profile Tab State (Streamlined 11 Tabs)
+  // Streamlined 10 Tabs State
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'personal'
@@ -37,7 +37,6 @@ export function ProfileModule() {
     | 'performance'
     | 'backlogs'
     | 'mentor'
-    | 'placement'
   >('overview');
 
   // Editable Contact State
@@ -183,7 +182,7 @@ export function ProfileModule() {
       </div>
 
       {/* ========================================================================= */}
-      {/* STREAMLINED STUDENT PROFILE TABS (11 Active Tabs) */}
+      {/* STREAMLINED STUDENT PROFILE TABS (10 Active Tabs) */}
       {/* ========================================================================= */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2 shadow-xl">
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin pb-1">
@@ -198,7 +197,6 @@ export function ProfileModule() {
             { id: 'performance', label: '📈 Academic Performance' },
             { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
             { id: 'mentor', label: '👨‍🏫 Mentor & HOD' },
-            { id: 'placement', label: '💼 Placement & Internships' },
           ].map(t => (
             <button
               key={t.id}
@@ -221,58 +219,23 @@ export function ProfileModule() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Summary Metric Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Current CGPA</span>
-              <p className="text-2xl sm:text-3xl font-black text-cyan-400 mt-1">8.92</p>
-              <span className="text-[10px] text-emerald-400 font-semibold">★ First Class Distinction</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
+              <span className="text-xs text-slate-400 font-bold uppercase">Current CGPA</span>
+              <p className="text-3xl font-black text-cyan-400 mt-1">8.92</p>
+              <span className="text-xs text-emerald-400 font-semibold">★ First Class Distinction</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Last SGPA (Sem 6)</span>
-              <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">9.10</p>
-              <span className="text-[10px] text-slate-400">Top 5% in CSE</span>
+            <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
+              <span className="text-xs text-slate-400 font-bold uppercase">Last SGPA (Sem 6)</span>
+              <p className="text-3xl font-black text-emerald-400 mt-1">9.10</p>
+              <span className="text-xs text-slate-400">Top 5% in CSE Department</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Active Backlogs</span>
-              <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">0</p>
-              <span className="text-[10px] text-emerald-400 font-semibold">✨ Clean Record</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
-              <span className="text-[11px] text-slate-400 font-bold uppercase">Placement Status</span>
-              <p className="text-lg font-black text-amber-400 mt-1">PLACED</p>
-              <span className="text-[10px] text-slate-300">Google Inc. (₹28.5 LPA)</span>
-            </div>
-          </div>
-
-          {/* Quick Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Academic Advisor Card */}
-            <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 shadow-xl space-y-3">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-cyan-400" /> Assigned Academic Mentor
-              </h3>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700 text-xs space-y-1">
-                <p className="font-bold text-slate-100 text-sm">Dr. K. V. Rao</p>
-                <p className="text-slate-400">Professor & Senior Advisor (CSE)</p>
-                <p className="text-cyan-400">kv.rao@campus.edu • +91 98480 11223</p>
-                <p className="text-slate-400 text-[11px] pt-1">Office: Block A, Room 304</p>
-              </div>
-            </div>
-
-            {/* Placement Offer Card */}
-            <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700 shadow-xl space-y-3">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-amber-400" /> Recruitment & Career Status
-              </h3>
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700 text-xs space-y-1">
-                <p className="font-bold text-white text-sm">Google Inc.</p>
-                <p className="text-cyan-300 font-semibold">Associate Software Engineer (L3)</p>
-                <p className="text-emerald-400 font-bold">Package: ₹28.5 LPA • Bengaluru (Hybrid)</p>
-                <p className="text-slate-400 text-[11px] pt-1">Status: Official Offer Letter Accepted</p>
-              </div>
+            <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl">
+              <span className="text-xs text-slate-400 font-bold uppercase">Active Backlogs</span>
+              <p className="text-3xl font-black text-emerald-400 mt-1">0</p>
+              <span className="text-xs text-emerald-400 font-semibold">✨ Clean Academic Record</span>
             </div>
           </div>
         </div>
@@ -680,15 +643,7 @@ export function ProfileModule() {
             <UserCheck className="w-5 h-5 text-cyan-400" /> Faculty Mentorship & Leadership Telemetry
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-            <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-700 space-y-2">
-              <span className="text-cyan-400 font-bold uppercase text-[11px]">Faculty Mentor</span>
-              <h3 className="font-bold text-white text-sm">Dr. K. V. Rao</h3>
-              <p className="text-slate-400">Professor, Computer Science</p>
-              <p className="text-slate-300 font-mono">kv.rao@campus.edu</p>
-              <p className="text-slate-400">Office: Block A, Room 304</p>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
             <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-700 space-y-2">
               <span className="text-emerald-400 font-bold uppercase text-[11px]">Class Advisor</span>
               <h3 className="font-bold text-white text-sm">Prof. S. Mehra</h3>
@@ -701,33 +656,6 @@ export function ProfileModule() {
               <h3 className="font-bold text-white text-sm">Dr. A. P. J. Sharma</h3>
               <p className="text-slate-400">HOD, Dept of CSE</p>
               <p className="text-slate-300 font-mono">hod.cse@campus.edu</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 11: PLACEMENT & INTERNSHIPS */}
-      {/* ========================================================================= */}
-      {activeTab === 'placement' && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-amber-400" /> Institutional Placement & Internship History
-          </h2>
-
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 border border-emerald-500/50 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold uppercase">
-                  🎉 Official Placement Offer
-                </span>
-                <h3 className="text-2xl font-black text-white mt-2">Google Inc.</h3>
-                <p className="text-sm text-cyan-300 font-semibold">Associate Software Engineer (L3)</p>
-              </div>
-              <div className="text-right">
-                <span className="text-2xl font-black text-emerald-400">₹28.5 LPA</span>
-                <span className="block text-xs text-slate-400">Location: Bengaluru (Hybrid)</span>
-              </div>
             </div>
           </div>
         </div>
