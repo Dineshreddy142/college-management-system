@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Save, Download, Phone, MapPin, HeartPulse, Shield, Smartphone,
   Activity, ScanFace, CheckCircle2, AlertCircle, Trash2, Camera,
@@ -558,6 +559,39 @@ export function ProfileModule() {
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 font-mono">
                   <span className="text-slate-400 block mb-1">Hostel Allocation ID</span>
                   <span className="font-black text-purple-400 text-base">HST-BLK-B-304</span>
+                </div>
+              </div>
+
+              {/* REAL SCANNABLE STUDENT DIGITAL ID QR CARD */}
+              <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950/60 to-slate-950 border border-indigo-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+                <div className="space-y-2 text-center md:text-left">
+                  <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-bold uppercase tracking-wider">
+                    Official Student Identity Code
+                  </span>
+                  <h3 className="text-xl font-extrabold text-white">{displayName}</h3>
+                  <p className="text-xs text-slate-300">{program} • Reg: {regNumber}</p>
+                  <p className="text-[11px] text-slate-400 max-w-md pt-1">
+                    Scan with any smartphone camera or campus library/gate reader to verify official university registration telemetry.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-white rounded-2xl shadow-2xl shrink-0 flex items-center justify-center">
+                  <QRCodeSVG
+                    value={JSON.stringify({
+                      studentId: studentId,
+                      name: displayName,
+                      regNo: regNumber,
+                      rollNo: rollNumber,
+                      program: program,
+                      status: profile?.status || 'Active',
+                      institutionalEmail: contactData.email
+                    })}
+                    size={130}
+                    bgColor="#ffffff"
+                    fgColor="#0f172a"
+                    level="H"
+                    includeMargin={false}
+                  />
                 </div>
               </div>
             </div>
