@@ -21,6 +21,7 @@ import { SmartGatepass } from "./innovations/SmartGatepass";
 import { AIPlacementResume } from "./innovations/AIPlacementResume";
 import { AICommandCenter } from "./innovations/AICommandCenter";
 import { CampusWalletCanteen } from "./innovations/CampusWalletCanteen";
+import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
