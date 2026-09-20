@@ -711,8 +711,25 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const [page, setPage] = useState(1);
   const perPage = 5;
 
+  // Add Student Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [newStudent, setNewStudent] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    admissionNumber: "",
+    department: "Computer Science",
+    password: "Student@123"
+  });
+
+  const fetchStudents = () => {
+    client.get('/students').then(res => setStudentsData(res.data || [])).catch(console.error);
+  };
+
   useEffect(() => {
-    client.get('/students').then(res => setStudentsData(res.data)).catch(console.error);
+    fetchStudents();
   }, []);
 
   const mappedStudents = studentsData.map(s => ({
@@ -733,6 +750,41 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const rows = filtered.slice((page - 1) * perPage, page * perPage);
   const depts = ["All", ...Array.from(new Set(mappedStudents.map(s => s.dept as string)))];
+
+  const handleAddStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    if (!newStudent.firstName.trim() || !newStudent.email.trim() || !newStudent.admissionNumber.trim()) {
+      setFormError("First Name, Email, and Admission ID are required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await client.post('/students', {
+        first_name: newStudent.firstName.trim(),
+        last_name: newStudent.lastName.trim(),
+        email: newStudent.email.trim(),
+        admission_number: newStudent.admissionNumber.trim(),
+        password: newStudent.password || 'Student@123',
+        department: newStudent.department
+      });
+
+      if (res.data?.success || res.status === 201) {
+        fetchStudents();
+        setShowAddModal(false);
+        setNewStudent({ firstName: "", lastName: "", email: "", admissionNumber: "", department: "Computer Science", password: "Student@123" });
+        alert(`✨ Student "${newStudent.firstName} ${newStudent.lastName}" created successfully!`);
+      }
+    } catch (err: any) {
+      console.error('Failed to create student:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to create student account.";
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDeleteStudent = async (studentItem: any) => {
     if (window.confirm(`Are you sure you want to delete student "${studentItem.name}" (${studentItem.id})? This action cannot be undone.`)) {
@@ -790,7 +842,7 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
                 <span>Bulk Import .XLSX</span>
               </button>
             )}
-            <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Student</Btn>
+            <Btn variant="primary" size="sm" icon={<Plus size={13} />} onClick={() => { setFormError(""); setShowAddModal(true); }}>Add Student</Btn>
           </div>
         </div>
 
@@ -852,6 +904,123 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
           </div>
         </div>
       </Card>
+
+      {/* ADD STUDENT MODAL OVERLAY */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span>Add New Student Account</span>
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-900/50">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddStudentSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newStudent.firstName}
+                    onChange={e => setNewStudent({ ...newStudent, firstName: e.target.value })}
+                    placeholder="e.g. Aarav"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Last Name</label>
+                  <input
+                    type="text"
+                    value={newStudent.lastName}
+                    onChange={e => setNewStudent({ ...newStudent, lastName: e.target.value })}
+                    placeholder="e.g. Sharma"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Student Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={newStudent.email}
+                  onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
+                  placeholder="e.g. aarav.sharma@collegeerp.com"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Admission / Roll ID *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newStudent.admissionNumber}
+                    onChange={e => setNewStudent({ ...newStudent, admissionNumber: e.target.value })}
+                    placeholder="e.g. 24CS001"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Department</label>
+                  <select
+                    value={newStudent.department}
+                    onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Mechanical Eng">Mechanical Eng</option>
+                    <option value="Civil Eng">Civil Eng</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Initial Account Password</label>
+                <input
+                  type="text"
+                  value={newStudent.password}
+                  onChange={e => setNewStudent({ ...newStudent, password: e.target.value })}
+                  placeholder="Student@123"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  <span>Create Student</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

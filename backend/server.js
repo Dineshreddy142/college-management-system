@@ -164,33 +164,42 @@ app.get('/api/students', authenticateToken, authorizeRole(['Admin', 'HOD', 'Facu
 });
 
 app.post('/api/students', authenticateToken, authorizeRole(['Admin', 'HOD']), async (req, res) => {
-  // simplified create logic for MVP
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     const { first_name, last_name, email, admission_number, password } = req.body;
+
+    if (!email || !admission_number || !first_name) {
+      return res.status(400).json({ error: 'First name, email, and admission number are required' });
+    }
     
     // Create user first
-    const [roleRows] = await conn.execute('SELECT id FROM roles WHERE name = "Student"');
+    const [roleRows] = await conn.execute('SELECT id FROM roles WHERE LOWER(name) = "student"');
+    if (roleRows.length === 0) {
+      throw new Error('Student role not found');
+    }
     const roleId = roleRows[0].id;
+    const bcryptPassword = await bcrypt.hash(password || 'Student@123', 10);
+    const fullName = `${first_name} ${last_name || ''}`.trim();
     
     const [userRes] = await conn.execute(
-      'INSERT INTO users (username, password, email, role_id, must_change_password) VALUES (?, ?, ?, ?, 1)',
-      [admission_number, password || 'Student@123', email, roleId]
+      'INSERT INTO users (username, full_name, password, email, role_id, status, must_change_password) VALUES (?, ?, ?, ?, ?, "active", 1)',
+      [admission_number, fullName, bcryptPassword, email, roleId]
     );
     
     const userId = userRes.insertId;
     
-    // Create student
+    // Create student record
     const [studentRes] = await conn.execute(
       'INSERT INTO students (user_id, admission_number, first_name, last_name) VALUES (?, ?, ?, ?)',
-      [userId, admission_number, first_name, last_name]
+      [userId, admission_number, first_name, last_name || '']
     );
     
     await conn.commit();
-    res.status(201).json({ id: studentRes.insertId, message: 'Student created' });
+    res.status(201).json({ success: true, id: studentRes.insertId, userId, message: 'Student created successfully' });
   } catch (error) {
     await conn.rollback();
+    console.error('Create student error:', error);
     res.status(500).json({ error: error.message });
   } finally {
     conn.release();
