@@ -35,7 +35,7 @@ import {
   Zap, Lock, Key, Smartphone, AlertCircle,
   BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
   FileSpreadsheet, Sparkles, Layers, DoorOpen, Edit3, History,
-  Bot, Wallet, Utensils, ShieldCheck, Mic
+  Bot, Wallet, Utensils, ShieldCheck, Mic, Loader2
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
