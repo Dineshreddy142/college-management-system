@@ -257,15 +257,49 @@ export const FloorEditor: React.FC<{
     setActiveTool('select');
   };
 
-  // Object Dragging & Resizing Handlers
+  // Object Dragging & Resizing Handlers (Double-click or Alt+Drag creates & drags a duplicate copy)
   const handleMouseDownObj = (e: React.MouseEvent, obj: FloorObjectRecord) => {
     e.stopPropagation();
     setContextMenu(null);
-    setSelectedObjectId(obj.id);
     if (obj.locked || isPreviewMode) return;
 
-    setIsDraggingObj(true);
     const scale = Math.max(0.1, zoomLevel / 100);
+    const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
+
+    // Double-click (e.detail >= 2) OR Alt+Drag: Create a copy and start dragging the duplicate immediately
+    if (e.detail >= 2 || e.altKey) {
+      const newObjId = `obj_${Date.now()}`;
+      const baseLabel = obj.label || obj.object_type || 'Component';
+      const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
+
+      const duplicatedObj: FloorObjectRecord = {
+        ...JSON.parse(JSON.stringify(obj)),
+        id: newObjId,
+        x: snap(obj.x + 20),
+        y: snap(obj.y + 20),
+        label: copyLabel
+      };
+
+      const updated = [...objects, duplicatedObj];
+      setObjects(updated);
+      pushHistory(updated);
+      setSelectedObjectId(newObjId);
+      setHasUnsavedChanges(true);
+
+      // Start dragging the new copy right away
+      setIsDraggingObj(true);
+      setDragOffset({
+        x: e.clientX / scale - duplicatedObj.x,
+        y: e.clientY / scale - duplicatedObj.y
+      });
+
+      showToast(`Copied "${baseLabel}"! Dragging duplicate...`);
+      return;
+    }
+
+    // Normal single-click select & drag
+    setSelectedObjectId(obj.id);
+    setIsDraggingObj(true);
     setDragOffset({
       x: e.clientX / scale - obj.x,
       y: e.clientY / scale - obj.y
@@ -982,8 +1016,8 @@ export const FloorEditor: React.FC<{
                 </button>
               </div>
 
-              <p className="text-[10px] text-slate-500 text-center italic">
-                Click any element on canvas to select and inspect its properties.
+              <p className="text-[10px] text-slate-400 text-center font-medium bg-slate-950 p-2 rounded-xl border border-slate-800/80">
+                💡 <strong>Tip:</strong> Double-click & drag (or Alt + Drag) any element on canvas to copy and place a duplicate.
               </p>
             </div>
           )}
