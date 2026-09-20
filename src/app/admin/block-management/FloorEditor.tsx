@@ -118,6 +118,11 @@ export const FloorEditor: React.FC<{
   const [selectedObjectId, setSelectedObjectId] = useState<string | number | null>(null);
   const [clipboard, setClipboard] = useState<FloorObjectRecord | null>(null);
 
+  // Tool Palette & Architectural Categories State
+  const [activeToolCategory, setActiveToolCategory] = useState<string>('all');
+  const [toolSearchQuery, setToolSearchQuery] = useState<string>('');
+  const [isToolLibraryOpen, setIsToolLibraryOpen] = useState<boolean>(true);
+
   // Dragging & Resizing State
   const [isDraggingObj, setIsDraggingObj] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
