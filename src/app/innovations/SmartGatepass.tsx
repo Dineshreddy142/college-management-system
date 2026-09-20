@@ -21,7 +21,7 @@ export interface GatepassRecord {
   parentNotified: boolean;
 }
 
-export function SmartGatepass() {
+export function SmartGatepass({ showManagementTabs = false }: { showManagementTabs?: boolean }) {
   const [activeTab, setActiveTab] = useState<'student_pass' | 'warden_terminal' | 'security_guard'>('student_pass');
   const [totpSeed, setTotpSeed] = useState('859916');
   const [timeLeft, setTimeLeft] = useState(5);
@@ -102,6 +102,8 @@ export function SmartGatepass() {
       setTotpSeed(randHex);
       setTimeLeft(5);
     };
+
+    generateNewSeed();
 
     const interval = setInterval(() => {
       setTimeLeft(prev => {
@@ -239,7 +241,7 @@ export function SmartGatepass() {
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold uppercase tracking-wider">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" /> Smart Campus Innovation #2
+              <ShieldCheck className="w-4 h-4 text-cyan-400" /> Smart Campus Out-Pass System
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
               Dynamic Anti-Spoofing Gatepass QR
@@ -258,39 +260,41 @@ export function SmartGatepass() {
         </div>
       </div>
 
-      {/* Sub-Navigation Tabs */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 flex items-center gap-2 shadow-xl">
-        <button
-          onClick={() => setActiveTab('student_pass')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            activeTab === 'student_pass'
-              ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <QrCode className="w-4 h-4" /> 📱 Student Dynamic QR Pass
-        </button>
-        <button
-          onClick={() => setActiveTab('security_guard')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            activeTab === 'security_guard'
-              ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Scan className="w-4 h-4" /> 👮 Gate Guard Terminal Scanner
-        </button>
-        <button
-          onClick={() => setActiveTab('warden_terminal')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            activeTab === 'warden_terminal'
-              ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <UserCheck className="w-4 h-4" /> 👨‍🏫 Warden Approval Telemetry
-        </button>
-      </div>
+      {/* Sub-Navigation Tabs (Only rendered when showManagementTabs is true) */}
+      {showManagementTabs && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 flex items-center gap-2 shadow-xl">
+          <button
+            onClick={() => setActiveTab('student_pass')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+              activeTab === 'student_pass'
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <QrCode className="w-4 h-4" /> 📱 Student Dynamic QR Pass
+          </button>
+          <button
+            onClick={() => setActiveTab('security_guard')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+              activeTab === 'security_guard'
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Scan className="w-4 h-4" /> 👮 Gate Guard Terminal Scanner
+          </button>
+          <button
+            onClick={() => setActiveTab('warden_terminal')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+              activeTab === 'warden_terminal'
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" /> 👨‍🏫 Warden Approval Telemetry
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: STUDENT REAL SCANNABLE QR PASS VIEW */}

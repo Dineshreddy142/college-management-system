@@ -1722,7 +1722,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
 
       // 🚀 Smart Campus Innovations Suite
       case "risk-radar": return <AcademicRiskRadar />;
-      case "smart-gatepass": return <SmartGatepass />;
+      case "smart-gatepass": return <SmartGatepass showManagementTabs={true} />;
       case "placement-ats": return <AIPlacementResume />;
       case "voice-command-center": return <AICommandCenter />;
       case "campus-wallet": return <CampusWalletCanteen />;
