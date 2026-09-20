@@ -139,7 +139,7 @@ export function ProfileModule() {
             <div className="relative shrink-0">
               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-1 shadow-2xl">
                 <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center overflow-hidden">
-                  <Avatar name={displayName} size="lg" className="w-full h-full text-3xl font-black" />
+                  <Avatar name={displayName} size="lg" />
                 </div>
               </div>
               <span className="absolute -bottom-2 right-2 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider shadow-lg border border-emerald-300">
