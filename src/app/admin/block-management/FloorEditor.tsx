@@ -49,6 +49,9 @@ export const FloorEditor: React.FC<{
   // Dragging & Resizing State
   const [isDraggingObj, setIsDraggingObj] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragGroupIds, setDragGroupIds] = useState<string[]>([]);
+  const [dragGroupStartPositions, setDragGroupStartPositions] = useState<Map<string, { x: number; y: number; points?: Point[] }> | null>(null);
+  const [dragStartMousePos, setDragStartMousePos] = useState<{ mouseX: number; mouseY: number } | null>(null);
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number } | null>(null);
 
@@ -257,49 +260,66 @@ export const FloorEditor: React.FC<{
     setActiveTool('select');
   };
 
-  // Object Dragging & Resizing Handlers (Double-click or Alt+Drag creates & drags a duplicate copy)
+  // Object Dragging & Resizing Handlers (Double-click or Alt+Drag clones & drags ALL components together as a structure)
   const handleMouseDownObj = (e: React.MouseEvent, obj: FloorObjectRecord) => {
     e.stopPropagation();
     setContextMenu(null);
     if (obj.locked || isPreviewMode) return;
 
     const scale = Math.max(0.1, zoomLevel / 100);
-    const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
 
-    // Double-click (e.detail >= 2) OR Alt+Drag: Create a copy and start dragging the duplicate immediately
+    // Double-click (e.detail >= 2) OR Alt+Drag: Clone ALL components and drag the entire structure
     if (e.detail >= 2 || e.altKey) {
-      const newObjId = `obj_${Date.now()}`;
-      const baseLabel = obj.label || obj.object_type || 'Component';
-      const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
+      const now = Date.now();
+      const startPositionsMap = new Map<string, { x: number; y: number; points?: Point[] }>();
+      const groupIds: string[] = [];
 
-      const duplicatedObj: FloorObjectRecord = {
-        ...JSON.parse(JSON.stringify(obj)),
-        id: newObjId,
-        x: snap(obj.x + 20),
-        y: snap(obj.y + 20),
-        label: copyLabel
-      };
+      const duplicatedGroup: FloorObjectRecord[] = objects.map((item, idx) => {
+        const newId = `obj_${now}_${idx}`;
+        const strNewId = String(newId);
+        groupIds.push(strNewId);
 
-      const updated = [...objects, duplicatedObj];
-      setObjects(updated);
-      pushHistory(updated);
-      setSelectedObjectId(newObjId);
-      setHasUnsavedChanges(true);
+        startPositionsMap.set(strNewId, {
+          x: item.x,
+          y: item.y,
+          points: item.points ? JSON.parse(JSON.stringify(item.points)) : undefined
+        });
 
-      // Start dragging the new copy right away
-      setIsDraggingObj(true);
-      setDragOffset({
-        x: e.clientX / scale - duplicatedObj.x,
-        y: e.clientY / scale - duplicatedObj.y
+        const baseLabel = item.label || item.object_type || 'Component';
+        const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
+
+        return {
+          ...JSON.parse(JSON.stringify(item)),
+          id: newId,
+          label: copyLabel
+        };
       });
 
-      showToast(`Copied "${baseLabel}"! Dragging duplicate...`);
+      const updated = [...objects, ...duplicatedGroup];
+      setObjects(updated);
+      pushHistory(updated);
+      setSelectedObjectId(duplicatedGroup[0]?.id || null);
+      setHasUnsavedChanges(true);
+
+      // Enable group dragging for all duplicated objects
+      setIsDraggingObj(true);
+      setDragGroupIds(groupIds);
+      setDragGroupStartPositions(startPositionsMap);
+      setDragStartMousePos({
+        mouseX: e.clientX / scale,
+        mouseY: e.clientY / scale
+      });
+
+      showToast(`Copied all ${objects.length} components! Dragging structure copy...`);
       return;
     }
 
     // Normal single-click select & drag
     setSelectedObjectId(obj.id);
     setIsDraggingObj(true);
+    setDragGroupIds([]);
+    setDragGroupStartPositions(null);
+    setDragStartMousePos(null);
     setDragOffset({
       x: e.clientX / scale - obj.x,
       y: e.clientY / scale - obj.y
@@ -335,10 +355,39 @@ export const FloorEditor: React.FC<{
     const scale = Math.max(0.1, zoomLevel / 100);
 
     if (isDraggingObj) {
-      const newX = snap(e.clientX / scale - dragOffset.x);
-      const newY = snap(e.clientY / scale - dragOffset.y);
-      setObjects(prev => prev.map(o => String(o.id) === String(selectedObjectId) ? { ...o, x: Math.max(0, newX), y: Math.max(0, newY) } : o));
-      setHasUnsavedChanges(true);
+      if (dragGroupIds.length > 0 && dragGroupStartPositions && dragStartMousePos) {
+        // Multi-component group drag
+        const deltaX = snap(e.clientX / scale - dragStartMousePos.mouseX);
+        const deltaY = snap(e.clientY / scale - dragStartMousePos.mouseY);
+
+        setObjects(prev => prev.map(o => {
+          const strId = String(o.id);
+          if (!dragGroupIds.includes(strId)) return o;
+
+          const startInfo = dragGroupStartPositions.get(strId);
+          if (!startInfo) return o;
+
+          const newX = Math.max(0, startInfo.x + deltaX);
+          const newY = Math.max(0, startInfo.y + deltaY);
+
+          let newPoints = o.points;
+          if (startInfo.points && startInfo.points.length > 0) {
+            newPoints = startInfo.points.map(pt => ({
+              x: Math.max(0, pt.x + deltaX),
+              y: Math.max(0, pt.y + deltaY)
+            }));
+          }
+
+          return { ...o, x: newX, y: newY, points: newPoints };
+        }));
+        setHasUnsavedChanges(true);
+      } else {
+        // Single component drag
+        const newX = snap(e.clientX / scale - dragOffset.x);
+        const newY = snap(e.clientY / scale - dragOffset.y);
+        setObjects(prev => prev.map(o => String(o.id) === String(selectedObjectId) ? { ...o, x: Math.max(0, newX), y: Math.max(0, newY) } : o));
+        setHasUnsavedChanges(true);
+      }
     } else if (resizeHandle && resizeStartPos) {
       const deltaX = (e.clientX - resizeStartPos.mouseX) / scale;
       const deltaY = (e.clientY - resizeStartPos.mouseY) / scale;
@@ -367,7 +416,7 @@ export const FloorEditor: React.FC<{
       }));
       setHasUnsavedChanges(true);
     }
-  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, resizeHandle, resizeStartPos, snapToGrid, zoomLevel]);
+  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, dragGroupIds, dragGroupStartPositions, dragStartMousePos, resizeHandle, resizeStartPos, snapToGrid, zoomLevel]);
 
   const handleMouseUpCanvas = () => {
     if (isDraggingObj || resizeHandle) {
@@ -375,6 +424,9 @@ export const FloorEditor: React.FC<{
     }
     setIsPanning(false);
     setIsDraggingObj(false);
+    setDragGroupIds([]);
+    setDragGroupStartPositions(null);
+    setDragStartMousePos(null);
     setResizeHandle(null);
     setResizeStartPos(null);
   };
@@ -404,6 +456,32 @@ export const FloorEditor: React.FC<{
   const handleDuplicateSelected = () => {
     handleCopy();
     handlePaste();
+  };
+
+  const handleDuplicateAllComponents = () => {
+    if (objects.length === 0) {
+      showToast('No layout components on canvas to copy', 'error');
+      return;
+    }
+    const now = Date.now();
+    const duplicatedGroup: FloorObjectRecord[] = objects.map((item, idx) => {
+      const baseLabel = item.label || item.object_type || 'Component';
+      const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
+      return {
+        ...JSON.parse(JSON.stringify(item)),
+        id: `obj_${now}_${idx}`,
+        x: item.x + 40,
+        y: item.y + 40,
+        label: copyLabel
+      };
+    });
+
+    const updated = [...objects, ...duplicatedGroup];
+    setObjects(updated);
+    pushHistory(updated);
+    setSelectedObjectId(duplicatedGroup[0]?.id || null);
+    setHasUnsavedChanges(true);
+    showToast(`Duplicated all ${objects.length} layout components!`);
   };
 
   const handleDeleteSelected = () => {
@@ -609,6 +687,15 @@ export const FloorEditor: React.FC<{
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleDuplicateAllComponents}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
+            title="Duplicate all floor components structure"
+          >
+            <Copy className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Copy All Layout</span>
+          </button>
+
           <button
             onClick={handleGenerateOuterWalls}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
