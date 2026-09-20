@@ -24,6 +24,7 @@ import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import webauthnRoutes from './routes/webauthnRoutes.js';
+import faceAuthRoutes from './routes/faceAuthRoutes.js';
 
 import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
@@ -72,6 +73,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', authRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/webauthn', webauthnRoutes);
+app.use('/api/auth/face', faceAuthRoutes);
 
 // --- EMAIL NOTIFICATION & DIAGNOSTIC ROUTES ---
 app.use('/api/email', emailRoutes);

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import pool from './db.js';
+import { initFaceAuthTables } from './services/initFaceAuthTables.js';
 
 export async function initializeDatabase() {
   console.log('[DATABASE INIT] Checking and initializing database schema & default seed users...');
@@ -1585,6 +1586,13 @@ export async function initializeDatabase() {
           [adminRoleId, existingAdmin[0].id]
         );
       }
+    }
+
+    // Initialize Face Authentication Database Tables
+    try {
+      await initFaceAuthTables();
+    } catch (faceDbErr) {
+      console.warn('[DATABASE INIT] Face Auth Tables Notice:', faceDbErr.message);
     }
 
     console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');

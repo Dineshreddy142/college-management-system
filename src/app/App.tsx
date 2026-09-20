@@ -22,6 +22,7 @@ import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
+import { FaceLoginModal } from "../components/FaceLoginModal";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, DollarSign,
   BookOpen, Briefcase, BarChart3, Settings, Bell, Search,
@@ -1904,6 +1905,7 @@ function LoginPage({ onNav }: { onNav: (v: string) => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -1988,11 +1990,37 @@ function LoginPage({ onNav }: { onNav: (v: string) => void }) {
             {loading ? "Signing in..." : "Sign In &rarr;"}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setIsFaceModalOpen(true)}
+            className="w-full py-2.5 mt-2.5 bg-white/10 hover:bg-white/15 text-blue-200 border border-white/20 font-medium rounded-xl transition-all text-xs flex items-center justify-center gap-2"
+          >
+            <Sparkles size={14} className="text-blue-400" />
+            Sign in with Face ID
+          </button>
+
           <p className="text-center text-xs text-blue-300/70 mt-4">
             {"Don't have an account? "}
             <button onClick={() => onNav("register")} className="text-white font-medium hover:underline">Register</button>
           </p>
         </div>
+
+        <FaceLoginModal
+          isOpen={isFaceModalOpen}
+          onClose={() => setIsFaceModalOpen(false)}
+          defaultIdentifier={email}
+          onLoginSuccess={(token, user) => {
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            const roleStr = user.role.toLowerCase();
+            const routes: Record<string, string> = { 
+              admin: "admin", student: "student", faculty: "faculty", 
+              parent: "parent", principal: "admin", hod: "admin", 
+              accountant: "admin", librarian: "admin", "placement officer": "admin"
+            };
+            onNav(routes[roleStr] || "admin");
+          }}
+        />
 
         <p className="text-center text-xs text-blue-400/60 mt-5">
           <button onClick={() => onNav("landing")} className="hover:text-white transition-colors">← Back to homepage</button>
