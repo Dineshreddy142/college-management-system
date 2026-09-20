@@ -99,7 +99,12 @@ export const FloorEditor: React.FC<{
         e.preventDefault();
         handleDuplicateSelected();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedObjectId) handleDeleteSelected();
+        if (selectedObjectId) {
+          handleDeleteSelected();
+        } else if (showBuildingOutline) {
+          setShowBuildingOutline(false);
+          showToast('Building boundary outline hidden');
+        }
       } else if (e.key === 'Escape') {
         setSelectedObjectId(null);
         setActiveTool('select');
@@ -837,16 +842,30 @@ export const FloorEditor: React.FC<{
                   </g>
                 ))}
 
-                {/* Floating Building Footprint Header Badge */}
+                {/* Floating Building Footprint Header Badge with Close (X) button */}
                 {(() => {
                   const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
                   const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
                   return (
-                    <g transform={`translate(${minX + 10}, ${minY + 20})`}>
-                      <rect x={-5} y={-14} width={360} height={24} rx={6} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1.5} />
-                      <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={2}>
+                    <g transform={`translate(${minX + 10}, ${minY + 20})`} className="pointer-events-auto">
+                      <rect x={-5} y={-14} width={380} height={26} rx={6} fill="#0F172A" fillOpacity={0.95} stroke="#3B82F6" strokeWidth={1.5} />
+                      <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={3}>
                         🏢 BUILDING PERIMETER: {floor?.building_name || 'CSE Main Block'} ({floor?.building_geometry_type || 'POLYGON'})
                       </text>
+                      {/* Clickable Close (X) Icon to Remove / Hide Boundary Overlay */}
+                      <g
+                        transform="translate(355, 0)"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBuildingOutline(false);
+                          showToast('Building boundary outline hidden');
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                        title="Remove / Hide Building Perimeter Outline"
+                      >
+                        <circle cx={0} cy={0} r={8} fill="#EF4444" />
+                        <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
+                      </g>
                     </g>
                   );
                 })()}
@@ -1039,9 +1058,18 @@ export const FloorEditor: React.FC<{
           ) : (
             <div className="space-y-4 text-xs">
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                <div className="flex items-center gap-2 text-blue-400 font-bold">
-                  <Building className="w-4 h-4" />
-                  <span>Building Boundary Info</span>
+                <div className="flex items-center justify-between text-blue-400 font-bold">
+                  <div className="flex items-center gap-2">
+                    <Building className="w-4 h-4" />
+                    <span>Building Boundary Info</span>
+                  </div>
+                  <button
+                    onClick={() => setShowBuildingOutline(!showBuildingOutline)}
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold border border-slate-700 cursor-pointer"
+                    title="Toggle outer building perimeter boundary overlay"
+                  >
+                    {showBuildingOutline ? '✕ Hide Boundary' : '👁️ Show Boundary'}
+                  </button>
                 </div>
                 <div className="space-y-1 text-slate-300 font-medium">
                   <div className="flex justify-between">
