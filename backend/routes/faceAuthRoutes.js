@@ -277,7 +277,15 @@ router.post('/enroll-auth', authenticateToken, async (req, res) => {
         const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
         if (rows.length === 0) return errorResponse(res, 'User account not found', [], 404);
 
-        const isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        let isPasswordValid = false;
+        if (rows[0].password && rows[0].password.startsWith('$2')) {
+            isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        } else if (rows[0].password === password) {
+            isPasswordValid = true;
+            const newHash = await bcrypt.hash(password, 10);
+            await pool.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, userId]);
+        }
+
         if (!isPasswordValid) {
             return errorResponse(res, 'Incorrect password. Enrollment authorization denied.', [], 401);
         }
@@ -402,7 +410,15 @@ router.delete('/disable', authenticateToken, async (req, res) => {
         const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
         if (rows.length === 0) return errorResponse(res, 'User account not found', [], 404);
 
-        const isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        let isPasswordValid = false;
+        if (rows[0].password && rows[0].password.startsWith('$2')) {
+            isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        } else if (rows[0].password === password) {
+            isPasswordValid = true;
+            const newHash = await bcrypt.hash(password, 10);
+            await pool.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, userId]);
+        }
+
         if (!isPasswordValid) {
             return errorResponse(res, 'Incorrect password. Disablement denied.', [], 401);
         }
