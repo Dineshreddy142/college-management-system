@@ -24,7 +24,6 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "placement", label: "Placement & ATS Studio", icon: Briefcase, badge: "Sem 6+" },
   { id: "smart-gatepass", label: "Smart Gatepass QR", icon: ShieldCheck, badge: "Live" },
   { id: "campus-wallet", label: "Wallet & Canteen", icon: Wallet, badge: "NFC" },
-  { id: "academic-risk", label: "Academic Risk Radar", icon: Activity, badge: "AI" },
   { id: "events", label: "Events", icon: CalendarDays, badge: null },
   { id: "leaves", label: "Leave Management", icon: Calendar, badge: null },
   { id: "communication", label: "Communication", icon: MessageSquare, badge: null },

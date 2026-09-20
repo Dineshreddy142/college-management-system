@@ -15,7 +15,6 @@ import { PlacementModule } from "../shared/PlacementModule";
 import { AIPlacementResume } from "../innovations/AIPlacementResume";
 import { SmartGatepass } from "../innovations/SmartGatepass";
 import { CampusWalletCanteen } from "../innovations/CampusWalletCanteen";
-import { AcademicRiskRadar } from "../innovations/AcademicRiskRadar";
 import { EventsModule } from "../shared/EventsModule";
 import { LeavesModule } from "../shared/LeavesModule";
 import { CommunicationModule } from "../shared/CommunicationModule";
@@ -45,7 +44,6 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "placement": return <AIPlacementResume />;
       case "smart-gatepass": return <SmartGatepass />;
       case "campus-wallet": return <CampusWalletCanteen />;
-      case "academic-risk": return <AcademicRiskRadar />;
       case "events": return <EventsModule />;
       case "leaves": return <LeavesModule />;
       case "communication": return <CommunicationModule />;
