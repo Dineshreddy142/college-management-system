@@ -92,7 +92,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
   // Face Authentication Modal Toggle (Mobile Mode)
   const [showFaceAuth, setShowFaceAuth] = useState(false);
+
   // Authenticator / 2FA Code State (Desktop Mode)
+  const [authIdentifier, setAuthIdentifier] = useState('');
+  const [authCode, setAuthCode] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [devCodeHint, setDevCodeHint] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleNavigateDashboard = (userRole: string, mustChangePassword?: boolean) => {
     if (mustChangePassword) {
