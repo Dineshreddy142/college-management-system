@@ -4,11 +4,83 @@ import {
   Play, Upload, Download, MousePointer2, Move, Square, Circle, Minus, Hexagon,
   Type, DoorOpen, Footprints, Sparkles, Building, ChevronRight, X, Copy,
   Trash2, Lock, Unlock, ArrowUp, ArrowDown, Check, AlertCircle, RefreshCw,
-  Plus, RotateCw, AlignLeft, AlignCenter, AlignRight, Sliders, Shield
+  Plus, RotateCw, AlignLeft, AlignCenter, AlignRight, Sliders, Shield, Search
 } from 'lucide-react';
 import { blockService, FloorRecord, FloorObjectRecord, FloorLayerRecord, GeometryType, Point } from '../../../api/blockService';
 
 const GRID_SIZE = 20;
+
+export interface ToolItem {
+  id: string;
+  label: string;
+  emoji: string;
+  category: 'structure' | 'rooms' | 'movement' | 'facilities' | 'locations';
+  objectType: string;
+  geomType: GeometryType;
+  fillColor: string;
+  strokeColor: string;
+  width: number;
+  height: number;
+  description: string;
+}
+
+export const TOOL_CATEGORIES = [
+  { id: 'all', label: 'All Tools', emoji: '🛠️' },
+  { id: 'structure', label: 'Building Structure', emoji: '🧱' },
+  { id: 'rooms', label: 'Rooms & Halls', emoji: '🏫' },
+  { id: 'movement', label: 'Movement & Exits', emoji: '🪜' },
+  { id: 'facilities', label: 'Facilities', emoji: '🚻' },
+  { id: 'locations', label: 'Important Locations', emoji: '🛡️' }
+];
+
+export const ARCHITECTURAL_TOOLS: ToolItem[] = [
+  // 1. Building Structure
+  { id: 'outer_wall', label: 'Outer Wall', emoji: '🧱', category: 'structure', objectType: 'wall', geomType: 'RECTANGLE', fillColor: '#334155', strokeColor: '#94A3B8', width: 220, height: 14, description: 'Outer structural perimeter wall' },
+  { id: 'inner_wall', label: 'Inner Wall', emoji: '🧱', category: 'structure', objectType: 'wall', geomType: 'RECTANGLE', fillColor: '#64748B', strokeColor: '#CBD5E1', width: 140, height: 10, description: 'Interior partition wall' },
+  { id: 'door', label: 'Door', emoji: '🚪', category: 'structure', objectType: 'door', geomType: 'RECTANGLE', fillColor: '#EC4899', strokeColor: '#BE185D', width: 40, height: 20, description: 'Single/Double entrance door' },
+  { id: 'window', label: 'Window', emoji: '🪟', category: 'structure', objectType: 'window', geomType: 'RECTANGLE', fillColor: '#06B6D4', strokeColor: '#0891B2', width: 50, height: 14, description: 'Wall ventilation window' },
+  { id: 'corridor', label: 'Corridor', emoji: '🚶', category: 'structure', objectType: 'corridor', geomType: 'RECTANGLE', fillColor: '#1E293B', strokeColor: '#475569', width: 240, height: 80, description: 'Pedestrian passage corridor' },
+  { id: 'open_hall', label: 'Open Area / Hall', emoji: '🔲', category: 'structure', objectType: 'hall', geomType: 'RECTANGLE', fillColor: '#1E1B4B', strokeColor: '#4338CA', width: 260, height: 160, description: 'Open courtyard / central hall' },
+
+  // 2. Rooms
+  { id: 'classroom', label: 'Classroom', emoji: '🏫', category: 'rooms', objectType: 'room', geomType: 'RECTANGLE', fillColor: '#2563EB', strokeColor: '#60A5FA', width: 140, height: 100, description: 'Lecture classroom' },
+  { id: 'computer_lab', label: 'Computer Lab', emoji: '💻', category: 'rooms', objectType: 'lab', geomType: 'RECTANGLE', fillColor: '#7C3AED', strokeColor: '#A78BFA', width: 180, height: 120, description: 'IT & PC Workstation Lab' },
+  { id: 'laboratory', label: 'Laboratory', emoji: '🔬', category: 'rooms', objectType: 'lab', geomType: 'RECTANGLE', fillColor: '#9333EA', strokeColor: '#C084FC', width: 180, height: 120, description: 'Science / Engineering Lab' },
+  { id: 'faculty_room', label: 'Faculty Room', emoji: '👨‍🏫', category: 'rooms', objectType: 'office', geomType: 'RECTANGLE', fillColor: '#0D9488', strokeColor: '#2DD4BF', width: 120, height: 90, description: 'Professor / Lecturer Office' },
+  { id: 'hod_room', label: 'HOD Room', emoji: '🧑‍💼', category: 'rooms', objectType: 'office', geomType: 'RECTANGLE', fillColor: '#059669', strokeColor: '#34D399', width: 130, height: 100, description: 'Head of Department Executive Office' },
+  { id: 'dept_office', label: 'Department Office', emoji: '🏢', category: 'rooms', objectType: 'office', geomType: 'RECTANGLE', fillColor: '#10B981', strokeColor: '#6EE7B7', width: 160, height: 110, description: 'Department Admin Staff Office' },
+  { id: 'seminar_hall', label: 'Seminar Hall', emoji: '📚', category: 'rooms', objectType: 'hall', geomType: 'RECTANGLE', fillColor: '#4F46E5', strokeColor: '#818CF8', width: 220, height: 150, description: 'Presentation & Seminar Room' },
+  { id: 'auditorium', label: 'Auditorium', emoji: '🎤', category: 'rooms', objectType: 'hall', geomType: 'RECTANGLE', fillColor: '#581C87', strokeColor: '#C084FC', width: 300, height: 200, description: 'Large Scale Event Auditorium' },
+  { id: 'exam_hall', label: 'Examination Hall', emoji: '📝', category: 'rooms', objectType: 'hall', geomType: 'RECTANGLE', fillColor: '#0284C7', strokeColor: '#38BDF8', width: 260, height: 180, description: 'Central Examination Facility' },
+  { id: 'store_room', label: 'Store Room', emoji: '🗄️', category: 'rooms', objectType: 'storage', geomType: 'RECTANGLE', fillColor: '#52525B', strokeColor: '#A1A1AA', width: 90, height: 70, description: 'Equipment Storage Closet' },
+
+  // 3. Movement
+  { id: 'stairs', label: 'Stairs', emoji: '🪜', category: 'movement', objectType: 'stairs', geomType: 'RECTANGLE', fillColor: '#D97706', strokeColor: '#FBBF24', width: 140, height: 100, description: 'Stairwell staircase' },
+  { id: 'elevator', label: 'Elevator / Lift', emoji: '🛗', category: 'movement', objectType: 'elevator', geomType: 'RECTANGLE', fillColor: '#EA580C', strokeColor: '#FB923C', width: 80, height: 80, description: 'Passenger & Freight Elevator' },
+  { id: 'ramp', label: 'Accessible Ramp', emoji: '♿', category: 'movement', objectType: 'ramp', geomType: 'RECTANGLE', fillColor: '#059669', strokeColor: '#34D399', width: 120, height: 50, description: 'Wheelchair accessible ramp' },
+  { id: 'main_entrance', label: 'Main Entrance', emoji: '🚪', category: 'movement', objectType: 'entrance', geomType: 'RECTANGLE', fillColor: '#CA8A04', strokeColor: '#FACC15', width: 100, height: 30, description: 'Building main entrance gate' },
+  { id: 'emergency_exit', label: 'Emergency Exit', emoji: '🚨', category: 'movement', objectType: 'exit', geomType: 'RECTANGLE', fillColor: '#DC2626', strokeColor: '#F87171', width: 60, height: 25, description: 'Fire & emergency evacuation exit' },
+
+  // 4. Facilities
+  { id: 'mens_toilet', label: "Men's Toilet", emoji: '🚻', category: 'facilities', objectType: 'washroom', geomType: 'RECTANGLE', fillColor: '#2563EB', strokeColor: '#93C5FD', width: 90, height: 80, description: 'Male Restroom' },
+  { id: 'womens_toilet', label: "Women's Toilet", emoji: '🚻', category: 'facilities', objectType: 'washroom', geomType: 'RECTANGLE', fillColor: '#E11D48', strokeColor: '#FDA4AF', width: 90, height: 80, description: 'Female Restroom' },
+  { id: 'accessible_toilet', label: 'Accessible Toilet', emoji: '♿', category: 'facilities', objectType: 'washroom', geomType: 'RECTANGLE', fillColor: '#0D9488', strokeColor: '#5EEAD4', width: 80, height: 80, description: 'Disability / Wheelchair Restroom' },
+  { id: 'drinking_water', label: 'Drinking Water', emoji: '💧', category: 'facilities', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#0891B2', strokeColor: '#67E8F9', width: 50, height: 40, description: 'Filtered Water Dispenser Kiosk' },
+  { id: 'canteen', label: 'Canteen', emoji: '🍽️', category: 'facilities', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#C2410C', strokeColor: '#FDBA74', width: 200, height: 140, description: 'Food Court & Dining Area' },
+  { id: 'cafeteria', label: 'Cafeteria', emoji: '☕', category: 'facilities', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#B45309', strokeColor: '#FDE047', width: 160, height: 110, description: 'Coffee & Snack Bar' },
+  { id: 'waiting_area', label: 'Waiting Area', emoji: '🪑', category: 'facilities', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#4338CA', strokeColor: '#A5B4FC', width: 130, height: 90, description: 'Visitor Seating & Lounge' },
+  { id: 'student_lounge', label: 'Student Lounge', emoji: '🛋️', category: 'facilities', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#6B21A8', strokeColor: '#E9D5FF', width: 150, height: 100, description: 'Student Activity & Chill Lounge' },
+
+  // 5. Important Locations
+  { id: 'security_post', label: 'Security Post', emoji: '🛡️', category: 'locations', objectType: 'security', geomType: 'RECTANGLE', fillColor: '#991B1B', strokeColor: '#FCA5A5', width: 70, height: 70, description: 'Campus Guard Security Desk' },
+  { id: 'reception', label: 'Reception', emoji: '🛎️', category: 'locations', objectType: 'reception', geomType: 'RECTANGLE', fillColor: '#B45309', strokeColor: '#FDE047', width: 110, height: 80, description: 'Information & Welcome Desk' },
+  { id: 'medical_room', label: 'First-Aid / Medical', emoji: '🩺', category: 'locations', objectType: 'medical', geomType: 'RECTANGLE', fillColor: '#BE123C', strokeColor: '#FECDD3', width: 100, height: 90, description: 'Emergency Clinic & Infirmary' },
+  { id: 'fire_extinguisher', label: 'Fire Extinguisher', emoji: '🔥', category: 'locations', objectType: 'safety', geomType: 'RECTANGLE', fillColor: '#B91C1C', strokeColor: '#F87171', width: 35, height: 35, description: 'Safety Fire Extinguisher' },
+  { id: 'fire_alarm', label: 'Fire Alarm', emoji: '🚨', category: 'locations', objectType: 'safety', geomType: 'RECTANGLE', fillColor: '#991B1B', strokeColor: '#EF4444', width: 30, height: 30, description: 'Emergency Pull Alarm Station' },
+  { id: 'notice_board', label: 'Notice Board', emoji: '📍', category: 'locations', objectType: 'info', geomType: 'RECTANGLE', fillColor: '#A16207', strokeColor: '#FEF08A', width: 80, height: 20, description: 'Information Bulletin Board' },
+  { id: 'atm', label: 'ATM', emoji: '🏧', category: 'locations', objectType: 'facility', geomType: 'RECTANGLE', fillColor: '#047857', strokeColor: '#6EE7B7', width: 50, height: 50, description: 'Bank ATM Machine Kiosk' },
+  { id: 'parking', label: 'Parking Area', emoji: '🅿️', category: 'locations', objectType: 'parking', geomType: 'RECTANGLE', fillColor: '#334155', strokeColor: '#94A3B8', width: 200, height: 150, description: 'Vehicle Parking Bay' }
+];
 
 export const FloorEditor: React.FC<{
   floorId: number;
@@ -184,14 +256,51 @@ export const FloorEditor: React.FC<{
     setActiveTool(toolId);
     if (toolId === 'select' || toolId === 'pan') return;
 
-    // Create corresponding floor object
     const scale = Math.max(0.1, zoomLevel / 100);
     const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
 
-    const newX = snap(100);
-    const newY = snap(100);
+    const newX = snap(120);
+    const newY = snap(120);
     const newObjId = `obj_${Date.now()}`;
 
+    // Check if tool is in ARCHITECTURAL_TOOLS definition
+    const archTool = ARCHITECTURAL_TOOLS.find(t => t.id === toolId);
+    if (archTool) {
+      const newObj: FloorObjectRecord = {
+        id: newObjId,
+        floor_id: floorId,
+        object_type: archTool.objectType,
+        geometry_type: archTool.geomType,
+        x: newX,
+        y: newY,
+        width: archTool.width,
+        height: archTool.height,
+        rotation: 0,
+        label: `${archTool.emoji} ${archTool.label}`,
+        z_index: objects.length + 1,
+        locked: false,
+        visible: true,
+        fill_color: archTool.fillColor,
+        stroke_color: archTool.strokeColor,
+        stroke_width: 2,
+        properties: {
+          category: archTool.category,
+          roomType: archTool.label,
+          description: archTool.description
+        }
+      };
+
+      const updated = [...objects, newObj];
+      setObjects(updated);
+      pushHistory(updated);
+      setSelectedObjectId(newObjId);
+      setHasUnsavedChanges(true);
+      showToast(`Added ${archTool.emoji} ${archTool.label}`);
+      setActiveTool('select');
+      return;
+    }
+
+    // Default shapes fallback
     let objType = toolId.toUpperCase();
     let geomType: GeometryType = 'RECTANGLE';
     let label = toolId.charAt(0).toUpperCase() + toolId.slice(1);
@@ -750,7 +859,7 @@ export const FloorEditor: React.FC<{
 
       {/* MAIN EDITOR AREA */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* LEFT TOOLBOX */}
+        {/* LEFT TOOLBOX BAR */}
         <div className="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-3 space-y-2 z-10 flex-shrink-0 overflow-y-auto scrollbar-none">
           <button
             onClick={() => setActiveTool('select')}
@@ -769,29 +878,124 @@ export const FloorEditor: React.FC<{
 
           <div className="w-8 h-px bg-slate-800 my-1" />
 
-          {/* Tools List */}
-          {[
-            { id: 'rectangle', icon: Square, label: 'Rectangle' },
-            { id: 'circle', icon: Circle, label: 'Circle' },
-            { id: 'polygon', icon: Hexagon, label: 'Polygon / L-Shape' },
-            { id: 'classroom', icon: DoorOpen, label: 'Classroom' },
-            { id: 'lab', icon: Sparkles, label: 'Laboratory' },
-            { id: 'stairs', icon: Footprints, label: 'Stairs / Elevator' },
-            { id: 'door', icon: Building, label: 'Door / Entrance' }
-          ].map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                onClick={() => handleSelectTool(t.id)}
-                className={`p-2.5 rounded-xl transition-all ${activeTool === t.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}
-                title={t.label}
-              >
-                <Icon className="w-5 h-5" />
-              </button>
-            );
-          })}
+          {/* Category Tabs */}
+          {TOOL_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setActiveToolCategory(cat.id);
+                setIsToolLibraryOpen(true);
+              }}
+              className={`p-2.5 rounded-xl text-base transition-all relative ${activeToolCategory === cat.id && isToolLibraryOpen ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}
+              title={cat.label}
+            >
+              <span>{cat.emoji}</span>
+              {activeToolCategory === cat.id && isToolLibraryOpen && (
+                <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-4 bg-blue-400 rounded-l-full" />
+              )}
+            </button>
+          ))}
+
+          <div className="w-8 h-px bg-slate-800 my-1" />
+
+          {/* Expand / Collapse Tool Library Drawer Toggle */}
+          <button
+            onClick={() => setIsToolLibraryOpen(!isToolLibraryOpen)}
+            className={`p-2 rounded-xl text-xs font-bold transition-all ${isToolLibraryOpen ? 'bg-slate-800 text-blue-400 border border-slate-700' : 'text-slate-500 hover:bg-slate-800'}`}
+            title={isToolLibraryOpen ? 'Collapse Tool Library' : 'Expand Tool Library'}
+          >
+            {isToolLibraryOpen ? '◀' : '▶'}
+          </button>
         </div>
+
+        {/* EXPANDABLE ARCHITECTURAL TOOL LIBRARY DRAWER */}
+        {isToolLibraryOpen && (
+          <div className="w-64 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 flex flex-col z-10 flex-shrink-0 overflow-hidden shadow-2xl animate-in slide-in-from-left duration-200">
+            {/* Drawer Header */}
+            <div className="p-3 border-b border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black tracking-wider text-white uppercase flex items-center gap-1.5">
+                  <span>🛠️ Tool Library</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-blue-900/60 text-blue-300 text-[10px] font-mono font-bold border border-blue-700/50">
+                    {ARCHITECTURAL_TOOLS.length}
+                  </span>
+                </span>
+                <button
+                  onClick={() => setIsToolLibraryOpen(false)}
+                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={toolSearchQuery}
+                  onChange={(e) => setToolSearchQuery(e.target.value)}
+                  placeholder="Search 36 tools..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pt-1">
+                {TOOL_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveToolCategory(cat.id)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
+                      activeToolCategory === cat.id
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-950 hover:bg-slate-800 text-slate-400 border border-slate-800'
+                    }`}
+                  >
+                    <span>{cat.emoji}</span>
+                    <span>{cat.label.replace('Building ', '').replace('Important ', '')}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tools Grid List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800">
+              {ARCHITECTURAL_TOOLS.filter((t) => {
+                const matchesCat = activeToolCategory === 'all' || t.category === activeToolCategory;
+                const matchesSearch = !toolSearchQuery.trim() || t.label.toLowerCase().includes(toolSearchQuery.toLowerCase()) || t.description.toLowerCase().includes(toolSearchQuery.toLowerCase());
+                return matchesCat && matchesSearch;
+              }).map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => handleSelectTool(tool.id)}
+                  className="w-full p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 transition-all text-left flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 border"
+                      style={{ backgroundColor: `${tool.fillColor}33`, borderColor: tool.strokeColor }}
+                    >
+                      {tool.emoji}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-bold text-slate-200 group-hover:text-white truncate">
+                        {tool.label}
+                      </span>
+                      <span className="block text-[9px] text-slate-400 font-mono truncate">
+                        {tool.width} × {tool.height} px
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
+                    + Add
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* CENTER INTERACTIVE SVG CANVAS */}
         <div
