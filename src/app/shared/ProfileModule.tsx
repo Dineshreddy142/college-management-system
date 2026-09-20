@@ -11,6 +11,9 @@ import {
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
 
+import { FaceEnrollmentModal } from "../../components/FaceEnrollmentModal";
+import { faceAuthApi } from "../../services/faceAuthApi";
+
 export function ProfileModule() {
   const savedUser = (() => {
     try {
@@ -25,6 +28,13 @@ export function ProfileModule() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Face Auth Security State
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [faceStatus, setFaceStatus] = useState<{ enabled: boolean; enrolled: boolean; enrolledAt?: string | null }>({ enabled: false, enrolled: false });
+  const [disablePassword, setDisablePassword] = useState('');
+  const [isDisabling, setIsDisabling] = useState(false);
+  const [showDisableForm, setShowDisableForm] = useState(false);
 
   // Streamlined Tabs State
   const [activeTab, setActiveTab] = useState<
@@ -38,6 +48,7 @@ export function ProfileModule() {
     | 'performance'
     | 'backlogs'
     | 'mentor'
+    | 'security'
   >('overview');
 
   // Editable Contact State
@@ -60,7 +71,14 @@ export function ProfileModule() {
 
   useEffect(() => {
     fetchProfile();
+    fetchFaceStatus();
   }, []);
+
+  const fetchFaceStatus = () => {
+    faceAuthApi.getFaceStatus()
+      .then(st => setFaceStatus(st))
+      .catch(() => setFaceStatus({ enabled: false, enrolled: false }));
+  };
 
   const fetchProfile = () => {
     client.get('/profile').then(res => {
@@ -205,6 +223,7 @@ export function ProfileModule() {
             {[
               { id: 'overview', label: '📊 Overview' },
               { id: 'personal', label: '👤 Personal' },
+              { id: 'security', label: '🔒 Security & Biometrics' },
               { id: 'contact', label: '📞 Contact & Address' },
               { id: 'parent', label: '👨‍👩‍👦 Parent & Guardian' },
               { id: 'academic', label: '🎓 Academic Details' },
@@ -737,8 +756,126 @@ export function ProfileModule() {
             </div>
           )}
 
+          {/* TAB 11: SECURITY & BIOMETRICS */}
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-cyan-400" /> Security & Biometrics
+                </h2>
+                <span className="text-xs text-slate-400">1:1 Encrypted Authentication</span>
+              </div>
+
+              {/* Face Biometrics Card */}
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl ${faceStatus.enrolled ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400'}`}>
+                      <Camera className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-white text-base">Face ID Authentication</h3>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${faceStatus.enrolled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400'}`}>
+                          {faceStatus.enrolled ? 'Enrolled' : 'Not Enrolled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Sign in instantly with your face using 1:1 server-side AES-256-GCM encrypted verification.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setIsEnrollModalOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg flex items-center gap-2 transition"
+                    >
+                      <Camera className="w-4 h-4" /> {faceStatus.enrolled ? 'Update Face ID' : 'Enroll Face ID'}
+                    </button>
+
+                    {faceStatus.enrolled && (
+                      <button
+                        onClick={() => setShowDisableForm(!showDisableForm)}
+                        className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-xs transition"
+                      >
+                        Disable
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Disable Form */}
+                {showDisableForm && faceStatus.enrolled && (
+                  <div className="pt-4 border-t border-slate-700/80 space-y-3">
+                    <p className="text-xs text-rose-300 font-medium">
+                      Enter current password to confirm disabling Face ID biometric login:
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="password"
+                        value={disablePassword}
+                        onChange={(e) => setDisablePassword(e.target.value)}
+                        placeholder="Current Password"
+                        className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 flex-1"
+                      />
+                      <button
+                        disabled={isDisabling || !disablePassword}
+                        onClick={async () => {
+                          setIsDisabling(true);
+                          try {
+                            await faceAuthApi.disableFace(disablePassword);
+                            triggerToast('✅ Face ID biometric authentication disabled.');
+                            setShowDisableForm(false);
+                            setDisablePassword('');
+                            fetchFaceStatus();
+                          } catch (err: any) {
+                            triggerToast(`❌ ${err.message || 'Failed to disable Face ID'}`);
+                          } finally {
+                            setIsDisabling(false);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition disabled:opacity-50"
+                      >
+                        {isDisabling ? 'Disabling...' : 'Confirm Disable'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Passkeys Card */}
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                    <KeyRound className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">Passkey & WebAuthn Security</h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      FIDO2 / WebAuthn hardware key & device biometric login support.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-[10px] font-extrabold bg-slate-700 text-slate-300 border border-slate-600">
+                  FIDO2 Active
+                </span>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {/* Face Enrollment Modal */}
+      <FaceEnrollmentModal
+        isOpen={isEnrollModalOpen}
+        onClose={() => setIsEnrollModalOpen(false)}
+        onSuccess={() => {
+          triggerToast('🎉 Face ID enrollment successful! You can now log in using your face.');
+          fetchFaceStatus();
+        }}
+      />
     </div>
   );
 }
