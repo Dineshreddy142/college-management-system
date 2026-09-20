@@ -861,8 +861,8 @@ export const FloorEditor: React.FC<{
                           showToast('Building boundary outline hidden');
                         }}
                         className="cursor-pointer hover:opacity-80"
-                        title="Remove / Hide Building Perimeter Outline"
                       >
+                        <title>Remove / Hide Building Perimeter Outline</title>
                         <circle cx={0} cy={0} r={8} fill="#EF4444" />
                         <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
                       </g>
