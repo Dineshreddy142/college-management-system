@@ -44,8 +44,8 @@ router.post('/login', async (req, res) => {
              return errorResponse(res, 'Identifier and password are required', [], 400);
         }
 
-        // Query user and join role name
-        const [rows] = await pool.execute(
+        // Query user by email, username, roll number, admission number, or employee ID
+        let [rows] = await pool.execute(
             `SELECT u.*, r.name as role_name
              FROM users u 
              JOIN roles r ON u.role_id = r.id 
@@ -54,10 +54,43 @@ router.post('/login', async (req, res) => {
         );
 
         if (rows.length === 0) {
+            // Check student roll_number or admission_number
+            try {
+                const [studentRows] = await pool.execute(
+                    `SELECT u.*, r.name as role_name
+                     FROM students s
+                     JOIN users u ON s.user_id = u.id
+                     JOIN roles r ON u.role_id = r.id
+                     WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ?`,
+                    [loginIdentifier, loginIdentifier]
+                );
+                if (studentRows.length > 0) {
+                    rows = studentRows;
+                } else {
+                    // Check faculty employee_id
+                    const [facultyRows] = await pool.execute(
+                        `SELECT u.*, r.name as role_name
+                         FROM faculty f
+                         JOIN users u ON f.user_id = u.id
+                         JOIN roles r ON u.role_id = r.id
+                         WHERE LOWER(f.employee_id) = ?`,
+                        [loginIdentifier]
+                    );
+                    if (facultyRows.length > 0) {
+                        rows = facultyRows;
+                    }
+                }
+            } catch (auxErr) {
+                console.warn('[LOGIN] Auxiliary lookup notice:', auxErr.message);
+            }
+        }
+
+        if (rows.length === 0) {
             const att = await loginAttemptService.recordFailedAttempt(null, loginIdentifier, clientIp, 'USER_NOT_FOUND');
             await logActivity(null, 'LOGIN_FAILED', `Failed login attempt for unknown identifier: ${loginIdentifier}`);
-            return errorResponse(res, 'Invalid credentials', [], 401, { attempts: att.attempts });
+            return errorResponse(res, 'No registered account found matching this email or roll number. Please check for typos.', [], 401, { attempts: att.attempts });
         }
+
 
         const user = rows[0];
 
@@ -1571,8 +1604,8 @@ const handleVerify1to1FaceLogin = async (req, res) => {
             return errorResponse(res, 'Identifier and camera image are required for face verification.', [], 400);
         }
 
-        // Query user by identifier
-        const [rows] = await pool.execute(
+        // Query user by identifier (email, username, roll number, admission number, employee ID)
+        let [rows] = await pool.execute(
             `SELECT u.*, r.name as role_name
              FROM users u 
              JOIN roles r ON u.role_id = r.id 
@@ -1580,11 +1613,42 @@ const handleVerify1to1FaceLogin = async (req, res) => {
             [identifier.trim().toLowerCase(), identifier.trim().toLowerCase()]
         );
 
+        if (rows.length === 0) {
+            try {
+                const [studentRows] = await pool.execute(
+                    `SELECT u.*, r.name as role_name
+                     FROM students s
+                     JOIN users u ON s.user_id = u.id
+                     JOIN roles r ON u.role_id = r.id
+                     WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ?`,
+                    [identifier.trim().toLowerCase(), identifier.trim().toLowerCase()]
+                );
+                if (studentRows.length > 0) {
+                    rows = studentRows;
+                } else {
+                    const [facultyRows] = await pool.execute(
+                        `SELECT u.*, r.name as role_name
+                         FROM faculty f
+                         JOIN users u ON f.user_id = u.id
+                         JOIN roles r ON u.role_id = r.id
+                         WHERE LOWER(f.employee_id) = ?`,
+                        [identifier.trim().toLowerCase()]
+                    );
+                    if (facultyRows.length > 0) {
+                        rows = facultyRows;
+                    }
+                }
+            } catch (auxErr) {
+                console.warn('[FACE_VERIFY] Auxiliary lookup notice:', auxErr.message);
+            }
+        }
+
         // Generic error response to prevent user enumeration
         if (rows.length === 0) {
             await recordBiometricFailure(null, 'VERIFY_1TO1_USER_NOT_FOUND', clientIp);
-            return errorResponse(res, 'Biometric verification failed or invalid user credentials.', [], 401);
+            return errorResponse(res, 'Biometric verification failed or no account found matching this identifier.', [], 401);
         }
+
 
         const user = rows[0];
 
