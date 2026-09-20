@@ -79,6 +79,20 @@ export const FloorEditor: React.FC<{
   const [selectedObjectId, setSelectedObjectId] = useState<string | number | null>(null);
   const [clipboard, setClipboard] = useState<FloorObjectRecord | null>(null);
 
+  // Interactive Resizable Building Boundary State
+  const [customBoundaryPoints, setCustomBoundaryPoints] = useState<Point[] | null>(null);
+  const [activeBoundaryVertexIdx, setActiveBoundaryVertexIdx] = useState<number | null>(null);
+  const [activeBoundaryResizeHandle, setActiveBoundaryResizeHandle] = useState<string | null>(null);
+  const [boundaryResizeStart, setBoundaryResizeStart] = useState<{
+    mouseX: number;
+    mouseY: number;
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+    initialPts: Point[];
+  } | null>(null);
+
   // Dragging & Resizing State
   const [isDraggingObj, setIsDraggingObj] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -95,6 +109,9 @@ export const FloorEditor: React.FC<{
 
   // Building Boundary Points Computation
   const buildingBoundaryPoints: Point[] = React.useMemo(() => {
+    if (customBoundaryPoints && customBoundaryPoints.length > 0) {
+      return customBoundaryPoints;
+    }
     if (floor?.boundary_points && floor.boundary_points.length > 0) {
       return floor.boundary_points;
     }
@@ -112,7 +129,21 @@ export const FloorEditor: React.FC<{
       { x: 50 + Math.round(w * 0.6), y: 50 + h },
       { x: 50, y: 50 + h }
     ];
-  }, [floor]);
+  }, [floor, customBoundaryPoints]);
+
+  const boundaryBBox = React.useMemo(() => {
+    if (!buildingBoundaryPoints || buildingBoundaryPoints.length === 0) {
+      return { minX: 50, minY: 50, maxX: 650, maxY: 450 };
+    }
+    const xs = buildingBoundaryPoints.map(p => p.x);
+    const ys = buildingBoundaryPoints.map(p => p.y);
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys)
+    };
+  }, [buildingBoundaryPoints]);
 
   useEffect(() => {
     loadFloorAndObjects();
@@ -352,10 +383,61 @@ export const FloorEditor: React.FC<{
       return;
     }
 
-    if (isPreviewMode || !selectedObjectId) return;
+    if (isPreviewMode) return;
 
-    const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
+    const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : Math.round(v);
     const scale = Math.max(0.1, zoomLevel / 100);
+
+    // 1. Dragging a Building Boundary Corner Vertex Node (V1, V2, V3, ...)
+    if (activeBoundaryVertexIdx !== null) {
+      const canvasX = snap((e.clientX - panX) / scale);
+      const canvasY = snap((e.clientY - panY) / scale);
+
+      setCustomBoundaryPoints(prev => {
+        const base = prev ? [...prev] : [...buildingBoundaryPoints];
+        base[activeBoundaryVertexIdx] = { x: Math.max(0, canvasX), y: Math.max(0, canvasY) };
+        return base;
+      });
+      setHasUnsavedChanges(true);
+      return;
+    }
+
+    // 2. Dragging a Bounding Box Resizer Handle of Building Perimeter
+    if (activeBoundaryResizeHandle && boundaryResizeStart) {
+      const deltaX = (e.clientX - boundaryResizeStart.mouseX) / scale;
+      const deltaY = (e.clientY - boundaryResizeStart.mouseY) / scale;
+
+      const { minX, minY, maxX, maxY, initialPts } = boundaryResizeStart;
+      const origW = Math.max(10, maxX - minX);
+      const origH = Math.max(10, maxY - minY);
+
+      let newMinX = minX;
+      let newMinY = minY;
+      let newMaxX = maxX;
+      let newMaxY = maxY;
+
+      if (activeBoundaryResizeHandle.includes('e')) newMaxX = Math.max(minX + 50, snap(maxX + deltaX));
+      if (activeBoundaryResizeHandle.includes('s')) newMaxY = Math.max(minY + 50, snap(maxY + deltaY));
+      if (activeBoundaryResizeHandle.includes('w')) newMinX = Math.min(maxX - 50, snap(minX + deltaX));
+      if (activeBoundaryResizeHandle.includes('n')) newMinY = Math.min(maxY - 50, snap(minY + deltaY));
+
+      const newW = newMaxX - newMinX;
+      const newH = newMaxY - newMinY;
+
+      const scaleX = newW / origW;
+      const scaleY = newH / origH;
+
+      const rescaled = initialPts.map(pt => ({
+        x: Math.round(newMinX + (pt.x - minX) * scaleX),
+        y: Math.round(newMinY + (pt.y - minY) * scaleY)
+      }));
+
+      setCustomBoundaryPoints(rescaled);
+      setHasUnsavedChanges(true);
+      return;
+    }
+
+    if (!selectedObjectId) return;
 
     // If a copy-drag is pending (double-click down) AND the mouse has actually started moving/dragging:
     if (isPendingCopyDrag && pendingCopyMouseStart) {
@@ -556,10 +638,10 @@ export const FloorEditor: React.FC<{
       }));
       setHasUnsavedChanges(true);
     }
-  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, isPendingCopyDrag, pendingCopyMouseStart, objects, dragGroupIds, dragGroupStartPositions, dragStartMousePos, resizeHandle, resizeStartPos, snapToGrid, zoomLevel]);
+  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, isPendingCopyDrag, pendingCopyMouseStart, objects, dragGroupIds, dragGroupStartPositions, dragStartMousePos, resizeHandle, resizeStartPos, snapToGrid, zoomLevel, activeBoundaryVertexIdx, activeBoundaryResizeHandle, boundaryResizeStart, buildingBoundaryPoints]);
 
   const handleMouseUpCanvas = () => {
-    if (isDraggingObj || resizeHandle) {
+    if (isDraggingObj || resizeHandle || activeBoundaryVertexIdx !== null || activeBoundaryResizeHandle !== null) {
       pushHistory(objects);
     }
     setIsPanning(false);
@@ -571,6 +653,39 @@ export const FloorEditor: React.FC<{
     setDragStartMousePos(null);
     setResizeHandle(null);
     setResizeStartPos(null);
+    setActiveBoundaryVertexIdx(null);
+    setActiveBoundaryResizeHandle(null);
+    setBoundaryResizeStart(null);
+  };
+
+  const handleAddBoundaryVertex = () => {
+    const pts = customBoundaryPoints ? [...customBoundaryPoints] : [...buildingBoundaryPoints];
+    if (pts.length < 3) return;
+    const p1 = pts[0];
+    const p2 = pts[1];
+    const midPt = { x: Math.round((p1.x + p2.x) / 2), y: Math.round((p1.y + p2.y) / 2) };
+    pts.splice(1, 0, midPt);
+    setCustomBoundaryPoints(pts);
+    setHasUnsavedChanges(true);
+    showToast('Added vertex node to building perimeter');
+  };
+
+  const handleRemoveBoundaryVertex = () => {
+    const pts = customBoundaryPoints ? [...customBoundaryPoints] : [...buildingBoundaryPoints];
+    if (pts.length <= 3) {
+      showToast('Boundary must have at least 3 vertices', 'error');
+      return;
+    }
+    pts.pop();
+    setCustomBoundaryPoints(pts);
+    setHasUnsavedChanges(true);
+    showToast('Removed last vertex node from building perimeter');
+  };
+
+  const handleResetBoundary = () => {
+    setCustomBoundaryPoints(null);
+    setHasUnsavedChanges(true);
+    showToast('Reset building perimeter to default shape');
   };
 
   // Actions
@@ -1079,9 +1194,9 @@ export const FloorEditor: React.FC<{
                 </g>
               )}
 
-              {/* RENDER BUILDING OUTER BOUNDARY SHAPE OVERLAY */}
+              {/* RENDER BUILDING OUTER BOUNDARY SHAPE OVERLAY (INTERACTIVE & RESIZABLE) */}
               {showBuildingOutline && buildingBoundaryPoints.length >= 3 && (
-                <g className="building-outer-boundary-layer pointer-events-none">
+                <g className="building-outer-boundary-layer">
                   {/* Outer building footprint fill & architectural dashed stroke */}
                   <polygon
                     points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
@@ -1089,6 +1204,7 @@ export const FloorEditor: React.FC<{
                     stroke="#3B82F6"
                     strokeWidth="3.5"
                     strokeDasharray="8 4"
+                    className="pointer-events-none"
                   />
 
                   {/* Inner double architectural wall outline */}
@@ -1098,7 +1214,59 @@ export const FloorEditor: React.FC<{
                     stroke="#60A5FA"
                     strokeWidth="1.5"
                     strokeOpacity="0.7"
+                    className="pointer-events-none"
                   />
+
+                  {/* Bounding Box Resizer Rectangle & Handles around Building Perimeter */}
+                  <g className="boundary-bbox-resizer-layer">
+                    <rect
+                      x={boundaryBBox.minX - 10}
+                      y={boundaryBBox.minY - 10}
+                      width={boundaryBBox.maxX - boundaryBBox.minX + 20}
+                      height={boundaryBBox.maxY - boundaryBBox.minY + 20}
+                      fill="none"
+                      stroke="#60A5FA"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 2"
+                      strokeOpacity={0.6}
+                      className="pointer-events-none"
+                    />
+
+                    {/* Bounding Box Corner Resizer Handles (NW, NE, SE, SW) */}
+                    {[
+                      { handle: 'nw', x: boundaryBBox.minX - 14, y: boundaryBBox.minY - 14, cursor: 'nwse-resize' },
+                      { handle: 'ne', x: boundaryBBox.maxX + 4, y: boundaryBBox.minY - 14, cursor: 'nesw-resize' },
+                      { handle: 'se', x: boundaryBBox.maxX + 4, y: boundaryBBox.maxY + 4, cursor: 'nwse-resize' },
+                      { handle: 'sw', x: boundaryBBox.minX - 14, y: boundaryBBox.maxY + 4, cursor: 'nesw-resize' }
+                    ].map(h => (
+                      <g key={`b_handle_${h.handle}`} className="cursor-pointer">
+                        <title>Drag to scale entire building boundary box ({h.handle.toUpperCase()})</title>
+                        <rect
+                          x={h.x}
+                          y={h.y}
+                          width={10}
+                          height={10}
+                          fill="#60A5FA"
+                          stroke="#FFFFFF"
+                          strokeWidth={2}
+                          rx={2}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setActiveBoundaryResizeHandle(h.handle);
+                            setBoundaryResizeStart({
+                              mouseX: e.clientX,
+                              mouseY: e.clientY,
+                              minX: boundaryBBox.minX,
+                              minY: boundaryBBox.minY,
+                              maxX: boundaryBBox.maxX,
+                              maxY: boundaryBBox.maxY,
+                              initialPts: JSON.parse(JSON.stringify(buildingBoundaryPoints))
+                            });
+                          }}
+                        />
+                      </g>
+                    ))}
+                  </g>
 
                   {/* Perimeter Edge Dimension Callouts */}
                   {buildingBoundaryPoints.map((p1, i) => {
@@ -1107,7 +1275,7 @@ export const FloorEditor: React.FC<{
                     const midY = (p1.y + p2.y) / 2;
                     const distPx = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y));
                     return (
-                      <g key={`edge_${i}`}>
+                      <g key={`edge_${i}`} className="pointer-events-none">
                         <rect x={midX - 25} y={midY - 9} width={50} height={18} rx={4} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1} />
                         <text x={midX} y={midY + 3} fill="#93C5FD" fontSize={9} fontWeight="bold" textAnchor="middle" fontFamily="monospace">
                           {distPx}px
@@ -1116,43 +1284,50 @@ export const FloorEditor: React.FC<{
                     );
                   })}
 
-                  {/* Corner Vertex Nodes & Labels */}
+                  {/* Interactive Corner Vertex Nodes V1, V2, V3 (Drag nodes to resize boundary shape!) */}
                   {buildingBoundaryPoints.map((pt, idx) => (
-                    <g key={`vtx_${idx}`}>
-                      <circle cx={pt.x} cy={pt.y} r={5} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
-                      <text x={pt.x + 8} y={pt.y - 8} fill="#60A5FA" fontSize={10} fontWeight="bold" fontFamily="monospace">
+                    <g
+                      key={`vtx_${idx}`}
+                      className="cursor-move hover:scale-125 transition-transform"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setActiveBoundaryVertexIdx(idx);
+                        if (!customBoundaryPoints) {
+                          setCustomBoundaryPoints(JSON.parse(JSON.stringify(buildingBoundaryPoints)));
+                        }
+                      }}
+                    >
+                      <title>Drag vertex node V{idx + 1} to resize building boundary shape</title>
+                      <circle cx={pt.x} cy={pt.y} r={7} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2.5} />
+                      <circle cx={pt.x} cy={pt.y} r={3} fill="#FFFFFF" />
+                      <text x={pt.x + 10} y={pt.y - 8} fill="#60A5FA" fontSize={10} fontWeight="bold" fontFamily="monospace" pointerEvents="none">
                         V{idx + 1}
                       </text>
                     </g>
                   ))}
 
-                  {/* Floating Building Footprint Header Badge with Close (X) button */}
-                  {(() => {
-                    const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
-                    const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
-                    return (
-                      <g transform={`translate(${minX + 10}, ${minY + 20})`} className="pointer-events-auto">
-                        <rect x={-5} y={-14} width={380} height={26} rx={6} fill="#0F172A" fillOpacity={0.95} stroke="#3B82F6" strokeWidth={1.5} />
-                        <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={3}>
-                          🏢 BUILDING PERIMETER: {floor?.building_name || 'CSE Main Block'} ({floor?.building_geometry_type || 'POLYGON'})
-                        </text>
-                        {/* Clickable Close (X) Icon to Remove / Hide Boundary Overlay */}
-                        <g
-                          transform="translate(355, 0)"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowBuildingOutline(false);
-                            showToast('Building boundary outline hidden');
-                          }}
-                          className="cursor-pointer hover:opacity-80"
-                        >
-                          <title>Remove / Hide Building Perimeter Outline</title>
-                          <circle cx={0} cy={0} r={8} fill="#EF4444" />
-                          <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
-                        </g>
-                      </g>
-                    );
-                  })()}
+                  {/* Floating Building Footprint Header Badge with Resizable Controls */}
+                  <g transform={`translate(${boundaryBBox.minX + 10}, ${boundaryBBox.minY - 26})`} className="pointer-events-auto">
+                    <rect x={-5} y={-14} width={420} height={28} rx={6} fill="#0F172A" fillOpacity={0.95} stroke="#3B82F6" strokeWidth={1.5} />
+                    <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={3}>
+                      🏢 RESIZABLE BOUNDARY: {floor?.building_name || 'CSE Main Block'} ({buildingBoundaryPoints.length} Nodes • Drag V-Nodes/Handles)
+                    </text>
+
+                    {/* Clickable Close (X) Icon to Remove / Hide Boundary Overlay */}
+                    <g
+                      transform="translate(395, 0)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowBuildingOutline(false);
+                        showToast('Building boundary outline hidden');
+                      }}
+                      className="cursor-pointer hover:opacity-80"
+                    >
+                      <title>Remove / Hide Building Perimeter Outline</title>
+                      <circle cx={0} cy={0} r={8} fill="#EF4444" />
+                      <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
+                    </g>
+                  </g>
                 </g>
               )}
 
@@ -1637,18 +1812,18 @@ export const FloorEditor: React.FC<{
             </div>
           ) : (
             <div className="space-y-4 text-xs">
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between text-blue-400 font-bold">
                   <div className="flex items-center gap-2">
                     <Building className="w-4 h-4" />
-                    <span>Building Boundary Info</span>
+                    <span>Resizable Building Boundary</span>
                   </div>
                   <button
                     onClick={() => setShowBuildingOutline(!showBuildingOutline)}
                     className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold border border-slate-700 cursor-pointer"
                     title="Toggle outer building perimeter boundary overlay"
                   >
-                    {showBuildingOutline ? '✕ Hide Boundary' : '👁️ Show Boundary'}
+                    {showBuildingOutline ? '✕ Hide' : '👁️ Show'}
                   </button>
                 </div>
                 <div className="space-y-1 text-slate-300 font-medium">
@@ -1661,9 +1836,34 @@ export const FloorEditor: React.FC<{
                     <span className="font-bold text-amber-400">{floor?.building_geometry_type || 'POLYGON'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Boundary Nodes:</span>
+                    <span className="text-slate-400">Perimeter Nodes:</span>
                     <span className="font-bold text-emerald-400">{buildingBoundaryPoints.length} Vertices</span>
                   </div>
+                </div>
+
+                {/* Boundary Node Editing Controls */}
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-1 text-[10px]">
+                  <button
+                    onClick={handleAddBoundaryVertex}
+                    className="px-2 py-1 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-lg text-blue-300 font-bold cursor-pointer"
+                    title="Add new vertex node to perimeter"
+                  >
+                    + Add Node
+                  </button>
+                  <button
+                    onClick={handleRemoveBoundaryVertex}
+                    className="px-2 py-1 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-lg text-amber-300 font-bold cursor-pointer"
+                    title="Remove vertex node from perimeter"
+                  >
+                    - Remove Node
+                  </button>
+                  <button
+                    onClick={handleResetBoundary}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold cursor-pointer"
+                    title="Reset boundary to default"
+                  >
+                    Reset
+                  </button>
                 </div>
               </div>
 
