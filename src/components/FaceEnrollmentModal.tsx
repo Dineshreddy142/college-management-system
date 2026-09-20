@@ -73,7 +73,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
       setStep('CAMERA_CAPTURE');
       await startCamera();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Password authorization failed. Please try again.');
+      setErrorMessage(err.message || 'Incorrect account password. Please try again.');
     } finally {
       setIsLoading(false);
     }

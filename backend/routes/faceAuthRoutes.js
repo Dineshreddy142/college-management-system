@@ -268,7 +268,11 @@ router.post('/login', async (req, res) => {
 router.post('/enroll-auth', authenticateToken, async (req, res) => {
     try {
         const { password } = req.body;
-        const userId = req.user.id;
+        const userId = req.user?.id || req.user?.userId;
+
+        if (!userId) {
+            return errorResponse(res, 'User session not found. Please re-login.', [], 401);
+        }
 
         if (!password) {
             return errorResponse(res, 'Current account password is required for enrollment authorization', [], 400);
@@ -277,12 +281,19 @@ router.post('/enroll-auth', authenticateToken, async (req, res) => {
         const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
         if (rows.length === 0) return errorResponse(res, 'User account not found', [], 404);
 
+        const rawInputPass = String(password);
+        const trimmedInputPass = rawInputPass.trim();
+        const storedPassHash = rows[0].password || '';
+
         let isPasswordValid = false;
-        if (rows[0].password && rows[0].password.startsWith('$2')) {
-            isPasswordValid = await bcrypt.compare(password, rows[0].password);
-        } else if (rows[0].password === password) {
+        if (storedPassHash.startsWith('$2')) {
+            isPasswordValid = await bcrypt.compare(rawInputPass, storedPassHash);
+            if (!isPasswordValid && trimmedInputPass !== rawInputPass) {
+                isPasswordValid = await bcrypt.compare(trimmedInputPass, storedPassHash);
+            }
+        } else if (storedPassHash === rawInputPass || storedPassHash === trimmedInputPass) {
             isPasswordValid = true;
-            const newHash = await bcrypt.hash(password, 10);
+            const newHash = await bcrypt.hash(rawInputPass, 10);
             await pool.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, userId]);
         }
 
