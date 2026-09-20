@@ -36,6 +36,11 @@ export function ProfileModule() {
   const [isDisabling, setIsDisabling] = useState(false);
   const [showDisableForm, setShowDisableForm] = useState(false);
 
+  // Password Reset / Change State
+  const [pwdState, setPwdState] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
+  const [showPwdForm, setShowPwdForm] = useState(false);
+
   // Streamlined Tabs State
   const [activeTab, setActiveTab] = useState<
     | 'overview'
@@ -860,6 +865,120 @@ export function ProfileModule() {
                 <span className="px-3 py-1 rounded-full text-[10px] font-extrabold bg-slate-700 text-slate-300 border border-slate-600">
                   FIDO2 Active
                 </span>
+              </div>
+
+              {/* Password Reset & Change Card (Available for Every Role) */}
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                      <Lock className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-base">Account Password & Security Reset</h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Change your account password securely or update your authentication credentials.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowPwdForm(!showPwdForm)}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg flex items-center gap-2 transition shrink-0"
+                  >
+                    <Lock className="w-4 h-4" /> {showPwdForm ? 'Cancel Reset' : 'Change Password'}
+                  </button>
+                </div>
+
+                {/* Password Reset Form */}
+                {showPwdForm && (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!pwdState.currentPassword || !pwdState.newPassword || !pwdState.confirmPassword) {
+                        triggerToast('⚠️ Please fill out all password fields.');
+                        return;
+                      }
+                      if (pwdState.newPassword.length < 6) {
+                        triggerToast('⚠️ New password must be at least 6 characters long.');
+                        return;
+                      }
+                      if (pwdState.newPassword !== pwdState.confirmPassword) {
+                        triggerToast('❌ New password and confirmation do not match.');
+                        return;
+                      }
+                      if (pwdState.currentPassword === pwdState.newPassword) {
+                        triggerToast('⚠️ New password must be different from current password.');
+                        return;
+                      }
+
+                      setIsChangingPwd(true);
+                      try {
+                        const res = await client.post('/auth/change-password', {
+                          currentPassword: pwdState.currentPassword,
+                          newPassword: pwdState.newPassword
+                        });
+                        triggerToast('✅ Password changed successfully!');
+                        setShowPwdForm(false);
+                        setPwdState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      } catch (err: any) {
+                        const errMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to update password. Please check your current password.';
+                        triggerToast(`❌ ${errMsg}`);
+                      } finally {
+                        setIsChangingPwd(false);
+                      }
+                    }}
+                    className="pt-4 border-t border-slate-700/80 space-y-4 animate-fadeIn"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Current Password</label>
+                        <input
+                          type="password"
+                          value={pwdState.currentPassword}
+                          onChange={(e) => setPwdState({ ...pwdState, currentPassword: e.target.value })}
+                          placeholder="Current password"
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">New Password</label>
+                        <input
+                          type="password"
+                          value={pwdState.newPassword}
+                          onChange={(e) => setPwdState({ ...pwdState, newPassword: e.target.value })}
+                          placeholder="Min 6 characters"
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Confirm New Password</label>
+                        <input
+                          type="password"
+                          value={pwdState.confirmPassword}
+                          onChange={(e) => setPwdState({ ...pwdState, confirmPassword: e.target.value })}
+                          placeholder="Re-enter new password"
+                          required
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isChangingPwd}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg transition disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {isChangingPwd ? 'Updating Password...' : 'Save New Password'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           )}
