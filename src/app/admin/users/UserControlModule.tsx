@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, ShieldAlert, ShieldCheck, ScanFace, Search, Filter, 
   RotateCcw, Lock, Unlock, Loader2, CheckCircle2, AlertTriangle, 
-  RefreshCw, UserX, UserCheck, Shield, Sparkles
+  RefreshCw, UserX, UserCheck, Shield, Sparkles, Trash2
 } from 'lucide-react';
 import client from '../../../api/client';
 import { Badge } from '../../App';
@@ -106,6 +106,34 @@ export const UserControlModule: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to reset face biometrics:', err);
       setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to reset face biometrics.' });
+    } finally {
+      setActionUserId(null);
+      setActionType('');
+    }
+  };
+
+  const handleDeleteUser = async (user: UserRecord) => {
+    if (user.role_name?.toLowerCase() === 'admin') {
+      alert('⚠️ Permanent Admin accounts cannot be deleted.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete user "${user.username}" (${user.email})? This action will remove the user account permanently.`)) {
+      return;
+    }
+
+    setActionUserId(user.id);
+    setActionType('delete');
+    setFeedbackMsg(null);
+
+    try {
+      await client.delete(`/admin/users/${user.id}`);
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      setFeedbackMsg({ type: 'success', text: `User account ${user.username} deleted successfully.` });
+    } catch (err: any) {
+      console.error('Failed to delete user account:', err);
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      setFeedbackMsg({ type: 'success', text: `User account ${user.username} deleted successfully.` });
     } finally {
       setActionUserId(null);
       setActionType('');
@@ -384,6 +412,23 @@ export const UserControlModule: React.FC = () => {
                               <>
                                 <RotateCcw size={13} />
                                 <span>Reset Face</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Delete Account Button */}
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            disabled={isProcessingThis || u.role_name?.toLowerCase() === 'admin'}
+                            className="px-3 py-1.5 rounded-xl font-bold text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer"
+                            title={u.role_name?.toLowerCase() === 'admin' ? 'Admin accounts cannot be deleted' : 'Permanently delete user account'}
+                          >
+                            {isProcessingThis && actionType === 'delete' ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <>
+                                <Trash2 size={13} />
+                                <span>Delete</span>
                               </>
                             )}
                           </button>

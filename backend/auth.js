@@ -372,6 +372,71 @@ router.post('/admin/users/reset-face', authenticateToken, authorizeRole(['Admin'
     }
 });
 
+// Admin Delete User Account Endpoint
+router.delete('/admin/users/:id', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        if (!userId) {
+            return errorResponse(res, 'User ID is required', [], 400);
+        }
+
+        // Prevent deleting Admin user if it's the last Admin
+        const [targetUser] = await pool.execute(
+            'SELECT u.id, u.username, r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?',
+            [userId]
+        );
+
+        if (targetUser.length === 0) {
+            return errorResponse(res, 'User not found', [], 404);
+        }
+
+        if (targetUser[0].role_name === 'Admin') {
+            const [adminCount] = await pool.execute(
+                'SELECT COUNT(*) as cnt FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = "Admin"'
+            );
+            if (adminCount[0].cnt <= 1) {
+                return errorResponse(res, 'Cannot delete the last remaining Admin account', [], 403);
+            }
+        }
+
+        // Delete dependent records first to handle FK constraint safety
+        const [studentRows] = await pool.execute('SELECT id FROM students WHERE user_id = ?', [userId]);
+        if (studentRows.length > 0) {
+            const stId = studentRows[0].id;
+            await pool.execute('DELETE FROM student_profiles WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM student_guardians WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM student_documents WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM parent_student WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM attendance_details WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM marks WHERE student_id = ?', [stId]).catch(() => {});
+            await pool.execute('DELETE FROM students WHERE user_id = ?', [userId]).catch(() => {});
+        }
+
+        const [facultyRows] = await pool.execute('SELECT id FROM faculties WHERE user_id = ?', [userId]);
+        if (facultyRows.length > 0) {
+            const fcId = facultyRows[0].id;
+            await pool.execute('DELETE FROM faculty_departments WHERE faculty_id = ?', [fcId]).catch(() => {});
+            await pool.execute('DELETE FROM faculties WHERE user_id = ?', [userId]).catch(() => {});
+        }
+
+        await pool.execute('DELETE FROM parents WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM face_embeddings WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM webauthn_credentials WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM user_sessions WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM failed_login_attempts WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM notifications WHERE user_id = ?', [userId]).catch(() => {});
+
+        // Delete user
+        await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+
+        await logActivity(req.user.id, 'USER_DELETE', `Deleted user #${userId} (${targetUser[0].username})`);
+        return successResponse(res, `User account #${userId} deleted successfully`, { userId });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        return errorResponse(res, 'Failed to delete user account', [error.message], 500);
+    }
+});
+
 router.post('/logout', authenticateToken, async (req, res) => {
     try {
         await logActivity(req.user.id, 'LOGOUT', 'User logged out');

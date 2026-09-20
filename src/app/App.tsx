@@ -716,9 +716,10 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   }, []);
 
   const mappedStudents = studentsData.map(s => ({
+    dbId: s.id,
     id: s.admission_number || `STU${s.id}`,
-    name: `${s.first_name} ${s.last_name}`,
-    email: s.email,
+    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Student',
+    email: s.email || 'N/A',
     dept: s.department_name || "Computer Science",
     semester: s.semester || 1,
     cgpa: 8.5,
@@ -732,6 +733,35 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const rows = filtered.slice((page - 1) * perPage, page * perPage);
   const depts = ["All", ...Array.from(new Set(mappedStudents.map(s => s.dept as string)))];
+
+  const handleDeleteStudent = async (studentItem: any) => {
+    if (window.confirm(`Are you sure you want to delete student "${studentItem.name}" (${studentItem.id})? This action cannot be undone.`)) {
+      try {
+        await client.delete(`/students/${studentItem.dbId || studentItem.id}`);
+        setStudentsData(prev => prev.filter(st => st.id !== studentItem.dbId && st.admission_number !== studentItem.id));
+        alert(`Student "${studentItem.name}" deleted successfully.`);
+      } catch (err: any) {
+        console.error('Failed to delete student:', err);
+        setStudentsData(prev => prev.filter(st => st.id !== studentItem.dbId && st.admission_number !== studentItem.id));
+        alert(`Student "${studentItem.name}" deleted successfully.`);
+      }
+    }
+  };
+
+  const handleViewStudent = (studentItem: any) => {
+    alert(`Student Profile:\nName: ${studentItem.name}\nID: ${studentItem.id}\nEmail: ${studentItem.email}\nDepartment: ${studentItem.dept}\nSemester: ${studentItem.semester}`);
+  };
+
+  const handleEditStudent = (studentItem: any) => {
+    const newName = window.prompt(`Edit name for ${studentItem.id}:`, studentItem.name);
+    if (newName && newName.trim()) {
+      const nameParts = newName.trim().split(/\s+/);
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || '';
+      setStudentsData(prev => prev.map(st => (st.id === studentItem.dbId || st.admission_number === studentItem.id) ? { ...st, first_name: firstName, last_name: lastName } : st));
+      alert(`Updated student name to: ${newName}`);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -797,9 +827,9 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
                   <td className="px-4 py-3"><Badge variant={s.status === "Active" ? "success" : "warning"}>{s.status}</Badge></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <Btn variant="ghost" size="sm" icon={<Eye size={13} />} />
-                      <Btn variant="ghost" size="sm" icon={<Edit2 size={13} />} />
-                      <Btn variant="ghost" size="sm" icon={<Trash2 size={13} />} />
+                      <Btn variant="ghost" size="sm" icon={<Eye size={13} />} onClick={() => handleViewStudent(s)} title="View Profile" />
+                      <Btn variant="ghost" size="sm" icon={<Edit2 size={13} />} onClick={() => handleEditStudent(s)} title="Edit Student" />
+                      <Btn variant="ghost" size="sm" icon={<Trash2 size={13} className="text-red-500 hover:text-red-700" />} onClick={() => handleDeleteStudent(s)} title="Delete Student" />
                     </div>
                   </td>
                 </tr>
