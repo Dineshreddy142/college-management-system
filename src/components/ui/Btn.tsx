@@ -15,7 +15,8 @@ export function Btn({
   onClick,
   disabled,
   icon,
-  type = "button"
+  type = "button",
+  title
 }: {
   children?: React.ReactNode;
   variant?: BtnVariant;
@@ -25,6 +26,7 @@ export function Btn({
   disabled?: boolean;
   icon?: React.ReactNode;
   type?: "button" | "submit";
+  title?: string;
 }) {
   const v = {
     primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-blue-900/20",
@@ -43,6 +45,7 @@ export function Btn({
   return (
     <button
       type={type}
+      title={title}
       onClick={onClick}
       disabled={disabled}
       className={cn(
