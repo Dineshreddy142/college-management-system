@@ -267,6 +267,7 @@ router.post('/login', async (req, res) => {
  */
 router.post('/enroll-auth', authenticateToken, async (req, res) => {
     try {
+        const { password } = req.body;
         let userId = req.user?.id || req.user?.userId || req.user?.sub;
         let userEmail = req.user?.email;
 
