@@ -16,11 +16,6 @@ import { FloorManagement } from "./admin/block-management/FloorManagement";
 import { RoomManagement } from "./admin/block-management/RoomManagement";
 import { FloorEditor } from "./admin/block-management/FloorEditor";
 import { FloorVersions } from "./admin/block-management/FloorVersions";
-import { AcademicRiskRadar } from "./innovations/AcademicRiskRadar";
-import { SmartGatepass } from "./innovations/SmartGatepass";
-import { AIPlacementResume } from "./innovations/AIPlacementResume";
-import { AICommandCenter } from "./innovations/AICommandCenter";
-import { CampusWalletCanteen } from "./innovations/CampusWalletCanteen";
 import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
@@ -266,19 +261,6 @@ const SIDEBAR_ITEMS = [
       { id: "floor-management", label: "Floor Management", icon: Layers, badge: null },
       { id: "room-management", label: "Room Management", icon: DoorOpen, badge: null },
       { id: "floor-versions", label: "Floor Versions", icon: History, badge: null },
-    ]
-  },
-  {
-    id: "smart-innovations",
-    label: "Smart Innovations",
-    icon: Sparkles,
-    badge: "5 AI",
-    children: [
-      { id: "risk-radar", label: "AI Academic Risk Radar", icon: Activity, badge: "AI" },
-      { id: "smart-gatepass", label: "Anti-Spoof QR Gatepass", icon: ShieldCheck, badge: "Live" },
-      { id: "placement-ats", label: "AI Placement & ATS", icon: Sparkles, badge: "AI" },
-      { id: "voice-command-center", label: "Voice AI Command Center", icon: Bot, badge: "Voice" },
-      { id: "campus-wallet", label: "Campus Wallet & Canteen", icon: Wallet, badge: "NFC" },
     ]
   },
 
@@ -1720,14 +1702,6 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "floor-management": return <FloorManagement onNavigateToVersions={() => setMod("floor-versions")} />;
       case "room-management": return <RoomManagement />;
       case "floor-versions": return <FloorVersions initialFloorId={activeEditorFloorId || undefined} />;
-
-      // 🚀 Smart Campus Innovations Suite
-      case "risk-radar": return <AcademicRiskRadar />;
-      case "smart-gatepass": return <SmartGatepass showManagementTabs={true} />;
-      case "placement-ats": return <AIPlacementResume />;
-      case "voice-command-center": return <AICommandCenter />;
-      case "campus-wallet": return <CampusWalletCanteen />;
-
 
       case "reports": return <ReportsAnalytics />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
