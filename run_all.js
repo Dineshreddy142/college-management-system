@@ -106,10 +106,9 @@ async function waitForServices() {
 
   while (Date.now() - startTime < timeout) {
     if (!nodeReady) nodeReady = await checkPort(5000);
-    if (!pythonReady) pythonReady = await checkPort(5001);
     if (!mainFrontendReady) mainFrontendReady = await checkPort(5173);
 
-    if (nodeReady && pythonReady && mainFrontendReady) {
+    if (nodeReady && mainFrontendReady) {
       break;
     }
     await new Promise((r) => setTimeout(r, 600));
@@ -119,7 +118,6 @@ async function waitForServices() {
   console.log(colors.green + colors.bright + '   🎉 ALL MULTI-PORTAL SERVICES & APIS ARE ONLINE & READY!' + colors.reset);
   console.log(colors.green + colors.bright + '========================================================================' + colors.reset);
   console.log(`   ${colors.bright}🚀 Centralized Node.js Backend API :${colors.reset} ${colors.blue}${colors.bright}http://localhost:5000${colors.reset}`);
-  console.log(`   ${colors.bright}🐍 Python Face Biometrics API    :${colors.reset} ${colors.magenta}${colors.bright}http://localhost:5001${colors.reset}`);
   console.log(colors.gray + '   --------------------------------------------------------------------' + colors.reset);
   console.log(`   ${colors.bright}🔑 1. Admin Portal                 :${colors.reset} ${colors.cyan}${colors.bright}http://localhost:5171${colors.reset}`);
   console.log(`   ${colors.bright}🎓 2. Student Portal               :${colors.reset} ${colors.cyan}${colors.bright}http://localhost:5172${colors.reset}`);
@@ -203,18 +201,7 @@ async function main() {
     path.join(__dirname, 'backend')
   );
 
-  // 2. Start Python Face Biometrics Microservice (Port 5001)
-  console.log(`${colors.magenta}[LAUNCH]${colors.reset} Starting Python Face Biometrics Microservice on Port 5001...`);
-  startProcess(
-    'Python Backend',
-    '[PY-FACE ] ',
-    colors.magenta,
-    'python',
-    ['-m', 'face_service.app'],
-    __dirname
-  );
-
-  // 3. Start 7 Dedicated Frontend Portals
+  // 2. Start 7 Dedicated Frontend Portals
   const portalConfigs = [
     { mode: 'admin', port: 5171, name: 'Admin Portal', prefix: '[PORTAL-ADMIN] ', color: colors.cyan },
     { mode: 'student', port: 5172, name: 'Student Portal', prefix: '[PORTAL-STUD] ', color: colors.blue },

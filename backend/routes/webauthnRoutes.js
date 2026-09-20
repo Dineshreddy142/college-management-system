@@ -204,10 +204,7 @@ router.post('/register/verify', async (req, res) => {
       [userId, credentialId, publicKeyBase64, counter, label]
     );
 
-    // Update User Table
-    await pool.execute(`UPDATE users SET face_registered = 1 WHERE id = ?`, [userId]);
-
-    return successResponse(res, 'Biometric Passkey registered successfully!', {
+    return successResponse(res, 'WebAuthn Passkey registered successfully!', {
       userId,
       credentialId,
       deviceLabel: label,
@@ -394,15 +391,6 @@ router.delete('/credentials/:id', authenticateToken, async (req, res) => {
       `DELETE FROM webauthn_credentials WHERE id = ? AND user_id = ?`,
       [credId, req.user.id]
     );
-
-    const [remaining] = await pool.execute(
-      `SELECT COUNT(*) as count FROM webauthn_credentials WHERE user_id = ?`,
-      [req.user.id]
-    );
-
-    if (remaining[0].count === 0) {
-      await pool.execute(`UPDATE users SET face_registered = 0 WHERE id = ?`, [req.user.id]);
-    }
 
     return successResponse(res, 'Passkey device removed successfully', { credId });
   } catch (error) {

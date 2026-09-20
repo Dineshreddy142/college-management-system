@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import {
-  Eye, EyeOff, Loader2, GraduationCap, ShieldAlert, ScanFace,
+  Eye, EyeOff, Loader2, GraduationCap, ShieldAlert,
   Sparkles, ShieldCheck, Lock, KeyRound, Monitor,
   Send, CheckCircle2, Shield, RefreshCw, UserPlus, UserCheck, User
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import client from '../../api/client';
 import { PasskeyAuthModal } from '../../components/PasskeyAuthModal';
-import { FaceAuthModal } from '../../components/FaceAuthModal';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
 export interface PortalLoginProps {
@@ -76,9 +75,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   ).toLowerCase();
 
   const config = roleConfig[effectiveRole] || roleConfig.student;
-  
-  // Login Mode: 'password' | 'face'
-  const [loginMethod, setLoginMethod] = useState<'face' | 'password'>('password');
 
   // Standard Password Login State
   const [identifier, setIdentifier] = useState('');
@@ -89,9 +85,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const [warningMessage, setWarningMessage] = useState('');
   const [accountLocked, setAccountLocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Face Authentication Modal Toggle (Mobile Mode)
-  const [showFaceAuth, setShowFaceAuth] = useState(false);
 
   // Authenticator / 2FA Code State (Desktop Mode)
   const [authIdentifier, setAuthIdentifier] = useState('');
@@ -129,12 +122,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     };
     const dest = roleMap[rawRole] || 'student';
     navigate(`/${dest}/dashboard`);
-  };
-
-  const handleFaceSuccess = (data: { token: string; user: any }) => {
-    login(data.token, data.user);
-    setShowFaceAuth(false);
-    handleNavigateDashboard(data.user.role, data.user.must_change_password);
   };
 
   // Request Authenticator Code via Email
@@ -276,48 +263,17 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
           </h1>
 
           <p className="text-blue-100/90 text-base max-w-md leading-relaxed mb-8">
-            {isDesktop
-              ? 'Workstation & Monitor Access: Sign in securely with two-factor Authenticator verification codes or password credentials.'
-              : 'Mobile Smartphone Access: Sign in instantly with high-precision 3D Face Biometrics or password credentials.'}
+            Sign in securely with your institutional credentials to access your ERP dashboard, academic records, and portal services.
           </p>
 
-          {/* Dynamic Security Highlights based on Device Type */}
           <div className="flex flex-col gap-3 max-w-md">
-            {isDesktop ? (
-              <>
-                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-                  <ShieldCheck size={20} className="text-emerald-300 shrink-0" />
-                  <div>
-                    <span className="font-semibold block">Two-Factor Authenticator Protection</span>
-                    <span className="text-blue-100 text-[11px]">Time-synchronized 6-digit security code authentication</span>
-                  </div>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-                  <Monitor size={20} className="text-cyan-300 shrink-0" />
-                  <div>
-                    <span className="font-semibold block">Laptop & External Monitor Optimization</span>
-                    <span className="text-blue-100 text-[11px]">Enforces secure 2FA protocol across all desktop browsers</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-                  <ScanFace size={20} className="text-cyan-300 shrink-0" />
-                  <div>
-                    <span className="font-semibold block">1-Click Mobile Face Biometrics</span>
-                    <span className="text-blue-100 text-[11px]">Fast camera recognition tailored for smartphone screens</span>
-                  </div>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-                  <Sparkles size={20} className="text-amber-300 shrink-0" />
-                  <div>
-                    <span className="font-semibold block">Anti-Spoofing & Liveness Detection</span>
-                    <span className="text-blue-100 text-[11px]">Blocks photo, replay, and screen impersonation attacks</span>
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
+              <ShieldCheck size={20} className="text-emerald-300 shrink-0" />
+              <div>
+                <span className="font-semibold block">Secure Enterprise Authentication</span>
+                <span className="text-blue-100 text-[11px]">Protected by encrypted session management and role-based controls</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -344,7 +300,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
               </h2>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Sign in with your password or use instant Face Biometrics.
+              Sign in with your username or email and password.
             </p>
           </div>
 
@@ -403,172 +359,76 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </div>
           )}
 
-          {/* Primary / Secondary Method Tabs — Show Face Biometrics ONLY on Mobile */}
-          {/* Login Method Selector Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-6">
-            <button
-              type="button"
-              onClick={() => setLoginMethod('password')}
-              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                loginMethod === 'password'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <KeyRound size={16} />
-              <span>Password</span>
-            </button>
+          {/* Standard Password Login Form */}
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+              <input
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={config.placeholder}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                required
+              />
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setLoginMethod('face')}
-              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                loginMethod === 'face'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ScanFace size={16} />
-              <span>Face Login</span>
-            </button>
-          </div>
-
-          {/* Face Login Hero Card */}
-          {loginMethod === 'face' && (
-            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/60 to-blue-50/40 dark:from-slate-900 dark:to-slate-900/50 border border-indigo-100 dark:border-indigo-900/40 text-center flex flex-col items-center">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 shadow-inner">
-                  <ScanFace size={36} />
-                </div>
-
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  3D Face Sign-In
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
-                  Look into your camera to verify your 3D live facial signature and sign in instantly.
-                </p>
-
-                <div className="w-full mt-4 text-left">
-                  <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
-                    College ID / Roll No / Email
-                  </label>
-                  <input
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={config.placeholder}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="w-full mt-5">
-                  <button
-                    type="button"
-                    onClick={() => setShowFaceAuth(true)}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2.5 cursor-pointer"
-                  >
-                    <ScanFace size={20} />
-                    <span>Scan Face to Sign In</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center text-xs">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                  required
+                />
                 <button
                   type="button"
-                  onClick={() => setLoginMethod('password')}
-                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  Sign in with password &rarr;
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Standard Password Login Form */}
-          {loginMethod === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
-                <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={config.placeholder}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
-                  required
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
                 />
-              </div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
+              </label>
+              <Link 
+                to={`/forgot-password?role=${effectiveRole}`} 
+                className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
-                  />
-                  <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
-                </label>
-                <Link 
-                  to={`/forgot-password?role=${effectiveRole}`} 
-                  className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
-                </button>
-              </div>
-            </form>
-          )}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
+              </button>
+            </div>
+          </form>
 
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
             &copy; {new Date().getFullYear()} College Management System. All rights reserved.
           </div>
         </div>
       </div>
-
-      {/* FACE AUTHENTICATION MODAL */}
-      {showFaceAuth && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <FaceAuthModal
-            mode="login"
-            identifier={identifier}
-            portalRole={effectiveRole}
-            onSuccess={handleFaceSuccess}
-            onCancel={() => setShowFaceAuth(false)}
-          />
-        </div>
-      )}
     </div>
   );
 };
+

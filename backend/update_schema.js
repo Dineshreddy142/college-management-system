@@ -14,19 +14,7 @@ async function updateSchema() {
   const [cols] = await conn.query('DESCRIBE users;');
   console.log('Columns in users:', cols.map(c => c.Field));
 
-  // Add face_registered if missing
-  const hasFaceReg = cols.some(c => c.Field === 'face_registered');
-  if (!hasFaceReg) {
-    console.log('Adding face_registered column to users...');
-    await conn.query('ALTER TABLE users ADD COLUMN face_registered TINYINT(1) DEFAULT 0 AFTER status;');
-  }
-
-  // Add face_id if missing
-  const hasFaceId = cols.some(c => c.Field === 'face_id');
-  if (!hasFaceId) {
-    console.log('Adding face_id column to users...');
-    await conn.query('ALTER TABLE users ADD COLUMN face_id VARCHAR(255) NULL AFTER face_registered;');
-  }
+  // Check full_name column
 
   // Add full_name if missing
   const hasFullName = cols.some(c => c.Field === 'full_name');

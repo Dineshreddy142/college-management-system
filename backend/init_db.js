@@ -26,7 +26,6 @@ export async function initializeDatabase() {
         role_id INT,
         status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
         must_change_password TINYINT(1) DEFAULT 1,
-        face_registered TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL
@@ -1535,52 +1534,13 @@ export async function initializeDatabase() {
       `);
     }
 
-    // 8. Face Embeddings table (AES-256-GCM Secure Storage)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS face_embeddings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE,
-        encrypted_embedding MEDIUMBLOB NOT NULL,
-        encryption_iv VARBINARY(16) NOT NULL,
-        auth_tag VARBINARY(16) NULL,
-        key_version VARCHAR(32) DEFAULT 'v1',
-        model_version VARCHAR(64) DEFAULT 'sface_yunet_v1',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id)
-      )
-    `);
-
-    // Ensure existing pre-migration tables are automatically upgraded
+    // Safely remove any face-authentication tables if present
     try {
-      const [faceCols] = await pool.query('DESCRIBE face_embeddings');
-      const colNames = faceCols.map(c => c.Field);
-      if (!colNames.includes('auth_tag')) {
-        await pool.query('ALTER TABLE face_embeddings ADD COLUMN auth_tag VARBINARY(16) NULL AFTER encryption_iv');
-      }
-      if (!colNames.includes('key_version')) {
-        await pool.query("ALTER TABLE face_embeddings ADD COLUMN key_version VARCHAR(32) DEFAULT 'v1' AFTER auth_tag");
-      }
-      if (!colNames.includes('model_version')) {
-        await pool.query("ALTER TABLE face_embeddings ADD COLUMN model_version VARCHAR(64) DEFAULT 'sface_yunet_v1' AFTER key_version");
-      }
-    } catch (colErr) {
-      console.warn('[DATABASE INIT] Note on face_embeddings columns:', colErr.message);
+      await pool.query('DROP TABLE IF EXISTS face_embeddings');
+      await pool.query('DROP TABLE IF EXISTS face_auth_audit_log');
+    } catch (dropErr) {
+      console.warn('[DATABASE INIT] Note on face table cleanup:', dropErr.message);
     }
-
-    // 9. Face Auth Audit Log table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS face_auth_audit_log (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NULL,
-        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        matched TINYINT(1) NOT NULL,
-        confidence DECIMAL(5,4) NULL,
-        ip_address VARCHAR(45),
-        liveness_passed TINYINT(1) NOT NULL,
-        INDEX idx_face_audit_user (user_id)
-      )
-    `);
 
     // --- SEED ESSENTIAL ROLES ---
     const roles = [

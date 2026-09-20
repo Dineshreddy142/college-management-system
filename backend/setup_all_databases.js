@@ -64,11 +64,6 @@ async function setupAllDatabases() {
     // Step 2: Execute schema.sql (Base Tables)
     await runSqlFile(path.join(rootDir, 'schema.sql'), '[2/15]');
 
-    // Step 2.5: Execute face_migrations.sql (Face Biometric Tables)
-    if (fs.existsSync(path.join(rootDir, 'face_migrations.sql'))) {
-      await runSqlFile(path.join(rootDir, 'face_migrations.sql'), '[2.5/15]');
-    }
-
     // Step 3: Campus & Smart Campus Schema
     console.log('[3/15] Creating Campus & Smart Campus tables...');
     await conn.query(`

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, ShieldAlert, ShieldCheck, ScanFace, Search, Filter, 
+  Users, ShieldAlert, ShieldCheck, Search, Filter, 
   RotateCcw, Lock, Unlock, Loader2, CheckCircle2, AlertTriangle, 
   RefreshCw, UserX, UserCheck, Shield, Sparkles, Trash2
 } from 'lucide-react';
@@ -14,8 +14,6 @@ export interface UserRecord {
   role_id: number;
   role_name: string;
   status: 'active' | 'blocked' | 'inactive';
-  face_registered: number;
-  face_registered_at?: string;
   last_login?: string;
   failed_attempts?: number;
 }
@@ -28,7 +26,6 @@ export const UserControlModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [faceFilter, setFaceFilter] = useState<string>('all');
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const fetchUsers = async () => {
@@ -84,34 +81,6 @@ export const UserControlModule: React.FC = () => {
     }
   };
 
-  const handleResetFaceData = async (user: UserRecord) => {
-    if (!window.confirm(`Reset 3D Face Biometric data for ${user.username}? This will clear their stored face vector so they can re-enroll fresh.`)) {
-      return;
-    }
-
-    setActionUserId(user.id);
-    setActionType('face');
-    setFeedbackMsg(null);
-
-    try {
-      const res = await client.post('/admin/users/reset-face', { userId: user.id });
-
-      if (res.data?.success) {
-        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, face_registered: 0, face_registered_at: undefined } : u));
-        setFeedbackMsg({ 
-          type: 'success', 
-          text: `Face biometrics reset successfully for ${user.username}. User can now re-register face.` 
-        });
-      }
-    } catch (err: any) {
-      console.error('Failed to reset face biometrics:', err);
-      setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to reset face biometrics.' });
-    } finally {
-      setActionUserId(null);
-      setActionType('');
-    }
-  };
-
   const handleDeleteUser = async (user: UserRecord) => {
     if (user.role_name?.toLowerCase() === 'admin') {
       alert('⚠️ Permanent Admin accounts cannot be deleted.');
@@ -149,17 +118,13 @@ export const UserControlModule: React.FC = () => {
 
     const matchesRole = roleFilter === 'all' || (u.role_name || '').toLowerCase().includes(roleFilter.toLowerCase());
     const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
-    const matchesFace = faceFilter === 'all' || 
-      (faceFilter === 'registered' && u.face_registered === 1) || 
-      (faceFilter === 'none' && (!u.face_registered || u.face_registered === 0));
 
-    return matchesSearch && matchesRole && matchesStatus && matchesFace;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const totalUsers = users.length;
   const activeCount = users.filter(u => u.status === 'active').length;
   const blockedCount = users.filter(u => u.status === 'blocked').length;
-  const faceRegisteredCount = users.filter(u => u.face_registered === 1).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -276,17 +241,6 @@ export const UserControlModule: React.FC = () => {
             <option value="active">Active Only</option>
             <option value="blocked">Blocked Only</option>
           </select>
-
-          {/* Face Biometrics Filter */}
-          <select
-            value={faceFilter}
-            onChange={e => setFaceFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">All Face Statuses</option>
-            <option value="registered">Face Registered</option>
-            <option value="none">Not Registered</option>
-          </select>
         </div>
       </div>
 
@@ -300,14 +254,13 @@ export const UserControlModule: React.FC = () => {
                 <th className="py-3.5 px-5">User / Account</th>
                 <th className="py-3.5 px-5">Role</th>
                 <th className="py-3.5 px-5">Login Access Status</th>
-                <th className="py-3.5 px-5">3D Face Biometrics</th>
                 <th className="py-3.5 px-5 text-right">Admin Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 size={24} className="animate-spin text-indigo-600" />
                       <span>Loading user security records...</span>
@@ -316,14 +269,13 @@ export const UserControlModule: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     No user accounts found matching your filters.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map(u => {
                   const isBlocked = u.status === 'blocked';
-                  const isFaceReg = u.face_registered === 1;
                   const isProcessingThis = actionUserId === u.id;
 
                   return (
@@ -352,20 +304,6 @@ export const UserControlModule: React.FC = () => {
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">
                             <CheckCircle2 size={12} />
                             <span>ACTIVE</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Face Biometrics Badge */}
-                      <td className="py-4 px-5">
-                        {isFaceReg ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
-                            <ScanFace size={13} />
-                            <span>Registered</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400">
-                            <span>Not Enrolled</span>
                           </span>
                         )}
                       </td>
@@ -399,23 +337,6 @@ export const UserControlModule: React.FC = () => {
                             )}
                           </button>
 
-                          {/* Reset Face Data Button */}
-                          <button
-                            onClick={() => handleResetFaceData(u)}
-                            disabled={isProcessingThis || !isFaceReg}
-                            className="px-3 py-1.5 rounded-xl font-semibold text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer"
-                            title={isFaceReg ? 'Reset stored face vector for this account' : 'No face template registered'}
-                          >
-                            {isProcessingThis && actionType === 'face' ? (
-                              <Loader2 size={13} className="animate-spin" />
-                            ) : (
-                              <>
-                                <RotateCcw size={13} />
-                                <span>Reset Face</span>
-                              </>
-                            )}
-                          </button>
-
                           {/* Delete Account Button */}
                           <button
                             onClick={() => handleDeleteUser(u)}
@@ -445,3 +366,4 @@ export const UserControlModule: React.FC = () => {
     </div>
   );
 };
+

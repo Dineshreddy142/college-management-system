@@ -142,12 +142,12 @@ export const PasskeyAuthModal: React.FC<PasskeyAuthModalProps> = ({
 
         {/* Title */}
         <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-          {mode === 'register' ? 'Register Biometric / Passkey' : 'Login with Face / Biometric'}
+          {mode === 'register' ? 'Register WebAuthn Passkey' : 'Login with Passkey / Security Key'}
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {mode === 'register' 
-            ? 'Link your smartphone or laptop hardware (Face ID, Touch ID, Device PIN) to your College ID.'
-            : 'Authenticate securely using your device native biometric hardware without typing passwords.'}
+            ? 'Link your smartphone or laptop hardware security key to your account.'
+            : 'Authenticate securely using your device WebAuthn hardware key.'}
         </p>
 
         {/* Status Alert Banner */}
@@ -198,13 +198,13 @@ export const PasskeyAuthModal: React.FC<PasskeyAuthModalProps> = ({
               </>
             ) : mode === 'register' ? (
               <>
-                <ScanFace size={18} />
-                <span>Register Biometric Passkey</span>
+                <Fingerprint size={18} />
+                <span>Register WebAuthn Passkey</span>
               </>
             ) : (
               <>
                 <Fingerprint size={18} />
-                <span>Login with Face / Biometric</span>
+                <span>Login with Passkey</span>
               </>
             )}
           </button>

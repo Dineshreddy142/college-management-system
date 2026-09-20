@@ -172,7 +172,7 @@ async function updateOfficialEmails() {
 
     // Final database verification
     const [finalUsers] = await conn.execute(
-      'SELECT u.id, u.username, u.email, r.name as role_name, u.status, u.face_registered FROM users u JOIN roles r ON u.role_id = r.id ORDER BY u.id'
+      'SELECT u.id, u.username, u.email, r.name as role_name, u.status FROM users u JOIN roles r ON u.role_id = r.id ORDER BY u.id'
     );
     console.log('\nAll Users in Database:');
     console.table(finalUsers);

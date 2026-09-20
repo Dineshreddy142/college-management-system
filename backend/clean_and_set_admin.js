@@ -13,8 +13,6 @@ async function cleanAndSetAdmin() {
   });
 
   console.log('1. Cleaning up all existing users, logs, and attempts...');
-  await conn.query('DELETE FROM face_auth_audit_log;');
-  await conn.query('DELETE FROM face_embeddings;');
   await conn.query('DELETE FROM failed_login_attempts;');
   await conn.query('DELETE FROM activity_logs;');
   await conn.query('DELETE FROM students;');

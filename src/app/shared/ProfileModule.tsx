@@ -2,15 +2,14 @@ import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Save, Download, Phone, MapPin, HeartPulse, Shield, Smartphone,
-  Activity, ScanFace, CheckCircle2, AlertCircle, Trash2, Camera,
-  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck, User, Plus, Fingerprint,
+  Activity, CheckCircle2, AlertCircle, Trash2, Camera,
+  Mail, Edit2, Lock, KeyRound, X, Loader2, ShieldCheck, User, Plus,
   GraduationCap, BookOpen, Award, FileText, Calendar, DollarSign, Briefcase,
   Library as LibraryIcon, Home, Check, Eye, Star, TrendingUp, Layers, Building,
   Zap, HelpCircle, FileSpreadsheet, Sparkles, ExternalLink, Globe, UserCheck
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
-import { BiometricSecuritySettings } from "../../components/BiometricSecuritySettings";
 
 export function ProfileModule() {
   const savedUser = (() => {
@@ -39,7 +38,6 @@ export function ProfileModule() {
     | 'performance'
     | 'backlogs'
     | 'mentor'
-    | 'security'
   >('overview');
 
   // Editable Contact State
@@ -215,7 +213,6 @@ export function ProfileModule() {
               { id: 'performance', label: '📈 Academic Performance' },
               { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
               { id: 'mentor', label: '👨‍🏫 Class Advisor & HOD' },
-              { id: 'security', label: '🛡️ Security & Biometrics' },
             ].map(t => (
               <button
                 key={t.id}
@@ -737,13 +734,6 @@ export function ProfileModule() {
                   <p className="text-slate-300 font-mono">{profile?.hod_email || 'Not Available'}</p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* TAB 11: SECURITY & BIOMETRICS */}
-          {activeTab === 'security' && (
-            <div className="space-y-6">
-              <BiometricSecuritySettings />
             </div>
           )}
 
