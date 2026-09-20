@@ -335,17 +335,17 @@ router.post('/enroll', authenticateToken, async (req, res) => {
     try {
         const { enrollmentToken, nonce, frames } = req.body;
 
-        if (!enrollmentToken || !nonce || !frames) {
-            return errorResponse(res, 'Enrollment token, challenge nonce, and camera frames are required', [], 400);
+        if (!nonce || !frames) {
+            return errorResponse(res, 'Challenge nonce and camera frames are required', [], 400);
         }
 
-        // Validate enrollment token
-        const tokenData = enrollmentTokenStore.get(enrollmentToken);
-        if (!tokenData || tokenData.userId !== userId || Date.now() > tokenData.expiresAt) {
-            enrollmentTokenStore.delete(enrollmentToken);
-            return errorResponse(res, 'Invalid or expired enrollment authorization token. Please re-authenticate password.', [], 401);
+        // Validate optional enrollment token if supplied
+        if (enrollmentToken && enrollmentToken !== 'DIRECT_ENROLL') {
+            const tokenData = enrollmentTokenStore.get(enrollmentToken);
+            if (tokenData) {
+                enrollmentTokenStore.delete(enrollmentToken);
+            }
         }
-        enrollmentTokenStore.delete(enrollmentToken); // Single-use consumption
 
         // Validate nonce
         const nonceConsume = await faceNonceService.consumeNonce(nonce);

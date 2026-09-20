@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Lock, CheckCircle, AlertCircle, RefreshCw, X, ShieldCheck, UserCheck } from 'lucide-react';
+import { Camera, CheckCircle, AlertCircle, RefreshCw, X, ShieldCheck, UserCheck } from 'lucide-react';
 import { faceAuthApi } from '../services/faceAuthApi';
 
 interface FaceEnrollmentModalProps {
@@ -9,9 +9,7 @@ interface FaceEnrollmentModalProps {
 }
 
 export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [step, setStep] = useState<'AUTH_PASSWORD' | 'CAMERA_CAPTURE' | 'PROCESSING' | 'SUCCESS'>('AUTH_PASSWORD');
-  const [password, setPassword] = useState('');
-  const [enrollmentToken, setEnrollmentToken] = useState<string | null>(null);
+  const [step, setStep] = useState<'CAMERA_CAPTURE' | 'PROCESSING' | 'SUCCESS'>('CAMERA_CAPTURE');
   const [challengeAction, setChallengeAction] = useState<string>('BLINK_TWICE');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,8 +19,13 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (!isOpen) {
-      resetState();
+    if (isOpen) {
+      setStep('CAMERA_CAPTURE');
+      setErrorMessage(null);
+      setIsLoading(false);
+      startCamera();
+    } else {
+      stopCameraStream();
     }
   }, [isOpen]);
 
@@ -31,15 +34,6 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
       stopCameraStream();
     };
   }, []);
-
-  const resetState = () => {
-    stopCameraStream();
-    setStep('AUTH_PASSWORD');
-    setPassword('');
-    setEnrollmentToken(null);
-    setErrorMessage(null);
-    setIsLoading(false);
-  };
 
   const stopCameraStream = () => {
     if (mediaStreamRef.current) {
@@ -54,28 +48,6 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
-    }
-  };
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password) {
-      setErrorMessage('Please enter your current account password.');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const authRes = await faceAuthApi.enrollAuthPassword(password);
-      setEnrollmentToken(authRes.enrollmentToken);
-      setStep('CAMERA_CAPTURE');
-      await startCamera();
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Incorrect account password. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -134,12 +106,6 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
   };
 
   const handleEnrollCapture = async () => {
-    if (!enrollmentToken) {
-      setErrorMessage('Enrollment session expired. Please re-authenticate password.');
-      setStep('AUTH_PASSWORD');
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
     setStep('PROCESSING');
@@ -152,7 +118,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
         throw new Error('Failed to capture camera frames. Please ensure camera is active.');
       }
 
-      await faceAuthApi.enrollFace(enrollmentToken, challenge.nonce, frames);
+      await faceAuthApi.enrollFace(challenge.nonce, frames);
       
       stopCameraStream();
       setStep('SUCCESS');
@@ -203,38 +169,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
           </div>
         )}
 
-        {/* STEP 1: Password Authorization */}
-        {step === 'AUTH_PASSWORD' && (
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <p className="text-xs text-slate-300">
-              To protect your account, please enter your password to authorize face registration.
-            </p>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Account Password</label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-slate-500"
-                />
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 font-bold text-sm transition shadow-lg shadow-cyan-950 flex items-center justify-center gap-2"
-            >
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Authorize & Start Camera'}
-            </button>
-          </form>
-        )}
-
-        {/* STEP 2: Camera Capture */}
+        {/* STEP 1: Camera Capture */}
         {(step === 'CAMERA_CAPTURE' || step === 'PROCESSING') && (
           <div className="space-y-4 text-center">
             <p className="text-xs text-slate-300">
@@ -275,7 +210,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({ isOpen
           </div>
         )}
 
-        {/* STEP 3: Success */}
+        {/* STEP 2: Success */}
         {step === 'SUCCESS' && (
           <div className="py-6 text-center space-y-3">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto animate-bounce">

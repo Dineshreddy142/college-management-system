@@ -93,13 +93,10 @@ export const faceAuthApi = {
     }
   },
 
-  /**
-   * Submits biometric enrollment frame payload for authenticated user.
-   */
-  async enrollFace(enrollmentToken: string, nonce: string, frames: string[]): Promise<boolean> {
+  async enrollFace(nonce: string, frames: string[], enrollmentToken?: string): Promise<boolean> {
     try {
       const res = await client.post('/auth/face/enroll', {
-        enrollmentToken,
+        enrollmentToken: enrollmentToken || 'DIRECT_ENROLL',
         nonce,
         frames
       });
