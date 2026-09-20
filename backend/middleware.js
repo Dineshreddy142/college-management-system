@@ -25,7 +25,7 @@ export const authorizeRole = (allowedRoles) => {
         const isAllowed = allowedRoles.some(role => {
             const roleNorm = role.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
             if (roleNorm === userRoleNorm) return true;
-            if ((userRoleNorm === 'admin' || userRoleNorm === 'administrator' || userRoleNorm === 'principal' || userRoleNorm === 'systemadmin' || userRoleNorm === 'office') && 
+            if ((userRoleNorm === 'admin' || userRoleNorm === 'administrator' || userRoleNorm === 'principal' || userRoleNorm === 'systemadmin') && 
                 (roleNorm === 'admin' || roleNorm === 'administrator' || roleNorm === 'principal')) {
                 return true;
             }

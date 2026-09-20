@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import pool from './db.js';
 import facultyRouter from './faculty.js';
 import studentRouter from './student.js';
@@ -225,25 +226,34 @@ app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), a
   try {
     const [studentCount] = await pool.execute('SELECT COUNT(*) as count FROM students');
     const [facultyCount] = await pool.execute('SELECT COUNT(*) as count FROM faculties');
-    // Mocking some stats for now
+    const [courseCount] = await pool.execute('SELECT COUNT(*) as count FROM courses');
+    let pendingFeesStr = '₹0';
+    try {
+      const [feeResult] = await pool.execute('SELECT SUM(balance_amount) as total FROM student_fee_accounts WHERE status != "paid"');
+      const totalPending = feeResult[0]?.total || 0;
+      pendingFeesStr = totalPending > 100000 ? `₹${(totalPending / 100000).toFixed(1)}L` : `₹${Number(totalPending).toLocaleString('en-IN')}`;
+    } catch (fErr) {
+      // Table might be unpopulated or different status column
+    }
+
     res.json({
-      totalStudents: studentCount[0].count,
-      totalFaculty: facultyCount[0].count,
-      activeCourses: 12,
-      pendingFees: '₹12.5L'
+      totalStudents: studentCount[0]?.count || 0,
+      totalFaculty: facultyCount[0]?.count || 0,
+      activeCourses: courseCount[0]?.count || 0,
+      pendingFees: pendingFeesStr
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Database Initialization & Seed Health Check Endpoint
-app.get('/api/init-db', async (req, res) => {
+// Database Initialization & Seed Health Check Endpoint (Admin Protected)
+app.get('/api/init-db', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
   const result = await initializeDatabase();
   res.json(result);
 });
 
-app.post('/api/init-db', async (req, res) => {
+app.post('/api/init-db', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
   const result = await initializeDatabase();
   res.json(result);
 });

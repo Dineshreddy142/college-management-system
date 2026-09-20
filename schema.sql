@@ -1386,6 +1386,24 @@ CREATE TABLE digital_resources (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- WebAuthn Credentials Table (Passkeys)
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    credential_id VARCHAR(512) NOT NULL UNIQUE,
+    public_key TEXT NOT NULL,
+    counter INT DEFAULT 0,
+    device_label VARCHAR(100) DEFAULT 'Mobile Passkey',
+    transports VARCHAR(255) DEFAULT '["internal"]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Performance Composite Indices
+CREATE INDEX idx_student_attendance_lookup ON student_attendance(session_id, student_id);
+CREATE INDEX idx_student_fee_accounts_student ON student_fee_accounts(student_id);
+
+
 
 
 

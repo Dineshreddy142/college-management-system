@@ -7,19 +7,17 @@ export function ClassesModule() {
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchClasses = async () => {
       try {
         const res = await client.get('/faculty/classes');
         setClasses(res.data);
-      } catch (err) {
-        console.error(err);
-        // Mock fallback if backend is not fully seeded
-        setClasses([
-          { allocation_id: 1, subject_name: "Data Structures", subject_code: "CS301", section_name: "A", semester_name: "Semester 3", course_name: "Computer Science", student_count: 52 },
-          { allocation_id: 2, subject_name: "Data Structures", subject_code: "CS301", section_name: "B", semester_name: "Semester 3", course_name: "Computer Science", student_count: 48 },
-          { allocation_id: 3, subject_name: "Algorithms", subject_code: "CS401", section_name: "A", semester_name: "Semester 4", course_name: "Computer Science", student_count: 44 },
-        ]);
+      } catch (err: any) {
+        console.error('Failed to fetch assigned classes:', err);
+        setError('Unable to fetch assigned classes from server.');
+        setClasses([]);
       } finally {
         setLoading(false);
       }

@@ -195,6 +195,30 @@ router.post('/register', async (req, res) => {
         const rawUsername = (username || fullName || userEmail.split('@')[0] || 'user').trim();
         const requestedRole = (role || 'Student').trim();
 
+        // Security Check: Block unauthenticated creation of non-student roles (Admin, Faculty, HOD, etc.)
+        const requestedRoleNorm = requestedRole.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (requestedRoleNorm !== 'student') {
+            const authHeader = req.headers['authorization'];
+            const token = authHeader && authHeader.split(' ')[1];
+            let isAuthorizedAdmin = false;
+
+            if (token) {
+                try {
+                    const decoded = jwt.verify(token, JWT_SECRET);
+                    const decodedRoleNorm = (decoded.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (decodedRoleNorm === 'admin' || decodedRoleNorm === 'administrator' || decodedRoleNorm === 'principal') {
+                        isAuthorizedAdmin = true;
+                    }
+                } catch (e) {
+                    // Invalid or expired token
+                }
+            }
+
+            if (!isAuthorizedAdmin) {
+                return errorResponse(res, 'Privilege escalation blocked. Only Administrators can create elevated role accounts.', [], 403);
+            }
+        }
+
         // 1. Check if email already exists
         const [existing] = await pool.execute(
             'SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?',
