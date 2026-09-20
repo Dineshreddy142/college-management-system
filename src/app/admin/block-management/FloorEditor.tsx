@@ -52,6 +52,8 @@ export const FloorEditor: React.FC<{
   const [dragGroupIds, setDragGroupIds] = useState<string[]>([]);
   const [dragGroupStartPositions, setDragGroupStartPositions] = useState<Map<string, { x: number; y: number; points?: Point[] }> | null>(null);
   const [dragStartMousePos, setDragStartMousePos] = useState<{ mouseX: number; mouseY: number } | null>(null);
+  const [isPendingCopyDrag, setIsPendingCopyDrag] = useState(false);
+  const [pendingCopyMouseStart, setPendingCopyMouseStart] = useState<{ clientX: number; clientY: number } | null>(null);
   const [resizeHandle, setResizeHandle] = useState<string | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number } | null>(null);
 
@@ -265,63 +267,26 @@ export const FloorEditor: React.FC<{
     setActiveTool('select');
   };
 
-  // Object Dragging & Resizing Handlers (Double-click or Alt+Drag clones & drags ALL components together as a structure)
+  // Object Dragging & Resizing Handlers
+  // Note: Simple double-click does NOT clone. ONLY when user double-clicks AND drags the cursor, ALL components are duplicated together.
   const handleMouseDownObj = (e: React.MouseEvent, obj: FloorObjectRecord) => {
     e.stopPropagation();
     setContextMenu(null);
     if (obj.locked || isPreviewMode) return;
 
     const scale = Math.max(0.1, zoomLevel / 100);
-
-    // Double-click (e.detail >= 2) OR Alt+Drag: Clone ALL components and drag the entire structure
-    if (e.detail >= 2 || e.altKey) {
-      const now = Date.now();
-      const startPositionsMap = new Map<string, { x: number; y: number; points?: Point[] }>();
-      const groupIds: string[] = [];
-
-      const duplicatedGroup: FloorObjectRecord[] = objects.map((item, idx) => {
-        const newId = `obj_${now}_${idx}`;
-        const strNewId = String(newId);
-        groupIds.push(strNewId);
-
-        startPositionsMap.set(strNewId, {
-          x: item.x,
-          y: item.y,
-          points: item.points ? JSON.parse(JSON.stringify(item.points)) : undefined
-        });
-
-        const baseLabel = item.label || item.object_type || 'Component';
-        const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
-
-        return {
-          ...JSON.parse(JSON.stringify(item)),
-          id: newId,
-          label: copyLabel
-        };
-      });
-
-      const updated = [...objects, ...duplicatedGroup];
-      setObjects(updated);
-      pushHistory(updated);
-      setSelectedObjectId(duplicatedGroup[0]?.id || null);
-      setHasUnsavedChanges(true);
-
-      // Enable group dragging for all duplicated objects
-      setIsDraggingObj(true);
-      setDragGroupIds(groupIds);
-      setDragGroupStartPositions(startPositionsMap);
-      setDragStartMousePos({
-        mouseX: e.clientX / scale,
-        mouseY: e.clientY / scale
-      });
-
-      showToast(`Copied all ${objects.length} components! Dragging structure copy...`);
-      return;
-    }
-
-    // Normal single-click select & drag
     setSelectedObjectId(obj.id);
     setIsDraggingObj(true);
+
+    // If double-click (e.detail >= 2) OR Alt key is held down, mark as pending copy-drag!
+    if (e.detail >= 2 || e.altKey) {
+      setIsPendingCopyDrag(true);
+      setPendingCopyMouseStart({ clientX: e.clientX, clientY: e.clientY });
+    } else {
+      setIsPendingCopyDrag(false);
+      setPendingCopyMouseStart(null);
+    }
+
     setDragGroupIds([]);
     setDragGroupStartPositions(null);
     setDragStartMousePos(null);
@@ -358,6 +323,56 @@ export const FloorEditor: React.FC<{
 
     const snap = (v: number) => snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v;
     const scale = Math.max(0.1, zoomLevel / 100);
+
+    // If a copy-drag is pending (double-click down) AND the mouse has actually started moving/dragging:
+    if (isPendingCopyDrag && pendingCopyMouseStart) {
+      const dist = Math.hypot(e.clientX - pendingCopyMouseStart.clientX, e.clientY - pendingCopyMouseStart.clientY);
+      if (dist > 4) {
+        // NOW duplicate ALL components on the canvas!
+        setIsPendingCopyDrag(false);
+
+        const now = Date.now();
+        const startPositionsMap = new Map<string, { x: number; y: number; points?: Point[] }>();
+        const groupIds: string[] = [];
+
+        const duplicatedGroup: FloorObjectRecord[] = objects.map((item, idx) => {
+          const newId = `obj_${now}_${idx}`;
+          const strNewId = String(newId);
+          groupIds.push(strNewId);
+
+          startPositionsMap.set(strNewId, {
+            x: item.x,
+            y: item.y,
+            points: item.points ? JSON.parse(JSON.stringify(item.points)) : undefined
+          });
+
+          const baseLabel = item.label || item.object_type || 'Component';
+          const copyLabel = baseLabel.includes('(Copy)') ? baseLabel : `${baseLabel} (Copy)`;
+
+          return {
+            ...JSON.parse(JSON.stringify(item)),
+            id: newId,
+            label: copyLabel
+          };
+        });
+
+        const updated = [...objects, ...duplicatedGroup];
+        setObjects(updated);
+        pushHistory(updated);
+        setSelectedObjectId(duplicatedGroup[0]?.id || null);
+        setHasUnsavedChanges(true);
+
+        setDragGroupIds(groupIds);
+        setDragGroupStartPositions(startPositionsMap);
+        setDragStartMousePos({
+          mouseX: e.clientX / scale,
+          mouseY: e.clientY / scale
+        });
+
+        showToast(`Copied structure (all ${objects.length} components)! Dragging copy...`);
+        return;
+      }
+    }
 
     if (isDraggingObj) {
       if (dragGroupIds.length > 0 && dragGroupStartPositions && dragStartMousePos) {
@@ -421,7 +436,7 @@ export const FloorEditor: React.FC<{
       }));
       setHasUnsavedChanges(true);
     }
-  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, dragGroupIds, dragGroupStartPositions, dragStartMousePos, resizeHandle, resizeStartPos, snapToGrid, zoomLevel]);
+  }, [isPanning, panStart, isPreviewMode, selectedObjectId, isDraggingObj, dragOffset, isPendingCopyDrag, pendingCopyMouseStart, objects, dragGroupIds, dragGroupStartPositions, dragStartMousePos, resizeHandle, resizeStartPos, snapToGrid, zoomLevel]);
 
   const handleMouseUpCanvas = () => {
     if (isDraggingObj || resizeHandle) {
@@ -429,6 +444,8 @@ export const FloorEditor: React.FC<{
     }
     setIsPanning(false);
     setIsDraggingObj(false);
+    setIsPendingCopyDrag(false);
+    setPendingCopyMouseStart(null);
     setDragGroupIds([]);
     setDragGroupStartPositions(null);
     setDragStartMousePos(null);
