@@ -243,11 +243,11 @@ export const FloorManagement: React.FC<{
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 gap-2">
                 <button
-                  onClick={() => onNavigateToEditor && onNavigateToEditor(fl.id)}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  onClick={() => handleOpenEditModal(fl)}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Open Floor Editor</span>
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Floor Level</span>
                 </button>
 
                 <div className="flex items-center gap-1">

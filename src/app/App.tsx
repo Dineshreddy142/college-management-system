@@ -259,7 +259,6 @@ const SIDEBAR_ITEMS = [
       { id: "building-management", label: "Building Management", icon: Building, badge: null },
       { id: "floor-management", label: "Floor Management", icon: Layers, badge: null },
       { id: "room-management", label: "Room Management", icon: DoorOpen, badge: null },
-      { id: "floor-editor", label: "Floor Editor", icon: Edit3, badge: "CAD" },
       { id: "floor-versions", label: "Floor Versions", icon: History, badge: null },
     ]
   },
@@ -1699,9 +1698,8 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "library": return <LibraryManagement />;
       case "placement": return <PlacementModule />;
       case "building-management": return <BuildingManagement onNavigateToFloors={() => setMod("floor-management")} />;
-      case "floor-management": return <FloorManagement onNavigateToEditor={(fId) => { setActiveEditorFloorId(fId); setMod("floor-editor"); }} onNavigateToVersions={() => setMod("floor-versions")} />;
+      case "floor-management": return <FloorManagement onNavigateToVersions={() => setMod("floor-versions")} />;
       case "room-management": return <RoomManagement />;
-      case "floor-editor": return <FloorEditor floorId={activeEditorFloorId || 1} onBack={() => setMod("floor-management")} />;
       case "floor-versions": return <FloorVersions initialFloorId={activeEditorFloorId || undefined} />;
 
 
