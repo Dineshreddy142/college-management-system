@@ -1465,6 +1465,222 @@ const handleConfirmEmailUpdate = async (req, res) => {
     }
 };
 
+// =========================================================================
+// FACE BIOMETRIC AUTHENTICATION API ROUTES (PHASES 6, 7, 8, 9, 10, 13)
+// =========================================================================
+
+// Helper for verifying password during sensitive biometric operations (re-auth guard)
+const verifyRecentPassword = async (userId, confirmPassword) => {
+    if (!confirmPassword) return false;
+    const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return false;
+    const userPass = rows[0].password;
+    if (userPass && userPass.startsWith('$2')) {
+        return await bcrypt.compare(confirmPassword, userPass);
+    }
+    return userPass === confirmPassword;
+};
+
+// 1. GET /api/auth/face/status - Retrieve user face registration status metadata
+const handleGetFaceStatus = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await pool.execute('SELECT face_registered FROM users WHERE id = ?', [userId]);
+        const isRegistered = rows.length > 0 && Boolean(rows[0].face_registered);
+        return successResponse(res, 'Biometric status retrieved.', { face_registered: isRegistered });
+    } catch (e) {
+        return errorResponse(res, 'Failed to fetch face status: ' + e.message, [], 500);
+    }
+};
+
+// 2. POST /api/auth/face/enroll - Enroll multi-pose face biometrics (Requires JWT + Password Re-Auth)
+const handleEnrollFace = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { confirmPassword, images } = req.body;
+
+        // Password Re-Authentication Security Guard
+        const isPasswordOk = await verifyRecentPassword(userId, confirmPassword);
+        if (!isPasswordOk) {
+            return errorResponse(res, 'Password re-authentication failed. Please provide your current account password to authorize face enrollment.', [], 401);
+        }
+
+        // Image validation
+        let imageBuffers = [];
+        if (req.files && req.files.length > 0) {
+            imageBuffers = req.files.map(f => f.buffer);
+        } else if (images && Array.isArray(images)) {
+            imageBuffers = images.map(imgStr => Buffer.from(imgStr.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+        } else if (req.body.image) {
+            imageBuffers = [Buffer.from(req.body.image.replace(/^data:image\/\w+;base64,/, ''), 'base64')];
+        }
+
+        if (imageBuffers.length === 0) {
+            return errorResponse(res, 'At least one camera frame image is required for face enrollment.', [], 400);
+        }
+
+        // Execute enrollment & AES-256-GCM template storage
+        const result = await enrollFaceBiometrics(userId, imageBuffers);
+        await pool.execute('UPDATE users SET face_registered = 1 WHERE id = ?', [userId]);
+
+        await recordBiometricSuccess(userId, 'ENROLLMENT', req.ip || '127.0.0.1');
+        await logActivity(userId, 'FACE_ENROLLED', 'User completed secure face biometric enrollment');
+
+        return successResponse(res, 'Face biometrics registered successfully!', {
+            user_id: userId,
+            registered: true
+        });
+    } catch (e) {
+        console.error('Face enrollment error:', e);
+        await logBiometricSecurityEvent(req.user?.id, 'ENROLLMENT_FAILED', e.message, req.ip || '127.0.0.1');
+        return errorResponse(res, 'Face enrollment failed: ' + e.message, [], 400);
+    }
+};
+
+// 3. POST /api/auth/face/remove - Remove registered face template (Requires JWT + Password Re-Auth)
+const handleRemoveFace = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { confirmPassword } = req.body;
+
+        // Password Re-Authentication Security Guard
+        const isPasswordOk = await verifyRecentPassword(userId, confirmPassword);
+        if (!isPasswordOk) {
+            return errorResponse(res, 'Password re-authentication failed. Please provide your current account password to authorize biometric template deletion.', [], 401);
+        }
+
+        // Delete template from DB
+        await pool.execute('DELETE FROM face_embeddings WHERE user_id = ?', [userId]);
+        await pool.execute('UPDATE users SET face_registered = 0 WHERE id = ?', [userId]);
+
+        await logActivity(userId, 'FACE_DELETED', 'User deleted registered face biometric template');
+
+        return successResponse(res, 'Face biometrics removed successfully.', { registered: false });
+    } catch (e) {
+        return errorResponse(res, 'Failed to remove face biometrics: ' + e.message, [], 500);
+    }
+};
+
+// 4. POST /api/auth/face/verify-1to1 - Primary 1:1 Face Login
+const handleVerify1to1FaceLogin = async (req, res) => {
+    try {
+        const { identifier, portalRole, image } = req.body;
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+
+        if (!identifier || (!image && (!req.files || req.files.length === 0))) {
+            return errorResponse(res, 'Identifier and camera image are required for face verification.', [], 400);
+        }
+
+        // Query user by identifier
+        const [rows] = await pool.execute(
+            `SELECT u.*, r.name as role_name
+             FROM users u 
+             JOIN roles r ON u.role_id = r.id 
+             WHERE LOWER(u.email) = ? OR LOWER(u.username) = ?`,
+            [identifier.trim().toLowerCase(), identifier.trim().toLowerCase()]
+        );
+
+        // Generic error response to prevent user enumeration
+        if (rows.length === 0) {
+            await recordBiometricFailure(null, 'VERIFY_1TO1_USER_NOT_FOUND', clientIp);
+            return errorResponse(res, 'Biometric verification failed or invalid user credentials.', [], 401);
+        }
+
+        const user = rows[0];
+
+        // Status Check
+        if (user.status !== 'active') {
+            await logActivity(user.id, 'FACE_LOGIN_BLOCKED', 'Blocked or inactive account attempted face login');
+            return errorResponse(res, 'Your account is disabled or locked. Please contact IT support.', [], 403);
+        }
+
+        // Role Mismatch Check
+        const normalizeRoleName = (r) => {
+            if (!r) return '';
+            const clean = r.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (clean === 'placementofficer' || clean === 'placement') return 'placement';
+            if (clean === 'officestaff' || clean === 'office' || clean === 'accountant' || clean === 'accounts') return 'office';
+            return clean;
+        };
+
+        if (portalRole) {
+            const normDb = normalizeRoleName(user.role_name);
+            const normPortal = normalizeRoleName(portalRole);
+            const isMatch = normDb === normPortal || normDb.includes(normPortal) || normPortal.includes(normDb);
+            if (!isMatch) {
+                await logActivity(user.id, 'FACE_LOGIN_ROLE_MISMATCH', `Attempted face login to portal '${portalRole}' with role '${user.role_name}'`);
+                return res.status(403).json({
+                    success: false,
+                    code: 'ROLE_MISMATCH',
+                    error: 'UNAUTHORIZED_PORTAL_ACCESS',
+                    message: `This account is registered as '${user.role_name}'. Please log in through the ${user.role_name} Portal.`
+                });
+            }
+        }
+
+        // Extract camera frame buffer
+        let frameBuffer = null;
+        if (req.files && req.files.length > 0) {
+            frameBuffer = req.files[0].buffer;
+        } else if (image) {
+            frameBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        }
+
+        // Perform 1:1 Cosine Match
+        const matchResult = await verifyUserFaceBiometrics(user.id, frameBuffer);
+
+        if (!matchResult.verified) {
+            await recordBiometricFailure(user.id, 'VERIFY_1TO1_MISMATCH', clientIp);
+            await logActivity(user.id, 'FACE_LOGIN_FAILED', 'Face scan did not match registered account');
+            return errorResponse(res, 'Biometric verification failed. Face does not match registered account.', [], 401);
+        }
+
+        // Success -> Issue Standard JWT Token
+        const tokenPayload = {
+            id: user.id,
+            username: user.username,
+            name: user.full_name || user.username,
+            email: user.email,
+            role: user.role_name
+        };
+
+        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });
+
+        await recordBiometricSuccess(user.id, 'VERIFY_1TO1_SUCCESS', clientIp);
+        await logActivity(user.id, 'FACE_LOGIN_SUCCESS', 'Successful 1:1 face biometric login');
+
+        return successResponse(res, 'Face verification successful!', {
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                full_name: user.full_name,
+                email: user.email,
+                role: user.role_name,
+                status: user.status,
+                must_change_password: Boolean(user.must_change_password)
+            }
+        });
+
+    } catch (e) {
+        console.error('1:1 Face verification error:', e);
+        return errorResponse(res, 'Biometric verification error: ' + e.message, [], 500);
+    }
+};
+
+// Route registrations for Face Biometrics API
+router.get('/auth/face/status', authenticateToken, handleGetFaceStatus);
+router.get('/face/status', authenticateToken, handleGetFaceStatus);
+
+router.post('/auth/face/enroll', authenticateToken, multer().array('images'), handleEnrollFace);
+router.post('/face/enroll', authenticateToken, multer().array('images'), handleEnrollFace);
+
+router.post('/auth/face/remove', authenticateToken, handleRemoveFace);
+router.post('/face/remove', authenticateToken, handleRemoveFace);
+
+router.post('/auth/face/verify-1to1', multer().array('image'), handleVerify1to1FaceLogin);
+router.post('/face/verify-1to1', multer().array('image'), handleVerify1to1FaceLogin);
+
 router.post('/auth/request-email-update-otp', handleRequestEmailUpdateOtp);
 router.post('/request-email-update-otp', handleRequestEmailUpdateOtp);
 router.post('/auth/confirm-email-update', handleConfirmEmailUpdate);
@@ -1473,4 +1689,5 @@ router.post('/auth/update-email', handleConfirmEmailUpdate);
 router.post('/update-email', handleConfirmEmailUpdate);
 
 export default router;
+
 

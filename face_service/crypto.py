@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 import numpy as np
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
@@ -7,11 +8,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidTag
 
 # 256-bit Secret Key for Biometric AES Encryption (Derived securely server-side)
-SECRET_KEY_STR = os.getenv("FACE_ENCRYPTION_KEY", os.getenv("BIOMETRIC_ENCRYPTION_KEY", "EduERP_Secure_Biometric_AES256_Secret_Key_2026!"))
-ENCRYPTION_KEY = SECRET_KEY_STR.encode("utf-8").ljust(32, b'\0')[:32]
+SECRET_KEY_STR = os.getenv("BIOMETRIC_ENCRYPTION_KEY", os.getenv("FACE_ENCRYPTION_KEY", "college_erp_secure_biometric_key_32bytes!!"))
+ENCRYPTION_KEY = hashlib.sha256(SECRET_KEY_STR.encode("utf-8")).digest()
 
 DEFAULT_KEY_VERSION = "v1"
 DEFAULT_MODEL_VERSION = "sface_yunet_v1"
+
 
 def encrypt_embedding(
     embedding_array,

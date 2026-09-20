@@ -41,7 +41,7 @@ def get_face_models():
 
     return _DETECTOR, _RECOGNIZER
 
-def extract_embedding_from_image(image_bytes):
+def extract_embedding_from_image(image_bytes, strict_single_face: bool = True):
     """
     Standard Deep Neural Network Face Biometrics Pipeline:
       1. Camera Input Decoding (cv2.imdecode)
@@ -84,10 +84,11 @@ def extract_embedding_from_image(image_bytes):
     if faces is None or len(faces) == 0:
         raise NoFaceDetectedError("No human face detected in frame. Please look directly at the camera.")
 
-    # Select the primary / largest face in frame
+    if len(faces) > 1 and strict_single_face:
+        raise MultipleFacesDetectedError("Multiple human faces detected in frame. Exactly one face must be present for authentication.")
+
     primary_face = faces[0]
     if len(faces) > 1:
-        # Sort by bounding box area (w * h)
         primary_face = max(faces, key=lambda f: f[2] * f[3])
 
     # 3. Face Alignment (5 landmarks: 2 eyes, nose tip, 2 mouth corners)
@@ -103,3 +104,4 @@ def extract_embedding_from_image(image_bytes):
         feat_vec = feat_vec / norm
 
     return feat_vec.tolist()
+
