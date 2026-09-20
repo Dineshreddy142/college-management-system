@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
+import { BiometricSecuritySettings } from "../../components/BiometricSecuritySettings";
 
 export function ProfileModule() {
   const savedUser = (() => {
@@ -38,6 +39,7 @@ export function ProfileModule() {
     | 'performance'
     | 'backlogs'
     | 'mentor'
+    | 'security'
   >('overview');
 
   // Editable Contact State
@@ -213,6 +215,7 @@ export function ProfileModule() {
               { id: 'performance', label: '📈 Academic Performance' },
               { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
               { id: 'mentor', label: '👨‍🏫 Class Advisor & HOD' },
+              { id: 'security', label: '🛡️ Security & Biometrics' },
             ].map(t => (
               <button
                 key={t.id}
@@ -734,6 +737,13 @@ export function ProfileModule() {
                   <p className="text-slate-300 font-mono">{profile?.hod_email || 'Not Available'}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 11: SECURITY & BIOMETRICS */}
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <BiometricSecuritySettings />
             </div>
           )}
 
