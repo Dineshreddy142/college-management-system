@@ -4,11 +4,32 @@ import {
   Play, Upload, Download, MousePointer2, Move, Square, Circle, Minus, Hexagon,
   Type, DoorOpen, Footprints, Sparkles, Building, ChevronRight, X, Copy,
   Trash2, Lock, Unlock, ArrowUp, ArrowDown, Check, AlertCircle, RefreshCw,
-  Plus, RotateCw, AlignLeft, AlignCenter, AlignRight, Sliders, Shield, Search
+  Plus, RotateCw, AlignLeft, AlignCenter, AlignRight, Sliders, Shield, Search,
+  Box, Compass, FileText, Image, Palette, Users, FileDown, Layers3, Monitor, CheckCircle2
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { blockService, FloorRecord, FloorObjectRecord, FloorLayerRecord, GeometryType, Point } from '../../../api/blockService';
 
 const GRID_SIZE = 20;
+
+export interface DepartmentInfo {
+  code: string;
+  name: string;
+  fill: string;
+  stroke: string;
+  badgeBg: string;
+  badgeText: string;
+}
+
+export const DEPARTMENT_MAP: Record<string, DepartmentInfo> = {
+  CSE: { code: 'CSE', name: 'Computer Science (CSE)', fill: '#3B82F6', stroke: '#1D4ED8', badgeBg: 'bg-blue-900/60', badgeText: 'text-blue-300' },
+  ECE: { code: 'ECE', name: 'Electronics (ECE)', fill: '#8B5CF6', stroke: '#6D28D9', badgeBg: 'bg-purple-900/60', badgeText: 'text-purple-300' },
+  MECH: { code: 'MECH', name: 'Mechanical (MECH)', fill: '#10B981', stroke: '#047857', badgeBg: 'bg-emerald-900/60', badgeText: 'text-emerald-300' },
+  CIVIL: { code: 'CIVIL', name: 'Civil Engineering', fill: '#F59E0B', stroke: '#B45309', badgeBg: 'bg-amber-900/60', badgeText: 'text-amber-300' },
+  ADMIN: { code: 'ADMIN', name: 'Administration', fill: '#14B8A6', stroke: '#0D9488', badgeBg: 'bg-teal-900/60', badgeText: 'text-teal-300' },
+  AMENITY: { code: 'AMENITY', name: 'Facilities & Washrooms', fill: '#EC4899', stroke: '#BE185D', badgeBg: 'bg-pink-900/60', badgeText: 'text-pink-300' }
+};
 
 export const FloorEditor: React.FC<{
   floorId: number;
@@ -21,17 +42,29 @@ export const FloorEditor: React.FC<{
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   // Undo / Redo Stack History
   const [history, setHistory] = useState<FloorObjectRecord[][]>([]);
   const [historyIdx, setHistoryIdx] = useState<number>(-1);
 
-  // Editor Viewport State
+  // Viewport & Mode State
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [panX, setPanX] = useState<number>(0);
   const [panY, setPanY] = useState<number>(0);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // 2D / 3D Isometric View & Export State
+  const [viewMode, setViewMode] = useState<'2D' | '3D'>('2D');
+  const [isometricAngle, setIsometricAngle] = useState<number>(45);
+  const [isometricWallHeight, setIsometricWallHeight] = useState<number>(35);
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
+
+  // Magnetic Snap-to-Wall & Grid State
+  const [magneticSnapActive, setMagneticSnapActive] = useState<boolean>(true);
+  const [activeSnapGuide, setActiveSnapGuide] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   // Canvas Toggles
   const [showGrid, setShowGrid] = useState(true);
@@ -403,8 +436,95 @@ export const FloorEditor: React.FC<{
         setHasUnsavedChanges(true);
       } else {
         // Single component drag
-        const newX = snap(e.clientX / scale - dragOffset.x);
-        const newY = snap(e.clientY / scale - dragOffset.y);
+        let newX = snap(e.clientX / scale - dragOffset.x);
+        let newY = snap(e.clientY / scale - dragOffset.y);
+
+        const currentObj = objects.find(o => String(o.id) === String(selectedObjectId));
+
+        if (currentObj && magneticSnapActive) {
+          const objType = (currentObj.object_type || '').toLowerCase();
+          const isDoorOrWindow = objType === 'door' || objType === 'window';
+
+          // Collect wall segments from existing wall objects & building boundary lines
+          const wallSegments: Array<{ p1: Point; p2: Point; angle: number }> = [];
+
+          objects.filter(o => String(o.id) !== String(selectedObjectId) && (o.object_type === 'wall' || o.object_type === 'WALL')).forEach(w => {
+            const rad = (w.rotation * Math.PI) / 180;
+            const p1 = { x: w.x, y: w.y };
+            const p2 = { x: w.x + w.width * Math.cos(rad), y: w.y + w.width * Math.sin(rad) };
+            wallSegments.push({ p1, p2, angle: w.rotation });
+          });
+
+          if (buildingBoundaryPoints && buildingBoundaryPoints.length >= 3) {
+            for (let i = 0; i < buildingBoundaryPoints.length; i++) {
+              const p1 = buildingBoundaryPoints[i];
+              const p2 = buildingBoundaryPoints[(i + 1) % buildingBoundaryPoints.length];
+              const dx = p2.x - p1.x;
+              const dy = p2.y - p1.y;
+              const angle = Math.round((Math.atan2(dy, dx) * 180) / Math.PI);
+              wallSegments.push({ p1, p2, angle: (angle + 360) % 360 });
+            }
+          }
+
+          const centerX = newX + currentObj.width / 2;
+          const centerY = newY + currentObj.height / 2;
+
+          let closestDist = Infinity;
+          let bestProj: Point | null = null;
+          let bestAngle = 0;
+
+          wallSegments.forEach(seg => {
+            const l2 = Math.hypot(seg.p2.x - seg.p1.x, seg.p2.y - seg.p1.y);
+            if (l2 === 0) return;
+            let t = ((centerX - seg.p1.x) * (seg.p2.x - seg.p1.x) + (centerY - seg.p1.y) * (seg.p2.y - seg.p1.y)) / (l2 * l2);
+            t = Math.max(0, Math.min(1, t));
+            const projX = seg.p1.x + t * (seg.p2.x - seg.p1.x);
+            const projY = seg.p1.y + t * (seg.p2.y - seg.p1.y);
+            const dist = Math.hypot(centerX - projX, centerY - projY);
+
+            if (dist < closestDist) {
+              closestDist = dist;
+              bestProj = { x: projX, y: projY };
+              bestAngle = seg.angle;
+            }
+          });
+
+          if (isDoorOrWindow && closestDist <= 35 && bestProj) {
+            // Feature A: Auto Door & Window Snap-to-Wall + Orientation Rotation!
+            newX = Math.round(bestProj.x - currentObj.width / 2);
+            newY = Math.round(bestProj.y - currentObj.height / 2);
+            const targetRotation = Math.round(bestAngle);
+
+            setActiveSnapGuide({
+              x1: bestProj.x - 20,
+              y1: bestProj.y - 20,
+              x2: bestProj.x + 20,
+              y2: bestProj.y + 20
+            });
+
+            setObjects(prev => prev.map(o => String(o.id) === String(selectedObjectId) ? {
+              ...o,
+              x: Math.max(0, newX),
+              y: Math.max(0, newY),
+              rotation: targetRotation
+            } : o));
+            setHasUnsavedChanges(true);
+            return;
+          } else if (closestDist <= 15 && bestProj) {
+            // Magnetic alignment to prevent 1-2px awkward gaps against walls
+            newX = Math.round(bestProj.x - currentObj.width / 2);
+            newY = Math.round(bestProj.y - currentObj.height / 2);
+            setActiveSnapGuide({
+              x1: bestProj.x - 30,
+              y1: bestProj.y - 30,
+              x2: bestProj.x + 30,
+              y2: bestProj.y + 30
+            });
+          } else {
+            setActiveSnapGuide(null);
+          }
+        }
+
         setObjects(prev => prev.map(o => String(o.id) === String(selectedObjectId) ? { ...o, x: Math.max(0, newX), y: Math.max(0, newY) } : o));
         setHasUnsavedChanges(true);
       }
@@ -610,20 +730,102 @@ export const FloorEditor: React.FC<{
     showToast(`Generated ${wallObjects.length} outer perimeter walls matching building shape!`);
   };
 
+  // Export Floor Blueprint Methods (PNG / PDF)
+  const handleExportPNG = async () => {
+    try {
+      const el = canvasContainerRef.current;
+      if (!el) return;
+      showToast('Exporting high-resolution PNG blueprint...', 'success');
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: '#090D16',
+        useCORS: true
+      });
+      const link = document.createElement('a');
+      link.download = `${floor?.name || 'Floor'}_Blueprint_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Downloaded High-Res PNG Blueprint!');
+      setShowExportModal(false);
+    } catch (err: any) {
+      showToast('Failed to export PNG blueprint', 'error');
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const el = canvasContainerRef.current;
+      if (!el) return;
+      showToast('Generating architectural printable PDF blueprint...', 'success');
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: '#090D16',
+        useCORS: true
+      });
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Blueprint Header Block
+      pdf.setFillColor(15, 23, 42);
+      pdf.rect(0, 0, pdfWidth, 18, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(13);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${floor?.building_name || 'Main Block'} - ${floor?.name || 'Floor Plan'} Architectural Blueprint`, 10, 11);
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Date: ${new Date().toLocaleDateString()} | Scale 1:100 | College CAD System`, pdfWidth - 85, 11);
+
+      // Blueprint Canvas Screenshot Image
+      pdf.addImage(imgData, 'PNG', 10, 22, pdfWidth - 20, pdfHeight - 34);
+
+      // Blueprint Summary Footer Bar
+      pdf.setFillColor(30, 41, 59);
+      pdf.rect(0, pdfHeight - 9, pdfWidth, 9, 'F');
+      pdf.setTextColor(226, 232, 240);
+      pdf.setFontSize(8);
+
+      const totalArea = objects.reduce((acc, o) => acc + Math.round((o.width * o.height) / 10), 0);
+      const totalSeats = objects.reduce((acc, o) => acc + Math.round((o.width * o.height) / 10 * 0.35), 0);
+
+      pdf.text(`Total Floor Area: ${totalArea} m²  |  Seating Capacity: ${totalSeats} Seats  |  Total Components: ${objects.length}`, 10, pdfHeight - 3);
+      pdf.text(`Official College Floor Blueprint - Administration Copy`, pdfWidth - 75, pdfHeight - 3);
+
+      pdf.save(`${floor?.name || 'Floor'}_Blueprint_${Date.now()}.pdf`);
+      showToast('Downloaded Architectural Printable PDF Blueprint!');
+      setShowExportModal(false);
+    } catch (err: any) {
+      showToast('Failed to export PDF blueprint', 'error');
+    }
+  };
+
   // Add preset rooms aligned inside the building outline
-  const handleCreatePresetRoom = (type: 'Classroom' | 'Lab' | 'Office' | 'Washroom') => {
+  const handleCreatePresetRoom = (type: 'Classroom' | 'Lab' | 'Office' | 'Washroom' | 'Seminar' | 'Cafeteria') => {
     const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
     const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
 
-    const roomWidths = { Classroom: 140, Lab: 180, Office: 100, Washroom: 80 };
-    const roomHeights = { Classroom: 100, Lab: 120, Office: 80, Washroom: 70 };
-    const roomColors = {
-      Classroom: '#3B82F6',
-      Lab: '#8B5CF6',
-      Office: '#10B981',
-      Washroom: '#F59E0B'
+    const roomWidths = { Classroom: 140, Lab: 180, Office: 100, Washroom: 80, Seminar: 220, Cafeteria: 200 };
+    const roomHeights = { Classroom: 100, Lab: 120, Office: 80, Washroom: 70, Seminar: 150, Cafeteria: 140 };
+    const deptCodes: Record<string, string> = {
+      Classroom: 'CSE',
+      Lab: 'ECE',
+      Office: 'ADMIN',
+      Washroom: 'AMENITY',
+      Seminar: 'MECH',
+      Cafeteria: 'CIVIL'
     };
 
+    const deptCode = deptCodes[type] || 'CSE';
+    const deptInfo = DEPARTMENT_MAP[deptCode] || DEPARTMENT_MAP.CSE;
     const count = objects.filter(o => o.object_type === 'room').length + 1;
 
     const newRoom: FloorObjectRecord = {
@@ -639,10 +841,16 @@ export const FloorEditor: React.FC<{
       rotation: 0,
       z_index: 2,
       visible: true,
-      fill_color: roomColors[type],
-      stroke_color: '#FFFFFF',
+      fill_color: deptInfo.fill,
+      stroke_color: deptInfo.stroke,
       stroke_width: 2,
-      locked: false
+      locked: false,
+      properties: {
+        roomType: type,
+        department: deptCode,
+        capacity: Math.round(((roomWidths[type] * roomHeights[type]) / 10) * 0.35),
+        status: 'Available'
+      }
     };
 
     const updated = [...objects, newRoom];
@@ -650,7 +858,7 @@ export const FloorEditor: React.FC<{
     pushHistory(updated);
     setSelectedObjectId(newRoom.id);
     setHasUnsavedChanges(true);
-    showToast(`Added ${type} inside floor boundary`);
+    showToast(`Added ${type} (${deptCode}) inside floor boundary`);
   };
 
   const selectedObj = objects.find(o => String(o.id) === String(selectedObjectId));
@@ -726,7 +934,10 @@ export const FloorEditor: React.FC<{
           <div className="h-4 w-px bg-slate-800 my-auto mx-1" />
 
           <button onClick={() => setShowGrid(!showGrid)} className={`p-1.5 rounded-lg ${showGrid ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Grid Toggle"><Grid className="w-4 h-4" /></button>
-          <button onClick={() => setSnapToGrid(!snapToGrid)} className={`p-1.5 rounded-lg ${snapToGrid ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Snap to Grid"><Sliders className="w-4 h-4" /></button>
+          <button onClick={() => setMagneticSnapActive(!magneticSnapActive)} className={`p-1.5 rounded-lg flex items-center gap-1 ${magneticSnapActive ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Magnetic Wall & Grid Snap Toggle">
+            <Sliders className="w-4 h-4" />
+            <span className="text-[10px] font-bold hidden xl:inline">Magnetic Snap</span>
+          </button>
           <button onClick={() => setShowRulers(!showRulers)} className={`p-1.5 rounded-lg ${showRulers ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Rulers Toggle"><Ruler className="w-4 h-4" /></button>
           <button onClick={() => setShowBuildingOutline(!showBuildingOutline)} className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 ${showBuildingOutline ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`} title="Toggle Building Outer Boundary Shape">
             <Building className="w-4 h-4" />
@@ -734,8 +945,36 @@ export const FloorEditor: React.FC<{
           </button>
         </div>
 
-        {/* Right Actions */}
+        {/* Feature D & Feature C Top Actions: 2D/3D Mode & Export Blueprint */}
         <div className="flex items-center gap-2">
+          {/* 2D / 3D Isometric View Mode Toggle (Feature D) */}
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setViewMode('2D')}
+              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all ${viewMode === '2D' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>2D CAD</span>
+            </button>
+            <button
+              onClick={() => setViewMode('3D')}
+              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all ${viewMode === '3D' ? 'bg-purple-600 text-white shadow animate-pulse' : 'text-purple-400 hover:text-white'}`}
+            >
+              <Box className="w-3.5 h-3.5" />
+              <span>3D View</span>
+            </button>
+          </div>
+
+          {/* Export Blueprint Button (Feature C) */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="px-3 py-1.5 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            title="Export High-Res Blueprint PNG or PDF"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export Blueprint</span>
+          </button>
+
           <button
             onClick={handleDuplicateAllComponents}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
@@ -743,15 +982,6 @@ export const FloorEditor: React.FC<{
           >
             <Copy className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden sm:inline">Copy All Layout</span>
-          </button>
-
-          <button
-            onClick={handleGenerateOuterWalls}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
-            title="Auto-create walls matching building boundary shape"
-          >
-            <Shield className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">Outer Walls</span>
           </button>
 
           <button
@@ -810,8 +1040,9 @@ export const FloorEditor: React.FC<{
           })}
         </div>
 
-        {/* CENTER INTERACTIVE SVG CANVAS */}
+        {/* CENTER INTERACTIVE CANVAS (2D SVG OR 3D ISOMETRIC VIEW) */}
         <div
+          ref={canvasContainerRef}
           className="flex-1 bg-slate-950 relative overflow-hidden cursor-crosshair"
           onMouseDown={(e) => {
             if (activeTool === 'pan' || e.button === 1) {
@@ -824,202 +1055,433 @@ export const FloorEditor: React.FC<{
           onMouseMove={handleMouseMoveCanvas}
           onMouseUp={handleMouseUpCanvas}
         >
-          <svg
-            className="w-full h-full"
-            style={{
-              transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel / 100})`,
-              transformOrigin: '0 0'
-            }}
-          >
-            <defs>
-              <pattern id="cad-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
-                <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-              </pattern>
-            </defs>
+          {viewMode === '2D' ? (
+            <svg
+              className="w-full h-full"
+              style={{
+                transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel / 100})`,
+                transformOrigin: '0 0'
+              }}
+            >
+              <defs>
+                <pattern id="cad-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
+                  <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                </pattern>
+              </defs>
 
-            {showGrid && <rect width="4000" height="3000" fill="url(#cad-grid)" />}
+              {showGrid && <rect width="4000" height="3000" fill="url(#cad-grid)" />}
 
-            {/* RENDER BUILDING OUTER BOUNDARY SHAPE OVERLAY */}
-            {showBuildingOutline && buildingBoundaryPoints.length >= 3 && (
-              <g className="building-outer-boundary-layer pointer-events-none">
-                {/* Outer building footprint fill & architectural dashed stroke */}
-                <polygon
-                  points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                  fill="rgba(59, 130, 246, 0.08)"
-                  stroke="#3B82F6"
-                  strokeWidth="3.5"
-                  strokeDasharray="8 4"
-                />
-
-                {/* Inner double architectural wall outline */}
-                <polygon
-                  points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                  fill="none"
-                  stroke="#60A5FA"
-                  strokeWidth="1.5"
-                  strokeOpacity="0.7"
-                />
-
-                {/* Perimeter Edge Dimension Callouts */}
-                {buildingBoundaryPoints.map((p1, i) => {
-                  const p2 = buildingBoundaryPoints[(i + 1) % buildingBoundaryPoints.length];
-                  const midX = (p1.x + p2.x) / 2;
-                  const midY = (p1.y + p2.y) / 2;
-                  const distPx = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y));
-                  return (
-                    <g key={`edge_${i}`}>
-                      <rect x={midX - 25} y={midY - 9} width={50} height={18} rx={4} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1} />
-                      <text x={midX} y={midY + 3} fill="#93C5FD" fontSize={9} fontWeight="bold" textAnchor="middle" fontFamily="monospace">
-                        {distPx}px
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Corner Vertex Nodes & Labels */}
-                {buildingBoundaryPoints.map((pt, idx) => (
-                  <g key={`vtx_${idx}`}>
-                    <circle cx={pt.x} cy={pt.y} r={5} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
-                    <text x={pt.x + 8} y={pt.y - 8} fill="#60A5FA" fontSize={10} fontWeight="bold" fontFamily="monospace">
-                      V{idx + 1}
-                    </text>
-                  </g>
-                ))}
-
-                {/* Floating Building Footprint Header Badge with Close (X) button */}
-                {(() => {
-                  const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
-                  const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
-                  return (
-                    <g transform={`translate(${minX + 10}, ${minY + 20})`} className="pointer-events-auto">
-                      <rect x={-5} y={-14} width={380} height={26} rx={6} fill="#0F172A" fillOpacity={0.95} stroke="#3B82F6" strokeWidth={1.5} />
-                      <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={3}>
-                        🏢 BUILDING PERIMETER: {floor?.building_name || 'CSE Main Block'} ({floor?.building_geometry_type || 'POLYGON'})
-                      </text>
-                      {/* Clickable Close (X) Icon to Remove / Hide Boundary Overlay */}
-                      <g
-                        transform="translate(355, 0)"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowBuildingOutline(false);
-                          showToast('Building boundary outline hidden');
-                        }}
-                        className="cursor-pointer hover:opacity-80"
-                      >
-                        <title>Remove / Hide Building Perimeter Outline</title>
-                        <circle cx={0} cy={0} r={8} fill="#EF4444" />
-                        <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
-                      </g>
-                    </g>
-                  );
-                })()}
-              </g>
-            )}
-
-            {/* RENDER FLOOR PLAN OBJECTS */}
-            {objects.map((obj) => {
-              const isSelected = String(selectedObjectId) === String(obj.id);
-              const strokeColor = isSelected ? '#3B82F6' : (obj.stroke_color || '#1E40AF');
-
-              return (
-                <g
-                  key={obj.id}
-                  transform={`translate(${obj.x}, ${obj.y}) rotate(${obj.rotation})`}
-                  onMouseDown={(e) => handleMouseDownObj(e, obj)}
-                  onContextMenu={(e) => handleContextMenuObj(e, obj)}
-                  className="cursor-pointer"
-                >
-                  {obj.geometry_type === 'CIRCLE' ? (
-                    <circle
-                      cx={obj.width / 2}
-                      cy={obj.height / 2}
-                      r={Math.min(obj.width, obj.height) / 2}
-                      fill={obj.fill_color || '#3B82F6'}
-                      fillOpacity={0.4}
-                      stroke={strokeColor}
-                      strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
-                    />
-                  ) : obj.geometry_type === 'POLYGON' && obj.points && obj.points.length > 0 ? (
-                    <polygon
-                      points={obj.points.map((p) => `${p.x - obj.x},${p.y - obj.y}`).join(' ')}
-                      fill={obj.fill_color || '#3B82F6'}
-                      fillOpacity={0.4}
-                      stroke={strokeColor}
-                      strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
-                    />
-                  ) : (
-                    <rect
-                      width={obj.width}
-                      height={obj.height}
-                      rx={8}
-                      fill={obj.fill_color || '#3B82F6'}
-                      fillOpacity={0.4}
-                      stroke={strokeColor}
-                      strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
-                    />
-                  )}
-
-                  {/* Label */}
-                  <text
-                    x={obj.width / 2}
-                    y={obj.height / 2}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#FFFFFF"
-                    fontSize={11}
-                    fontWeight="bold"
-                    pointerEvents="none"
-                  >
-                    {obj.label || obj.object_type}
-                  </text>
-
-                  {/* RESIZE, ROTATE & FLOATING TRASH / DUPLICATE HANDLES FOR SELECTED OBJECT */}
-                  {isSelected && !obj.locked && (
-                    <>
-                      {/* Floating Rotate Handle */}
-                      <circle cx={obj.width / 2} cy={-22} r={8} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer">
-                        <title>Rotate 90°</title>
-                      </circle>
-
-                      {/* Floating Trash / Delete Handle */}
-                      <g
-                        transform={`translate(${obj.width / 2 + 25}, -22)`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSelected();
-                        }}
-                        className="cursor-pointer hover:opacity-80"
-                      >
-                        <title>Delete Component</title>
-                        <circle cx={0} cy={0} r={9} fill="#EF4444" stroke="#FFFFFF" strokeWidth={2} />
-                        <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
-                      </g>
-
-                      {/* Floating Duplicate Handle */}
-                      <g
-                        transform={`translate(${obj.width / 2 - 25}, -22)`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicateSelected();
-                        }}
-                        className="cursor-pointer hover:opacity-80"
-                      >
-                        <title>Duplicate Component</title>
-                        <circle cx={0} cy={0} r={9} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
-                        <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">+</text>
-                      </g>
-
-                      {/* Corner Resize Handles */}
-                      <rect x={-5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="cursor-nwse-resize" />
-                      <rect x={obj.width - 5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="cursor-nesw-resize" />
-                      <rect x={obj.width - 5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="cursor-nwse-resize" />
-                      <rect x={-5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'sw')} className="cursor-nesw-resize" />
-                    </>
-                  )}
+              {/* Magnetic Wall Snap Visual Alignment Guide (Feature A & Usability) */}
+              {activeSnapGuide && (
+                <g className="pointer-events-none z-30">
+                  <circle cx={activeSnapGuide.x1 + 20} cy={activeSnapGuide.y1 + 20} r={12} fill="rgba(34, 211, 238, 0.2)" stroke="#22D3EE" strokeWidth={2} className="animate-ping" />
+                  <line x1={activeSnapGuide.x1} y1={activeSnapGuide.y1} x2={activeSnapGuide.x2} y2={activeSnapGuide.y2} stroke="#22D3EE" strokeWidth={2} strokeDasharray="4 2" />
                 </g>
+              )}
+
+              {/* RENDER BUILDING OUTER BOUNDARY SHAPE OVERLAY */}
+              {showBuildingOutline && buildingBoundaryPoints.length >= 3 && (
+                <g className="building-outer-boundary-layer pointer-events-none">
+                  {/* Outer building footprint fill & architectural dashed stroke */}
+                  <polygon
+                    points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="rgba(59, 130, 246, 0.08)"
+                    stroke="#3B82F6"
+                    strokeWidth="3.5"
+                    strokeDasharray="8 4"
+                  />
+
+                  {/* Inner double architectural wall outline */}
+                  <polygon
+                    points={buildingBoundaryPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke="#60A5FA"
+                    strokeWidth="1.5"
+                    strokeOpacity="0.7"
+                  />
+
+                  {/* Perimeter Edge Dimension Callouts */}
+                  {buildingBoundaryPoints.map((p1, i) => {
+                    const p2 = buildingBoundaryPoints[(i + 1) % buildingBoundaryPoints.length];
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    const distPx = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y));
+                    return (
+                      <g key={`edge_${i}`}>
+                        <rect x={midX - 25} y={midY - 9} width={50} height={18} rx={4} fill="#0F172A" fillOpacity={0.9} stroke="#3B82F6" strokeWidth={1} />
+                        <text x={midX} y={midY + 3} fill="#93C5FD" fontSize={9} fontWeight="bold" textAnchor="middle" fontFamily="monospace">
+                          {distPx}px
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Corner Vertex Nodes & Labels */}
+                  {buildingBoundaryPoints.map((pt, idx) => (
+                    <g key={`vtx_${idx}`}>
+                      <circle cx={pt.x} cy={pt.y} r={5} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
+                      <text x={pt.x + 8} y={pt.y - 8} fill="#60A5FA" fontSize={10} fontWeight="bold" fontFamily="monospace">
+                        V{idx + 1}
+                      </text>
+                    </g>
+                  ))}
+
+                  {/* Floating Building Footprint Header Badge with Close (X) button */}
+                  {(() => {
+                    const minX = Math.min(...buildingBoundaryPoints.map(p => p.x));
+                    const minY = Math.min(...buildingBoundaryPoints.map(p => p.y));
+                    return (
+                      <g transform={`translate(${minX + 10}, ${minY + 20})`} className="pointer-events-auto">
+                        <rect x={-5} y={-14} width={380} height={26} rx={6} fill="#0F172A" fillOpacity={0.95} stroke="#3B82F6" strokeWidth={1.5} />
+                        <text fill="#60A5FA" fontSize={11} fontWeight="bold" x={5} y={3}>
+                          🏢 BUILDING PERIMETER: {floor?.building_name || 'CSE Main Block'} ({floor?.building_geometry_type || 'POLYGON'})
+                        </text>
+                        {/* Clickable Close (X) Icon to Remove / Hide Boundary Overlay */}
+                        <g
+                          transform="translate(355, 0)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowBuildingOutline(false);
+                            showToast('Building boundary outline hidden');
+                          }}
+                          className="cursor-pointer hover:opacity-80"
+                        >
+                          <title>Remove / Hide Building Perimeter Outline</title>
+                          <circle cx={0} cy={0} r={8} fill="#EF4444" />
+                          <text x={-3.5} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
+                        </g>
+                      </g>
+                    );
+                  })()}
+                </g>
+              )}
+
+              {/* RENDER FLOOR PLAN OBJECTS */}
+              {objects.map((obj) => {
+                const isSelected = String(selectedObjectId) === String(obj.id);
+                const strokeColor = isSelected ? '#3B82F6' : (obj.stroke_color || '#1E40AF');
+
+                // Feature B: Real-Time Room Area & Seating Capacity Metrics
+                const areaSqM = Math.max(1, Math.round((obj.width * obj.height) / 10));
+                const capacity = Math.max(0, Math.round(areaSqM * 0.35));
+
+                const isFilteredOut = selectedDeptFilter && obj.properties?.department !== selectedDeptFilter;
+
+                return (
+                  <g
+                    key={obj.id}
+                    transform={`translate(${obj.x}, ${obj.y}) rotate(${obj.rotation})`}
+                    onMouseDown={(e) => handleMouseDownObj(e, obj)}
+                    onContextMenu={(e) => handleContextMenuObj(e, obj)}
+                    className={`cursor-pointer transition-opacity ${isFilteredOut ? 'opacity-25' : 'opacity-100'}`}
+                  >
+                    {obj.geometry_type === 'CIRCLE' ? (
+                      <circle
+                        cx={obj.width / 2}
+                        cy={obj.height / 2}
+                        r={Math.min(obj.width, obj.height) / 2}
+                        fill={obj.fill_color || '#3B82F6'}
+                        fillOpacity={0.45}
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
+                      />
+                    ) : obj.geometry_type === 'POLYGON' && obj.points && obj.points.length > 0 ? (
+                      <polygon
+                        points={obj.points.map((p) => `${p.x - obj.x},${p.y - obj.y}`).join(' ')}
+                        fill={obj.fill_color || '#3B82F6'}
+                        fillOpacity={0.45}
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
+                      />
+                    ) : (
+                      <rect
+                        width={obj.width}
+                        height={obj.height}
+                        rx={8}
+                        fill={obj.fill_color || '#3B82F6'}
+                        fillOpacity={0.45}
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 3 : (obj.stroke_width || 2)}
+                      />
+                    )}
+
+                    {/* Feature B: Real-Time Label & Area + Seating Capacity Display */}
+                    <text
+                      x={obj.width / 2}
+                      y={obj.height > 40 ? obj.height / 2 - 7 : obj.height / 2}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#FFFFFF"
+                      fontSize={11}
+                      fontWeight="bold"
+                      pointerEvents="none"
+                    >
+                      {obj.label || obj.object_type}
+                    </text>
+
+                    {/* Seating & Square Meters sub-text badge */}
+                    {obj.height > 40 && obj.object_type !== 'wall' && (
+                      <text
+                        x={obj.width / 2}
+                        y={obj.height / 2 + 8}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="rgba(255,255,255,0.85)"
+                        fontSize={9}
+                        fontWeight="600"
+                        pointerEvents="none"
+                      >
+                        ({areaSqM} m² | {capacity} Seats)
+                      </text>
+                    )}
+
+                    {/* RESIZE, ROTATE & FLOATING TRASH / DUPLICATE HANDLES FOR SELECTED OBJECT */}
+                    {isSelected && !obj.locked && (
+                      <>
+                        {/* Floating Rotate Handle */}
+                        <circle cx={obj.width / 2} cy={-22} r={8} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer">
+                          <title>Rotate 90°</title>
+                        </circle>
+
+                        {/* Floating Trash / Delete Handle */}
+                        <g
+                          transform={`translate(${obj.width / 2 + 25}, -22)`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSelected();
+                          }}
+                          className="cursor-pointer hover:opacity-80"
+                        >
+                          <title>Delete Component</title>
+                          <circle cx={0} cy={0} r={9} fill="#EF4444" stroke="#FFFFFF" strokeWidth={2} />
+                          <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
+                        </g>
+
+                        {/* Floating Duplicate Handle */}
+                        <g
+                          transform={`translate(${obj.width / 2 - 25}, -22)`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicateSelected();
+                          }}
+                          className="cursor-pointer hover:opacity-80"
+                        >
+                          <title>Duplicate Component</title>
+                          <circle cx={0} cy={0} r={9} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
+                          <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">+</text>
+                        </g>
+
+                        {/* Corner Resize Handles */}
+                        <rect x={-5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="cursor-nwse-resize" />
+                        <rect x={obj.width - 5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="cursor-nesw-resize" />
+                        <rect x={obj.width - 5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="cursor-nwse-resize" />
+                        <rect x={-5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'sw')} className="cursor-nesw-resize" />
+                      </>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          ) : (
+            /* FEATURE D: INTERACTIVE 3D ISOMETRIC BUILDING CANVAS VIEW */
+            <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden select-none">
+              {/* 3D Viewport Controls Floating Header */}
+              <div className="absolute top-4 left-4 z-30 bg-slate-900/90 border border-purple-500/40 p-3 rounded-2xl shadow-2xl backdrop-blur-md space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-purple-400 font-black">
+                  <Box className="w-4 h-4 animate-bounce text-purple-400" />
+                  <span>3D Isometric Floor View Mode</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-bold">Orbit Angle:</span>
+                  <div className="flex gap-1">
+                    {[0, 45, 90, 135, 180, 225, 270, 315].map(ang => (
+                      <button
+                        key={ang}
+                        onClick={() => setIsometricAngle(ang)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${isometricAngle === ang ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                      >
+                        {ang}°
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-400 font-bold">Extrusion Height:</span>
+                  <input
+                    type="range"
+                    min="10"
+                    max="80"
+                    value={isometricWallHeight}
+                    onChange={(e) => setIsometricWallHeight(Number(e.target.value))}
+                    className="w-28 accent-purple-500 cursor-pointer"
+                  />
+                  <span className="font-mono text-purple-300 font-bold">{isometricWallHeight}px</span>
+                </div>
+              </div>
+
+              {/* Interactive 3D Extruded SVG Container */}
+              <div className="w-full h-full flex items-center justify-center p-8 overflow-auto">
+                <svg
+                  width="1000"
+                  height="800"
+                  viewBox="0 0 1000 800"
+                  className="transition-transform duration-300 ease-out"
+                >
+                  <defs>
+                    <linearGradient id="wall3dGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#475569" />
+                      <stop offset="100%" stopColor="#1E293B" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* 3D Isometric Projection Transform Group */}
+                  <g transform={`translate(500, 350) rotate(${isometricAngle - 45}) scale(0.85, 0.5)`}>
+                    {/* 3D Floor Base Grid */}
+                    <rect x="-400" y="-300" width="800" height="600" rx="16" fill="#090D16" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6 3" />
+
+                    {/* 3D Extruded Objects */}
+                    {objects.map((obj, i) => {
+                      const areaSqM = Math.max(1, Math.round((obj.width * obj.height) / 10));
+                      const capacity = Math.max(0, Math.round(areaSqM * 0.35));
+                      const isWall = obj.object_type === 'wall';
+                      const h = isWall ? isometricWallHeight * 1.2 : isometricWallHeight;
+
+                      return (
+                        <g key={`3d_${obj.id}_${i}`} transform={`translate(${obj.x - 300}, ${obj.y - 200})`}>
+                          {/* 3D Floor Shadow */}
+                          <rect
+                            x={4}
+                            y={4}
+                            width={obj.width}
+                            height={obj.height}
+                            fill="#000000"
+                            fillOpacity={0.5}
+                            rx={4}
+                          />
+
+                          {/* 3D Side Depth Extrusion Faces */}
+                          <polygon
+                            points={`0,${obj.height} ${obj.width},${obj.height} ${obj.width},${obj.height - h} 0,${obj.height - h}`}
+                            fill="#1E293B"
+                            stroke="#334155"
+                            strokeWidth="1"
+                          />
+                          <polygon
+                            points={`${obj.width},0 ${obj.width},${obj.height} ${obj.width + h / 2},${obj.height - h / 2} ${obj.width + h / 2},${-h / 2}`}
+                            fill="#0F172A"
+                            stroke="#334155"
+                            strokeWidth="1"
+                          />
+
+                          {/* 3D Top Roof / Cap Face */}
+                          <rect
+                            x={0}
+                            y={-h}
+                            width={obj.width}
+                            height={obj.height}
+                            rx={4}
+                            fill={isWall ? '#334155' : (obj.fill_color || '#3B82F6')}
+                            fillOpacity={isWall ? 1 : 0.65}
+                            stroke={obj.stroke_color || '#60A5FA'}
+                            strokeWidth={2}
+                          />
+
+                          {/* 3D Floating Label & Metrics */}
+                          <text
+                            x={obj.width / 2}
+                            y={obj.height / 2 - h - 2}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="#FFFFFF"
+                            fontSize={12}
+                            fontWeight="extrabold"
+                          >
+                            {obj.label || obj.object_type}
+                          </text>
+                          {!isWall && (
+                            <text
+                              x={obj.width / 2}
+                              y={obj.height / 2 - h + 12}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fill="#93C5FD"
+                              fontSize={9}
+                              fontWeight="bold"
+                            >
+                              {areaSqM} m² | {capacity} Seats
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* FEATURE E: INTERACTIVE DEPARTMENT COLOR LEGENDS OVERLAY */}
+          <div className="absolute bottom-4 left-4 z-20 bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl shadow-2xl backdrop-blur-md space-y-1.5 text-xs max-w-md">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5">
+              <span className="font-bold text-slate-300 flex items-center gap-1 text-[11px]">
+                <Palette className="w-3.5 h-3.5 text-blue-400" />
+                <span>Department Color Legends</span>
+              </span>
+              {selectedDeptFilter && (
+                <button
+                  onClick={() => setSelectedDeptFilter(null)}
+                  className="text-[10px] text-rose-400 hover:underline font-bold"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(DEPARTMENT_MAP).map(([code, dept]) => {
+                const count = objects.filter(o => o.properties?.department === code).length;
+                const isSel = selectedDeptFilter === code;
+                return (
+                  <button
+                    key={code}
+                    onClick={() => setSelectedDeptFilter(isSel ? null : code)}
+                    className={`px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${isSel ? 'border-white shadow-lg scale-105' : 'border-slate-800 hover:border-slate-700'}`}
+                    style={{ backgroundColor: dept.fill + '25', color: '#FFFFFF' }}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dept.fill }} />
+                    <span>{code}</span>
+                    <span className="text-[9px] opacity-75">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* FEATURE B: CANVAS LIVE FLOOR METRICS & STATS SUMMARY BAR */}
+          <div className="absolute bottom-4 right-80 z-20 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-4 text-xs font-bold text-slate-200">
+            {(() => {
+              const totalArea = objects.reduce((acc, o) => acc + Math.round((o.width * o.height) / 10), 0);
+              const totalSeats = objects.reduce((acc, o) => acc + Math.round((o.width * o.height) / 10 * 0.35), 0);
+              const roomCount = objects.filter(o => o.object_type === 'room').length;
+              return (
+                <>
+                  <div className="flex items-center gap-1.5 text-blue-400">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Area: <strong className="text-white">{totalArea} m²</strong></span>
+                  </div>
+                  <div className="h-3 w-px bg-slate-800" />
+                  <div className="flex items-center gap-1.5 text-emerald-400">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Seats: <strong className="text-white">{totalSeats}</strong></span>
+                  </div>
+                  <div className="h-3 w-px bg-slate-800" />
+                  <div className="flex items-center gap-1.5 text-purple-400">
+                    <DoorOpen className="w-3.5 h-3.5" />
+                    <span>Rooms: <strong className="text-white">{roomCount}</strong></span>
+                  </div>
+                </>
               );
-            })}
-          </svg>
+            })()}
+          </div>
         </div>
 
         {/* RIGHT DYNAMIC PROPERTIES PANEL */}
@@ -1042,6 +1504,48 @@ export const FloorEditor: React.FC<{
                   }}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-bold"
                 />
+              </div>
+
+              {/* Department Color Legend Selector (Feature E) */}
+              {selectedObj.object_type === 'room' && (
+                <div>
+                  <label className="block font-bold text-slate-400 mb-1">Department / Category</label>
+                  <select
+                    value={selectedObj.properties?.department || 'CSE'}
+                    onChange={(e) => {
+                      const deptCode = e.target.value;
+                      const info = DEPARTMENT_MAP[deptCode] || DEPARTMENT_MAP.CSE;
+                      setObjects(prev => prev.map(o => String(o.id) === String(selectedObjectId) ? {
+                        ...o,
+                        fill_color: info.fill,
+                        stroke_color: info.stroke,
+                        properties: { ...o.properties, department: deptCode }
+                      } : o));
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-bold cursor-pointer"
+                  >
+                    {Object.entries(DEPARTMENT_MAP).map(([code, d]) => (
+                      <option key={code} value={code}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Feature B: Real-Time Calculated Metrics */}
+              <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 grid grid-cols-2 gap-2 text-center">
+                <div>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Area (m²)</span>
+                  <span className="text-sm font-black text-blue-400">
+                    {Math.max(1, Math.round((selectedObj.width * selectedObj.height) / 10))} m²
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Est. Capacity</span>
+                  <span className="text-sm font-black text-emerald-400">
+                    {Math.max(0, Math.round((selectedObj.width * selectedObj.height) / 10 * 0.35))} Seats
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -1163,36 +1667,51 @@ export const FloorEditor: React.FC<{
                 </div>
               </div>
 
+              {/* 1-Click Room Preset Buttons */}
               <div className="space-y-2">
-                <label className="block font-bold text-slate-400">Quick Room Presets</label>
+                <label className="block font-bold text-slate-400">1-Click Room Presets</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleCreatePresetRoom('Classroom')}
-                    className="p-2 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl text-blue-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                    className="p-2 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl text-blue-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
                   >
                     <span>+ Classroom</span>
-                    <span className="text-[9px] text-blue-400 font-normal">140 x 100 px</span>
+                    <span className="text-[9px] text-blue-400 font-normal">140x100px • CSE</span>
                   </button>
                   <button
                     onClick={() => handleCreatePresetRoom('Lab')}
-                    className="p-2 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 rounded-xl text-purple-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                    className="p-2 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 rounded-xl text-purple-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
                   >
                     <span>+ Laboratory</span>
-                    <span className="text-[9px] text-purple-400 font-normal">180 x 120 px</span>
+                    <span className="text-[9px] text-purple-400 font-normal">180x120px • ECE</span>
                   </button>
                   <button
                     onClick={() => handleCreatePresetRoom('Office')}
-                    className="p-2 bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 rounded-xl text-emerald-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                    className="p-2 bg-teal-900/40 hover:bg-teal-800/60 border border-teal-700/50 rounded-xl text-teal-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
                   >
                     <span>+ Office Room</span>
-                    <span className="text-[9px] text-emerald-400 font-normal">100 x 80 px</span>
+                    <span className="text-[9px] text-teal-400 font-normal">100x80px • ADMIN</span>
                   </button>
                   <button
                     onClick={() => handleCreatePresetRoom('Washroom')}
-                    className="p-2 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-xl text-amber-300 font-bold text-[11px] text-left flex flex-col gap-1"
+                    className="p-2 bg-pink-900/40 hover:bg-pink-800/60 border border-pink-700/50 rounded-xl text-pink-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
                   >
                     <span>+ Washroom</span>
-                    <span className="text-[9px] text-amber-400 font-normal">80 x 70 px</span>
+                    <span className="text-[9px] text-pink-400 font-normal">80x70px • FACILITY</span>
+                  </button>
+                  <button
+                    onClick={() => handleCreatePresetRoom('Seminar')}
+                    className="p-2 bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 rounded-xl text-emerald-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
+                  >
+                    <span>+ Seminar Hall</span>
+                    <span className="text-[9px] text-emerald-400 font-normal">220x150px • MECH</span>
+                  </button>
+                  <button
+                    onClick={() => handleCreatePresetRoom('Cafeteria')}
+                    className="p-2 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-xl text-amber-300 font-bold text-[11px] text-left flex flex-col gap-1 cursor-pointer"
+                  >
+                    <span>+ Cafeteria</span>
+                    <span className="text-[9px] text-amber-400 font-normal">200x140px • CIVIL</span>
                   </button>
                 </div>
               </div>
@@ -1222,6 +1741,54 @@ export const FloorEditor: React.FC<{
           )}
         </div>
       </div>
+
+      {/* FEATURE C: EXPORT BLUEPRINT MODAL DIALOG */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 text-slate-100 relative">
+            <button
+              onClick={() => setShowExportModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <FileDown className="w-5 h-5 text-emerald-400" />
+                Export Floor Plan Blueprint
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                Download printable blueprint vector PDF or high-resolution PNG image for college administration.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={handleExportPNG}
+                className="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl flex flex-col items-center gap-2 text-center transition-all hover:scale-105 cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center">
+                  <Image className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-xs text-white">Download PNG</span>
+                <span className="text-[10px] text-slate-400">High-Res Image (2000px+)</span>
+              </button>
+
+              <button
+                onClick={handleExportPDF}
+                className="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl flex flex-col items-center gap-2 text-center transition-all hover:scale-105 cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-xs text-white">Export PDF</span>
+                <span className="text-[10px] text-slate-400">Printable A4 Architectural</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* RIGHT CLICK CONTEXT MENU */}
       {contextMenu && (
