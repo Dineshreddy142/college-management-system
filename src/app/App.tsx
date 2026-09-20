@@ -48,70 +48,14 @@ import { cn, Btn } from "../components/ui/Btn";
 // MOCK DATA
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STUDENTS = [
-  { id: "CS2021001", name: "Arjun Sharma", dept: "Computer Science", semester: 6, cgpa: 9.2, status: "Active", email: "arjun.s@techuniv.edu" },
-  { id: "CS2021002", name: "Priya Patel", dept: "Computer Science", semester: 6, cgpa: 8.8, status: "Active", email: "priya.p@techuniv.edu" },
-  { id: "ME2021003", name: "Rahul Kumar", dept: "Mechanical Eng", semester: 4, cgpa: 7.5, status: "Active", email: "rahul.k@techuniv.edu" },
-  { id: "EC2021004", name: "Sneha Reddy", dept: "Electronics", semester: 4, cgpa: 9.0, status: "Active", email: "sneha.r@techuniv.edu" },
-  { id: "CS2022005", name: "Vikram Singh", dept: "Computer Science", semester: 2, cgpa: 8.2, status: "Inactive", email: "vikram.s@techuniv.edu" },
-  { id: "CE2021006", name: "Meera Iyer", dept: "Civil Eng", semester: 6, cgpa: 8.6, status: "Active", email: "meera.i@techuniv.edu" },
-  { id: "CS2021007", name: "Rohan Verma", dept: "Computer Science", semester: 6, cgpa: 7.8, status: "Active", email: "rohan.v@techuniv.edu" },
-  { id: "EC2022008", name: "Anjali Nair", dept: "Electronics", semester: 2, cgpa: 9.4, status: "Active", email: "anjali.n@techuniv.edu" },
-];
-
-const FACULTY = [
-  { id: "FAC001", name: "Dr. Ramesh Gupta", dept: "Computer Science", designation: "Professor", subjects: ["Data Structures", "Algorithms"], experience: 15, status: "Active" },
-  { id: "FAC002", name: "Dr. Sunita Sharma", dept: "Mathematics", designation: "Associate Prof.", subjects: ["Calculus", "Linear Algebra"], experience: 12, status: "Active" },
-  { id: "FAC003", name: "Prof. Arun Mishra", dept: "Electronics", designation: "Assistant Prof.", subjects: ["Digital Circuits", "VLSI"], experience: 8, status: "Active" },
-  { id: "FAC004", name: "Dr. Kavya Pillai", dept: "Mechanical Eng", designation: "Professor", subjects: ["Thermodynamics", "Fluid Mechanics"], experience: 18, status: "Active" },
-  { id: "FAC005", name: "Prof. Deepak Joshi", dept: "Computer Science", designation: "Associate Prof.", subjects: ["Operating Systems", "Networks"], experience: 10, status: "On Leave" },
-];
-
-const ATTENDANCE_DATA = [
-  { month: "Aug", attendance: 92, target: 85 }, { month: "Sep", attendance: 88, target: 85 },
-  { month: "Oct", attendance: 94, target: 85 }, { month: "Nov", attendance: 79, target: 85 },
-  { month: "Dec", attendance: 85, target: 85 }, { month: "Jan", attendance: 91, target: 85 },
-  { month: "Feb", attendance: 87, target: 85 }, { month: "Mar", attendance: 93, target: 85 },
-];
-
-const FEE_DATA = [
-  { month: "Aug", collected: 42, pending: 8 }, { month: "Sep", collected: 38, pending: 12 },
-  { month: "Oct", collected: 51, pending: 4 }, { month: "Nov", collected: 29, pending: 6 },
-  { month: "Dec", collected: 46, pending: 9 }, { month: "Jan", collected: 58, pending: 2 },
-  { month: "Feb", collected: 41, pending: 7 }, { month: "Mar", collected: 53, pending: 3 },
-];
-
-const DEPT_DATA = [
-  { name: "CS", value: 420, color: "#2563EB" },
-  { name: "EC", value: 280, color: "#4F46E5" },
-  { name: "ME", value: 240, color: "#06B6D4" },
-  { name: "CE", value: 180, color: "#22C55E" },
-  { name: "EE", value: 160, color: "#F59E0B" },
-];
-
-const PLACEMENT_DATA = [
-  { company: "Google", students: 12, package: "₹28 LPA" },
-  { company: "Microsoft", students: 8, package: "₹24 LPA" },
-  { company: "Amazon", students: 15, package: "₹20 LPA" },
-  { company: "Infosys", students: 45, package: "₹6 LPA" },
-  { company: "TCS", students: 60, package: "₹5 LPA" },
-];
-
-const ACTIVITIES = [
-  { action: "New student enrolled", subject: "Aryan Mehta — CS Department", time: "2 min ago" },
-  { action: "Fee payment received", subject: "₹45,000 from Priya Patel (CS2021002)", time: "15 min ago" },
-  { action: "Exam schedule published", subject: "Semester 6 End Term — May 2024", time: "1 hr ago" },
-  { action: "Attendance marked", subject: "CS301 — 48/52 students present", time: "2 hrs ago" },
-  { action: "Placement drive announced", subject: "Google on-campus drive — Mar 15", time: "3 hrs ago" },
-];
-
-const BOOKS = [
-  { id: "B001", title: "Introduction to Algorithms", author: "Cormen et al.", dept: "CS", copies: 15, available: 8, status: "Available" },
-  { id: "B002", title: "Engineering Mathematics", author: "B.S. Grewal", dept: "All", copies: 25, available: 3, status: "Limited" },
-  { id: "B003", title: "Digital Signal Processing", author: "Proakis & Manolakis", dept: "EC", copies: 10, available: 0, status: "Unavailable" },
-  { id: "B004", title: "Fluid Mechanics", author: "Frank White", dept: "ME", copies: 12, available: 9, status: "Available" },
-  { id: "B005", title: "Database Systems", author: "Korth & Silberschatz", dept: "CS", copies: 18, available: 12, status: "Available" },
-];
+const STUDENTS: any[] = [];
+const FACULTY: any[] = [];
+const ATTENDANCE_DATA: any[] = [];
+const FEE_DATA: any[] = [];
+const DEPT_DATA: any[] = [];
+const PLACEMENT_DATA: any[] = [];
+const ACTIVITIES: any[] = [];
+const BOOKS: any[] = [];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN SYSTEM

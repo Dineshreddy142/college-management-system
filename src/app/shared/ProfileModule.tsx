@@ -44,13 +44,13 @@ export function ProfileModule() {
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [contactData, setContactData] = useState({
     phone: '',
-    altPhone: '+91 94401 23456',
+    altPhone: '',
     email: '',
     address: '',
     permanentAddress: '',
-    emergencyContactName: 'Rajeshwar Sharma',
-    emergencyContactRelation: 'Father',
-    emergencyContactPhone: '+91 98490 12345'
+    emergencyContactName: '',
+    emergencyContactRelation: '',
+    emergencyContactPhone: ''
   });
 
   const triggerToast = (msg: string) => {
@@ -67,14 +67,14 @@ export function ProfileModule() {
       const data = res.data?.data || res.data || {};
       setProfile(data);
       setContactData({
-        phone: data.phone || '+91 98765 43210',
-        altPhone: data.alt_phone || '+91 94401 23456',
-        email: data.email || savedUser?.email || 'aarav.sharma@campus.edu',
-        address: data.address || 'H.No 4-12, Tech Campus Road, Gachibowli, Hyderabad, TS, 500032',
-        permanentAddress: data.permanent_address || 'Flat 302, Royal Enclave, MG Road, Vijayawada, AP, 520010',
-        emergencyContactName: 'Rajeshwar Sharma',
-        emergencyContactRelation: 'Father',
-        emergencyContactPhone: '+91 98490 12345'
+        phone: data.phone || '',
+        altPhone: data.alt_phone || '',
+        email: data.email || savedUser?.email || '',
+        address: data.address || '',
+        permanentAddress: data.permanent_address || '',
+        emergencyContactName: data.emergency_contact_name || data.parent_name || '',
+        emergencyContactRelation: data.emergency_contact_relation || 'Parent/Guardian',
+        emergencyContactPhone: data.emergency_contact_phone || data.parent_phone || ''
       });
       setLoading(false);
     }).catch(error => {
@@ -99,17 +99,17 @@ export function ProfileModule() {
     setSaving(false);
   };
 
-  const displayName = profile?.name || profile?.full_name || savedUser?.name || 'Aarav Sharma';
+  const displayName = profile?.name || profile?.full_name || savedUser?.full_name || savedUser?.name || 'User Profile';
   const nameParts = displayName.trim().split(/\s+/);
-  const firstName = profile?.first_name || nameParts[0] || 'Aarav';
-  const lastName = profile?.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Sharma');
+  const firstName = profile?.first_name || nameParts[0] || 'User';
+  const lastName = profile?.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
 
-  const studentId = profile?.student_id || profile?.admission_number || 'VTU25498';
-  const rollNumber = profile?.roll_number || '21CSE042';
-  const regNumber = profile?.registration_number || 'VTU2023CS8842';
-  const program = profile?.program || 'B.Tech Computer Science & Engineering';
-  const department = profile?.department || 'Computer Science & Engineering';
-  const currentSemester = profile?.current_semester || 7;
+  const studentId = profile?.student_id || profile?.admission_number || profile?.roll_number || 'N/A';
+  const rollNumber = profile?.roll_number || profile?.admission_number || 'N/A';
+  const regNumber = profile?.registration_number || profile?.roll_number || 'N/A';
+  const program = profile?.program || profile?.course_name || 'Academic Program';
+  const department = profile?.department || profile?.department_name || 'Department';
+  const currentSemester = profile?.current_semester || profile?.semester || null;
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100 min-h-screen">
@@ -241,27 +241,29 @@ export function ProfileModule() {
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-cyan-400" /> Academic & Performance Summary
                 </h2>
-                <span className="text-xs text-slate-400 font-medium">Updated for Semester 7</span>
+                <span className="text-xs text-slate-400 font-medium">{currentSemester ? `Semester ${currentSemester}` : 'Current Session'}</span>
               </div>
 
               {/* Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current CGPA</span>
-                  <p className="text-3xl font-black text-cyan-400">8.92</p>
-                  <span className="text-xs text-emerald-400 font-semibold block pt-1">★ First Class Distinction</span>
+                  <p className="text-3xl font-black text-cyan-400">{profile?.cgpa !== undefined && profile?.cgpa !== null ? profile.cgpa : 'N/A'}</p>
+                  <span className="text-xs text-slate-400 block pt-1">{profile?.cgpa ? '★ Registered Academic Score' : 'No CGPA Recorded'}</span>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last SGPA (Sem 6)</span>
-                  <p className="text-3xl font-black text-emerald-400">9.10</p>
-                  <span className="text-xs text-slate-400 block pt-1">Top 5% in CSE Department</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Latest SGPA</span>
+                  <p className="text-3xl font-black text-emerald-400">{profile?.sgpa !== undefined && profile?.sgpa !== null ? profile.sgpa : 'N/A'}</p>
+                  <span className="text-xs text-slate-400 block pt-1">{profile?.sgpa ? 'Semester Performance Score' : 'No SGPA Recorded'}</span>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Backlogs</span>
-                  <p className="text-3xl font-black text-emerald-400">0</p>
-                  <span className="text-xs text-emerald-400 font-semibold block pt-1">✨ Clean Academic Record</span>
+                  <p className="text-3xl font-black text-emerald-400">{profile?.backlogs !== undefined && profile?.backlogs !== null ? profile.backlogs : 0}</p>
+                  <span className="text-xs text-emerald-400 font-semibold block pt-1">
+                    {(profile?.backlogs || 0) === 0 ? '✨ Clean Academic Record' : `${profile.backlogs} Pending Subject Arrears`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -289,27 +291,27 @@ export function ProfileModule() {
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Last Name</span>
-                  <span className="font-bold text-white text-sm">{lastName}</span>
+                  <span className="font-bold text-white text-sm">{lastName || 'N/A'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Date of Birth</span>
-                  <span className="font-bold text-white text-sm">{profile?.dob || '18 May 2003'}</span>
+                  <span className="font-bold text-white text-sm">{profile?.dob || 'Not Recorded'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Gender</span>
-                  <span className="font-bold text-white text-sm">{profile?.gender || 'Male'}</span>
+                  <span className="font-bold text-white text-sm">{profile?.gender || 'Not Recorded'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Blood Group</span>
-                  <span className="font-bold text-rose-400 text-sm">{profile?.blood_group || 'O+'}</span>
+                  <span className="font-bold text-rose-400 text-sm">{profile?.blood_group || 'Not Recorded'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Nationality</span>
-                  <span className="font-bold text-white text-sm">{profile?.nationality || 'Indian'}</span>
+                  <span className="font-bold text-white text-sm">{profile?.nationality || 'Not Recorded'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
@@ -361,7 +363,7 @@ export function ProfileModule() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
                   <span className="text-slate-400 block font-semibold">Institutional College Email</span>
-                  <span className="font-mono text-cyan-400 text-sm block">{contactData.email}</span>
+                  <span className="font-mono text-cyan-400 text-sm block">{contactData.email || 'Not Provided'}</span>
                   <span className="text-[10px] text-slate-400">Official university communication handle (Primary)</span>
                 </div>
 
@@ -372,12 +374,13 @@ export function ProfileModule() {
                       type="text"
                       value={contactData.phone}
                       onChange={e => setContactData({ ...contactData, phone: e.target.value })}
+                      placeholder="Enter mobile phone"
                       className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-cyan-400"
                     />
                   ) : (
-                    <span className="font-bold text-white text-sm block">{contactData.phone}</span>
+                    <span className="font-bold text-white text-sm block">{contactData.phone || 'Not Provided'}</span>
                   )}
-                  <span className="text-[10px] text-slate-400">SMS notification & OTP recipient</span>
+                  <span className="text-[10px] text-slate-400">SMS notification recipient</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2">
@@ -387,10 +390,11 @@ export function ProfileModule() {
                       rows={2}
                       value={contactData.address}
                       onChange={e => setContactData({ ...contactData, address: e.target.value })}
+                      placeholder="Enter current address"
                       className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-cyan-400"
                     />
                   ) : (
-                    <p className="text-slate-200 leading-relaxed">{contactData.address}</p>
+                    <p className="text-slate-200 leading-relaxed">{contactData.address || 'Not Provided'}</p>
                   )}
                 </div>
 
@@ -401,10 +405,11 @@ export function ProfileModule() {
                       rows={2}
                       value={contactData.permanentAddress}
                       onChange={e => setContactData({ ...contactData, permanentAddress: e.target.value })}
+                      placeholder="Enter permanent address"
                       className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-slate-100 focus:outline-none focus:border-cyan-400"
                     />
                   ) : (
-                    <p className="text-slate-200 leading-relaxed">{contactData.permanentAddress}</p>
+                    <p className="text-slate-200 leading-relaxed">{contactData.permanentAddress || 'Not Provided'}</p>
                   )}
                 </div>
               </div>
@@ -417,15 +422,15 @@ export function ProfileModule() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div>
                     <span className="text-slate-400 block">Contact Name</span>
-                    <span className="font-bold text-white text-sm">{contactData.emergencyContactName}</span>
+                    <span className="font-bold text-white text-sm">{contactData.emergencyContactName || 'Not Recorded'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">Relationship</span>
-                    <span className="font-bold text-white text-sm">{contactData.emergencyContactRelation}</span>
+                    <span className="font-bold text-white text-sm">{contactData.emergencyContactRelation || 'Not Recorded'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">Emergency Phone</span>
-                    <span className="font-bold text-rose-400 text-sm font-mono">{contactData.emergencyContactPhone}</span>
+                    <span className="font-bold text-rose-400 text-sm font-mono">{contactData.emergencyContactPhone || 'Not Recorded'}</span>
                   </div>
                 </div>
               </div>
@@ -447,19 +452,19 @@ export function ProfileModule() {
                   <div className="space-y-2 text-xs">
                     <div>
                       <span className="text-slate-400 block">Name</span>
-                      <span className="font-bold text-white text-sm">Rajeshwar Sharma</span>
+                      <span className="font-bold text-white text-sm">{profile?.father_name || profile?.parent_name || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Occupation</span>
-                      <span className="text-slate-200">Senior Civil Engineer (State Govt.)</span>
+                      <span className="text-slate-200">{profile?.father_occupation || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Phone</span>
-                      <span className="font-mono text-cyan-300 font-bold">+91 98490 12345</span>
+                      <span className="font-mono text-cyan-300 font-bold">{profile?.father_phone || profile?.parent_phone || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Email</span>
-                      <span className="font-mono text-slate-300">rajeshwar.sharma@gmail.com</span>
+                      <span className="font-mono text-slate-300">{profile?.father_email || 'Not Recorded'}</span>
                     </div>
                   </div>
                 </div>
@@ -469,19 +474,19 @@ export function ProfileModule() {
                   <div className="space-y-2 text-xs">
                     <div>
                       <span className="text-slate-400 block">Name</span>
-                      <span className="font-bold text-white text-sm">Sunitha Sharma</span>
+                      <span className="font-bold text-white text-sm">{profile?.mother_name || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Occupation</span>
-                      <span className="text-slate-200">School Principal</span>
+                      <span className="text-slate-200">{profile?.mother_occupation || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Phone</span>
-                      <span className="font-mono text-emerald-300 font-bold">+91 98491 54321</span>
+                      <span className="font-mono text-emerald-300 font-bold">{profile?.mother_phone || 'Not Recorded'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block">Email</span>
-                      <span className="font-mono text-slate-300">sunitha.sharma@gmail.com</span>
+                      <span className="font-mono text-slate-300">{profile?.mother_email || 'Not Recorded'}</span>
                     </div>
                   </div>
                 </div>
@@ -509,19 +514,19 @@ export function ProfileModule() {
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Specialization</span>
-                  <span className="font-bold text-cyan-400 text-sm">Artificial Intelligence & Machine Learning</span>
+                  <span className="font-bold text-cyan-400 text-sm">{profile?.specialization || 'General'}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Admission Type</span>
-                  <span className="font-bold text-emerald-400 text-sm">Regular (EAMCET Counseling Merit)</span>
+                  <span className="font-bold text-emerald-400 text-sm">{profile?.admission_type || 'Regular'}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Admission Date</span>
-                  <span className="font-bold text-white text-sm">14 Aug 2023</span>
+                  <span className="font-bold text-white text-sm">{profile?.admission_date || 'Not Recorded'}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Batch / Academic Session</span>
-                  <span className="font-bold text-white text-sm">2023 – 2027</span>
+                  <span className="font-bold text-white text-sm">{profile?.batch || 'Active Session'}</span>
                 </div>
               </div>
             </div>
@@ -554,11 +559,11 @@ export function ProfileModule() {
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 font-mono">
                   <span className="text-slate-400 block mb-1">Library Card ID</span>
-                  <span className="font-black text-amber-400 text-base">LIB-2023-884</span>
+                  <span className="font-black text-amber-400 text-base">{profile?.library_card_id || 'Not Assigned'}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 font-mono">
                   <span className="text-slate-400 block mb-1">Hostel Allocation ID</span>
-                  <span className="font-black text-purple-400 text-base">HST-BLK-B-304</span>
+                  <span className="font-black text-purple-400 text-base">{profile?.hostel_id || 'Not Assigned'}</span>
                 </div>
               </div>
 
@@ -606,31 +611,40 @@ export function ProfileModule() {
                 </h2>
               </div>
 
-              <div className="space-y-4">
-                <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex justify-between items-center text-xs">
-                  <div>
-                    <h3 className="font-bold text-white text-sm">Class 12th / Senior Secondary (MPC)</h3>
-                    <p className="text-slate-400">Narayana Junior College • TSBIE Board</p>
-                    <p className="text-slate-500 mt-1">Passing Year: 2021</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-emerald-400">96.5%</span>
-                    <span className="block text-[10px] text-slate-400 uppercase">Grade: Distinction</span>
-                  </div>
-                </div>
+              {profile?.ssc_percentage || profile?.intermediate_percentage || profile?.prev_institution ? (
+                <div className="space-y-4">
+                  {profile?.intermediate_percentage && (
+                    <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex justify-between items-center text-xs">
+                      <div>
+                        <h3 className="font-bold text-white text-sm">Senior Secondary / Intermediate (10+2)</h3>
+                        <p className="text-slate-400">{profile?.intermediate_board || 'State Board'}</p>
+                        <p className="text-slate-500 mt-1">Passing Year: {profile?.intermediate_year || 'N/A'}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-emerald-400">{profile.intermediate_percentage}%</span>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex justify-between items-center text-xs">
-                  <div>
-                    <h3 className="font-bold text-white text-sm">Class 10th / Secondary School (SSC)</h3>
-                    <p className="text-slate-400">Silver Oaks High School • CBSE Board</p>
-                    <p className="text-slate-500 mt-1">Passing Year: 2019</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-cyan-400">94.2%</span>
-                    <span className="block text-[10px] text-slate-400 uppercase">Grade: 10 / 10 CGPA</span>
-                  </div>
+                  {profile?.ssc_percentage && (
+                    <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex justify-between items-center text-xs">
+                      <div>
+                        <h3 className="font-bold text-white text-sm">Secondary School Certificate (Class 10)</h3>
+                        <p className="text-slate-400">{profile?.ssc_board || 'State Board'}</p>
+                        <p className="text-slate-500 mt-1">Passing Year: {profile?.ssc_year || 'N/A'}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-cyan-400">{profile.ssc_percentage}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="p-8 text-center bg-slate-800/50 border border-slate-700/50 rounded-2xl space-y-2">
+                  <p className="text-slate-300 font-semibold text-sm">No Prior Education Records Found</p>
+                  <p className="text-xs text-slate-500">Academic qualification documents are managed directly by university administration.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -646,18 +660,18 @@ export function ProfileModule() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="p-5 rounded-xl bg-slate-800/80 border border-cyan-500/40 text-center">
                   <span className="text-xs text-slate-400 font-bold uppercase">Cumulative CGPA</span>
-                  <p className="text-4xl font-black text-cyan-400 my-2">8.92</p>
+                  <p className="text-4xl font-black text-cyan-400 my-2">{profile?.cgpa !== undefined && profile?.cgpa !== null ? profile.cgpa : 'N/A'}</p>
                   <p className="text-xs text-slate-300">Out of 10.0 Scale</p>
                 </div>
                 <div className="p-5 rounded-xl bg-slate-800/80 border border-emerald-500/40 text-center">
                   <span className="text-xs text-slate-400 font-bold uppercase">Degree Completion</span>
-                  <p className="text-4xl font-black text-emerald-400 my-2">88.7%</p>
-                  <p className="text-xs text-slate-300">142 of 160 Credits</p>
+                  <p className="text-4xl font-black text-emerald-400 my-2">{profile?.degree_completion_pct !== undefined ? `${profile.degree_completion_pct}%` : 'N/A'}</p>
+                  <p className="text-xs text-slate-300">{profile?.completed_credits ? `${profile.completed_credits} Credits Earned` : 'Registered Course Credits'}</p>
                 </div>
                 <div className="p-5 rounded-xl bg-slate-800/80 border border-purple-500/40 text-center">
                   <span className="text-xs text-slate-400 font-bold uppercase">Overall Marks %</span>
-                  <p className="text-4xl font-black text-purple-400 my-2">84.6%</p>
-                  <p className="text-xs text-slate-300">Aggregated Across 42 Subjects</p>
+                  <p className="text-4xl font-black text-purple-400 my-2">{profile?.overall_marks_pct !== undefined ? `${profile.overall_marks_pct}%` : 'N/A'}</p>
+                  <p className="text-xs text-slate-300">Aggregated Exam Scores</p>
                 </div>
               </div>
             </div>
@@ -672,15 +686,27 @@ export function ProfileModule() {
                 </h2>
               </div>
 
-              <div className="p-8 text-center bg-slate-800/80 border border-emerald-500/40 rounded-2xl space-y-3">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-xl">
-                  ✓
+              {(profile?.backlogs || 0) === 0 ? (
+                <div className="p-8 text-center bg-slate-800/80 border border-emerald-500/40 rounded-2xl space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-xl">
+                    ✓
+                  </div>
+                  <h3 className="text-xl font-extrabold text-white">No Active Backlogs / Arrears</h3>
+                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    Student has clear standing across all registered course subjects with zero pending arrears.
+                  </p>
                 </div>
-                <h3 className="text-xl font-extrabold text-white">No Active Backlogs / Arrears</h3>
-                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                  Student has cleared all registered course subjects across Semesters 1 through 6 with zero standing backlogs.
-                </p>
-              </div>
+              ) : (
+                <div className="p-8 text-center bg-rose-950/40 border border-rose-800/40 rounded-2xl space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl shadow-xl">
+                    !
+                  </div>
+                  <h3 className="text-xl font-extrabold text-white">{profile.backlogs} Pending Arrears Registered</h3>
+                  <p className="text-xs text-rose-300 max-w-md mx-auto leading-relaxed">
+                    Please contact academic administration or your class mentor regarding backlogs clearance examinations.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -696,16 +722,16 @@ export function ProfileModule() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
                 <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2">
                   <span className="text-emerald-400 font-bold uppercase text-[11px]">Class Advisor</span>
-                  <h3 className="font-bold text-white text-sm">Prof. S. Mehra</h3>
-                  <p className="text-slate-400">Associate Professor, CSE</p>
-                  <p className="text-slate-300 font-mono">s.mehra@campus.edu</p>
+                  <h3 className="font-bold text-white text-sm">{profile?.mentor_name || 'Not Assigned'}</h3>
+                  <p className="text-slate-400">{profile?.mentor_designation || 'Faculty Mentor'}</p>
+                  <p className="text-slate-300 font-mono">{profile?.mentor_email || 'Not Available'}</p>
                 </div>
 
                 <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2">
                   <span className="text-purple-400 font-bold uppercase text-[11px]">Head of Department</span>
-                  <h3 className="font-bold text-white text-sm">Dr. A. P. J. Sharma</h3>
-                  <p className="text-slate-400">HOD, Dept of CSE</p>
-                  <p className="text-slate-300 font-mono">hod.cse@campus.edu</p>
+                  <h3 className="font-bold text-white text-sm">{profile?.hod_name || 'Not Assigned'}</h3>
+                  <p className="text-slate-400">{profile?.department ? `HOD, Dept of ${profile.department}` : 'Department Head'}</p>
+                  <p className="text-slate-300 font-mono">{profile?.hod_email || 'Not Available'}</p>
                 </div>
               </div>
             </div>
