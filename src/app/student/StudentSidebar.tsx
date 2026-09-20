@@ -3,7 +3,8 @@ import {
   LayoutDashboard, User, UserCheck, BookOpen, Clock, FileText, 
   Award, BarChart3, DollarSign, Library as LibraryIcon, Briefcase, 
   CalendarDays, Calendar, MessageSquare, Folder, AlertCircle, 
-  Zap, TrendingUp, GraduationCap, ChevronLeft, Map, X, Building, Layers, ChevronDown
+  Zap, TrendingUp, GraduationCap, ChevronLeft, Map, X, Building, Layers, ChevronDown,
+  ShieldCheck, Wallet, Activity, Sparkles
 } from "lucide-react";
 import { cn } from "../App";
 
@@ -20,7 +21,10 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "results", label: "Results", icon: BarChart3, badge: "New" },
   { id: "fees", label: "Fees", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: LibraryIcon, badge: null },
-  { id: "placement", label: "Placement", icon: Briefcase, badge: null },
+  { id: "placement", label: "Placement & ATS Studio", icon: Briefcase, badge: "Sem 6+" },
+  { id: "smart-gatepass", label: "Smart Gatepass QR", icon: ShieldCheck, badge: "Live" },
+  { id: "campus-wallet", label: "Wallet & Canteen", icon: Wallet, badge: "NFC" },
+  { id: "academic-risk", label: "Academic Risk Radar", icon: Activity, badge: "AI" },
   { id: "events", label: "Events", icon: CalendarDays, badge: null },
   { id: "leaves", label: "Leave Management", icon: Calendar, badge: null },
   { id: "communication", label: "Communication", icon: MessageSquare, badge: null },

@@ -19,7 +19,10 @@ import {
   Plus,
   RefreshCw,
   Eye,
-  Star
+  Star,
+  Lock,
+  Unlock,
+  ShieldCheck
 } from 'lucide-react';
 
 interface JobOffer {
@@ -159,13 +162,19 @@ export const AIPlacementResume: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [newSkillInput, setNewSkillInput] = useState('');
+  const [studentSemester, setStudentSemester] = useState<number>(6); // Default Semester 6 (3rd Year 2nd Sem)
+  const isEligible = studentSemester >= 6;
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleApply = (jobId: string) => {
+    if (!isEligible) {
+      triggerToast(`🔒 Placement Cell Policy: Campus drive applications open in 3rd Year 2nd Sem (Semester 6+). You are currently in Semester ${studentSemester}. Practice ATS resume drafting is active!`);
+      return;
+    }
     setJobs(prev =>
       prev.map(j => (j.id === jobId ? { ...j, status: 'Applied' } : j))
     );
@@ -235,6 +244,64 @@ export const AIPlacementResume: React.FC = () => {
               <Download className="w-4 h-4" /> Export PDF
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Semester Eligibility Verification Alert Bar */}
+      <div className={`p-5 rounded-2xl mb-8 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all shadow-xl ${
+        isEligible
+          ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200'
+          : 'bg-amber-950/40 border-amber-500/50 text-amber-200'
+      }`}>
+        <div className="flex items-center gap-3.5">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+            isEligible ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+          }`}>
+            {isEligible ? <ShieldCheck className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-extrabold text-sm text-white">Student Placement Status</span>
+              <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border ${
+                isEligible ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'bg-amber-500/20 border-amber-400 text-amber-300'
+              }`}>
+                {isEligible ? '🟢 Verified Eligible (Sem 6+ Unlocked)' : '🔒 Preparation Mode (Unlocks in 3-2 / Sem 6)'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+              {isEligible
+                ? 'Student is in 3rd Year 2nd Semester (Semester 6+). Full 1-Click recruiter drive applications are active.'
+                : `Student is currently in Semester ${studentSemester} (${studentSemester <= 2 ? '1st Year' : studentSemester <= 4 ? '2nd Year' : '3rd Year 1st Sem'}). Active drive submissions unlock in 3rd Year 2nd Semester (Semester 6+).`
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Level Switcher for Demonstration */}
+        <div className="flex items-center gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700/80 text-xs shrink-0">
+          <span className="text-[11px] text-slate-400 pl-1 font-medium">Switch Level:</span>
+          <button
+            onClick={() => {
+              setStudentSemester(4);
+              triggerToast('🔒 Switched to 2nd Year (Sem 4). Campus drives locked until 3-2.');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              studentSemester === 4 ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            2nd Year (Sem 4)
+          </button>
+          <button
+            onClick={() => {
+              setStudentSemester(6);
+              triggerToast('🔓 Switched to 3rd Year 2nd Sem (Sem 6). Campus drives UNLOCKED!');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              studentSemester === 6 ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            3rd Year 2nd Sem (Sem 6)
+          </button>
         </div>
       </div>
 
@@ -397,9 +464,21 @@ export const AIPlacementResume: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => handleApply(selectedJob.id)}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-cyan-950/60 flex items-center justify-center gap-2 transition"
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition ${
+                        isEligible
+                          ? 'bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-cyan-950/60'
+                          : 'bg-slate-800 text-amber-300 border border-amber-500/40 hover:bg-slate-750'
+                      }`}
                     >
-                      <Send className="w-4 h-4" /> Apply Now with 1-Click ATS Resume
+                      {isEligible ? (
+                        <>
+                          <Send className="w-4 h-4" /> Apply Now with 1-Click ATS Resume
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4 text-amber-400" /> Drives Unlock in 3rd Year 2nd Sem (Sem 6)
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
