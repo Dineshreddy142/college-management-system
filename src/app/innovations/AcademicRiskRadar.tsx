@@ -140,7 +140,8 @@ const RISK_PIE_DATA = [
   { name: 'Healthy (>70)', value: 525, color: '#10B981' }
 ];
 
-export const AcademicRiskRadar: React.FC = () => {
+export const AcademicRiskRadar: React.FC<{ initialRole?: 'Admin' | 'HOD' | 'Faculty' | 'Student' }> = ({ initialRole = 'Admin' }) => {
+  const [activeRole, setActiveRole] = useState<'Admin' | 'HOD' | 'Faculty' | 'Student'>(initialRole);
   const [students, setStudents] = useState<StudentRiskProfile[]>(INITIAL_STUDENTS);
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<string>('ALL');
@@ -155,6 +156,20 @@ export const AcademicRiskRadar: React.FC = () => {
   };
 
   const filteredStudents = students.filter(s => {
+    // 🔒 Role-Based Visibility Scope Control:
+    if (activeRole === 'Student') {
+      // Students see ONLY their own personal profile
+      return s.id === 'st_1';
+    }
+    if (activeRole === 'Faculty') {
+      // Faculty see ONLY their assigned mentees
+      return s.mentorName === 'Dr. K. V. Rao';
+    }
+    if (activeRole === 'HOD') {
+      // HOD sees ONLY their department (CSE)
+      if (s.department !== 'CSE') return false;
+    }
+
     if (selectedDept !== 'ALL' && s.department !== selectedDept) return false;
     if (selectedRisk !== 'ALL' && s.riskCategory !== selectedRisk) return false;
     if (searchQuery.trim() !== '') {
@@ -225,8 +240,53 @@ export const AcademicRiskRadar: React.FC = () => {
         </div>
       </div>
 
-      {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Role-Based Data Control Indicator & Switcher */}
+      <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-200 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white">Security & Scope Control:</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400 text-indigo-300 font-extrabold text-[11px] uppercase">
+                {activeRole} View
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {activeRole === 'Student' && '🔒 Private Personal Scope: Viewing ONLY your own academic health index & attendance telemetry.'}
+              {activeRole === 'Faculty' && '👨‍🏫 Mentor Scope: Viewing ONLY assigned student mentees.'}
+              {activeRole === 'HOD' && '🏢 Department Scope: Viewing CSE Department students.'}
+              {activeRole === 'Admin' && '🌐 Global Institution Scope: Viewing all college departments.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Interactive Role Switcher for Demonstration */}
+        <div className="flex items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0 flex-wrap">
+          <span className="text-[10px] text-slate-400 px-2 font-medium">Switch Role:</span>
+          {(['Admin', 'HOD', 'Faculty', 'Student'] as const).map(role => (
+            <button
+              key={role}
+              onClick={() => {
+                setActiveRole(role);
+                showToast(`Switched view to ${role} RBAC Scope`);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition ${
+                activeRole === role
+                  ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {role}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Analytics Charts Grid (Hidden for Student Role) */}
+      {activeRole !== 'Student' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Department Breakdown Bar Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -282,8 +342,9 @@ export const AcademicRiskRadar: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Filter Strip */}
+      {/* Filter Strip (Hidden for Student Role) */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
