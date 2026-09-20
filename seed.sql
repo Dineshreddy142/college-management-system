@@ -12,18 +12,6 @@ INSERT IGNORE INTO roles (name) VALUES
 ('Librarian'),
 ('Placement Officer');
 
--- Insert Users
-INSERT IGNORE INTO users (username, password, email, role_id) VALUES 
-('admin', 'Admin@123', 'admin@collegeerp.com', (SELECT id FROM roles WHERE name = 'Admin')),
-('student', 'Student@123', 'student@collegeerp.com', (SELECT id FROM roles WHERE name = 'Student')),
-('faculty', 'Faculty@123', 'faculty@collegeerp.com', (SELECT id FROM roles WHERE name = 'Faculty')),
-('parent', 'Parent@123', 'parent@collegeerp.com', (SELECT id FROM roles WHERE name = 'Parent')),
-('principal', 'Principal@123', 'principal@collegeerp.com', (SELECT id FROM roles WHERE name = 'Principal')),
-('hod', 'Hod@123', 'hod@collegeerp.com', (SELECT id FROM roles WHERE name = 'HOD')),
-('accounts', 'Accounts@123', 'accounts@collegeerp.com', (SELECT id FROM roles WHERE name = 'Accountant')),
-('librarian', 'Library@123', 'librarian@collegeerp.com', (SELECT id FROM roles WHERE name = 'Librarian')),
-('placement', 'Placement@123', 'placement@collegeerp.com', (SELECT id FROM roles WHERE name = 'Placement Officer'));
-
 -- ============================================================
 -- CAMPUS MASTER INFRASTRUCTURE SEED DATA (MySQL)
 -- ============================================================

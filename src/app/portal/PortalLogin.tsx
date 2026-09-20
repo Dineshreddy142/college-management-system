@@ -16,16 +16,16 @@ export interface PortalLoginProps {
 }
 
 const roleConfig: Record<string, { title: string, field: string, placeholder: string, icon: string, badge: string }> = {
-  student: { title: 'Student Login', field: 'Email or Roll Number', placeholder: 'student@collegeerp.com', icon: '🎓', badge: 'Student Portal' },
-  faculty: { title: 'Faculty Login', field: 'Email or Employee ID', placeholder: 'faculty@collegeerp.com', icon: '👨‍🏫', badge: 'Faculty Portal' },
-  admin: { title: 'Administrator Login', field: 'Email', placeholder: 'admin@collegeerp.com', icon: '🛡️', badge: 'Admin Portal' },
-  hod: { title: 'Head of Department Login', field: 'Email or Employee ID', placeholder: 'hod@collegeerp.com', icon: '🏛️', badge: 'HOD Portal' },
-  parent: { title: 'Parent Login', field: 'Email or Parent ID', placeholder: 'parent@collegeerp.com', icon: '👨‍👩‍👧', badge: 'Parent Portal' },
-  accountant: { title: 'Accountant Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com', icon: '💰', badge: 'Accountant Portal' },
-  librarian: { title: 'Librarian Login', field: 'Email or Employee ID', placeholder: 'librarian@collegeerp.com', icon: '📚', badge: 'Librarian Portal' },
-  placement: { title: 'Placement Login', field: 'Email or Employee ID', placeholder: 'placement@collegeerp.com', icon: '🏢', badge: 'Placement Portal' },
-  principal: { title: 'Principal Login', field: 'Email or Employee ID', placeholder: 'principal@collegeerp.com', icon: '👔', badge: 'Principal Portal' },
-  office: { title: 'Office Staff Login', field: 'Email or Employee ID', placeholder: 'accounts@collegeerp.com', icon: '💼', badge: 'Office Portal' },
+  student: { title: 'Student Login', field: 'Email or Roll Number', placeholder: 'Enter your email or Roll No', icon: '🎓', badge: 'Student Portal' },
+  faculty: { title: 'Faculty Login', field: 'Email or Employee ID', placeholder: 'Enter your email or Faculty ID', icon: '👨‍🏫', badge: 'Faculty Portal' },
+  admin: { title: 'Administrator Login', field: 'Email or Username', placeholder: 'Enter administrator email', icon: '🛡️', badge: 'Admin Portal' },
+  hod: { title: 'Head of Department Login', field: 'Email or Employee ID', placeholder: 'Enter your institutional email', icon: '🏛️', badge: 'HOD Portal' },
+  parent: { title: 'Parent Login', field: 'Email or Parent ID', placeholder: 'Enter registered parent email', icon: '👨‍👩‍👧', badge: 'Parent Portal' },
+  accountant: { title: 'Accountant Login', field: 'Email or Employee ID', placeholder: 'Enter accountant email', icon: '💰', badge: 'Accountant Portal' },
+  librarian: { title: 'Librarian Login', field: 'Email or Employee ID', placeholder: 'Enter librarian email', icon: '📚', badge: 'Librarian Portal' },
+  placement: { title: 'Placement Login', field: 'Email or Employee ID', placeholder: 'Enter placement officer email', icon: '🏢', badge: 'Placement Portal' },
+  principal: { title: 'Principal Login', field: 'Email or Employee ID', placeholder: 'Enter principal email', icon: '👔', badge: 'Principal Portal' },
+  office: { title: 'Office Staff Login', field: 'Email or Employee ID', placeholder: 'Enter office staff email', icon: '💼', badge: 'Office Portal' },
 };
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
