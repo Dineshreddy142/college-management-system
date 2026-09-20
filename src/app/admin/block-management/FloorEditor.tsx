@@ -491,11 +491,38 @@ export const FloorEditor: React.FC<{
 
   const handleDeleteSelected = () => {
     if (!selectedObjectId) return;
+    const target = objects.find(o => String(o.id) === String(selectedObjectId));
+    const label = target?.label || target?.object_type || 'Component';
     const updated = objects.filter(o => String(o.id) !== String(selectedObjectId));
     setObjects(updated);
     pushHistory(updated);
     setSelectedObjectId(null);
     setHasUnsavedChanges(true);
+    showToast(`Deleted "${label}"`);
+  };
+
+  const handleClearAllObjects = () => {
+    if (objects.length === 0) {
+      showToast('Canvas is already empty', 'error');
+      return;
+    }
+    const count = objects.length;
+    setObjects([]);
+    pushHistory([]);
+    setSelectedObjectId(null);
+    setHasUnsavedChanges(true);
+    showToast(`Cleared all ${count} components from floor plan layout`);
+  };
+
+  const handleContextMenuObj = (e: React.MouseEvent, obj: FloorObjectRecord) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedObjectId(obj.id);
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      objId: obj.id
+    });
   };
 
   const handleRotateSelected = () => {
@@ -882,6 +909,7 @@ export const FloorEditor: React.FC<{
                   key={obj.id}
                   transform={`translate(${obj.x}, ${obj.y}) rotate(${obj.rotation})`}
                   onMouseDown={(e) => handleMouseDownObj(e, obj)}
+                  onContextMenu={(e) => handleContextMenuObj(e, obj)}
                   className="cursor-pointer"
                 >
                   {obj.geometry_type === 'CIRCLE' ? (
@@ -928,12 +956,43 @@ export const FloorEditor: React.FC<{
                     {obj.label || obj.object_type}
                   </text>
 
-                  {/* RESIZE & ROTATE HANDLES FOR SELECTED OBJECT */}
+                  {/* RESIZE, ROTATE & FLOATING TRASH / DUPLICATE HANDLES FOR SELECTED OBJECT */}
                   {isSelected && !obj.locked && (
                     <>
-                      <circle cx={obj.width / 2} cy={-20} r={7} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer">
+                      {/* Floating Rotate Handle */}
+                      <circle cx={obj.width / 2} cy={-22} r={8} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} onClick={handleRotateSelected} className="cursor-pointer">
                         <title>Rotate 90°</title>
                       </circle>
+
+                      {/* Floating Trash / Delete Handle */}
+                      <g
+                        transform={`translate(${obj.width / 2 + 25}, -22)`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSelected();
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                      >
+                        <title>Delete Component</title>
+                        <circle cx={0} cy={0} r={9} fill="#EF4444" stroke="#FFFFFF" strokeWidth={2} />
+                        <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">✕</text>
+                      </g>
+
+                      {/* Floating Duplicate Handle */}
+                      <g
+                        transform={`translate(${obj.width / 2 - 25}, -22)`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateSelected();
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                      >
+                        <title>Duplicate Component</title>
+                        <circle cx={0} cy={0} r={9} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} />
+                        <text x={-4} y={3.5} fill="#FFFFFF" fontSize={10} fontWeight="bold">+</text>
+                      </g>
+
+                      {/* Corner Resize Handles */}
                       <rect x={-5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'nw')} className="cursor-nwse-resize" />
                       <rect x={obj.width - 5} y={-5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'ne')} className="cursor-nesw-resize" />
                       <rect x={obj.width - 5} y={obj.height - 5} width={10} height={10} fill="#3B82F6" stroke="#FFFFFF" strokeWidth={2} onMouseDown={(e) => handleMouseDownResizeHandle(e, 'se')} className="cursor-nwse-resize" />
@@ -1121,23 +1180,71 @@ export const FloorEditor: React.FC<{
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800">
+              <div className="pt-2 border-t border-slate-800 space-y-2">
                 <button
                   onClick={handleGenerateOuterWalls}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Shield className="w-4 h-4" />
                   <span>Generate Building Outer Walls</span>
                 </button>
+
+                <button
+                  onClick={handleClearAllObjects}
+                  className="w-full py-2 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  <span>Clear All Canvas Objects</span>
+                </button>
               </div>
 
               <p className="text-[10px] text-slate-400 text-center font-medium bg-slate-950 p-2 rounded-xl border border-slate-800/80">
-                💡 <strong>Tip:</strong> Double-click & drag (or Alt + Drag) any element on canvas to copy and place a duplicate.
+                💡 <strong>Tip:</strong> Double-click & drag (or Alt + Drag) any element to copy. Right-click or use the red ✕ handle to delete.
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* RIGHT CLICK CONTEXT MENU */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-1.5 w-48 text-xs font-bold space-y-1 text-slate-200"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              handleDeleteSelected();
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-rose-600/20 text-rose-400 rounded-xl flex items-center gap-2 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4 text-rose-500" />
+            <span>Delete Component</span>
+          </button>
+          <button
+            onClick={() => {
+              handleDuplicateSelected();
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 cursor-pointer"
+          >
+            <Copy className="w-4 h-4 text-blue-400" />
+            <span>Duplicate</span>
+          </button>
+          <button
+            onClick={() => {
+              handleRotateSelected();
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 cursor-pointer"
+          >
+            <RotateCw className="w-4 h-4 text-amber-400" />
+            <span>Rotate 90°</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
