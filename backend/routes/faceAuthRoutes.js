@@ -267,25 +267,39 @@ router.post('/login', async (req, res) => {
  */
 router.post('/enroll-auth', authenticateToken, async (req, res) => {
     try {
-        const { password } = req.body;
-        const userId = req.user?.id || req.user?.userId;
-
-        if (!userId) {
-            return errorResponse(res, 'User session not found. Please re-login.', [], 401);
-        }
+        let userId = req.user?.id || req.user?.userId || req.user?.sub;
+        let userEmail = req.user?.email;
 
         if (!password) {
             return errorResponse(res, 'Current account password is required for enrollment authorization', [], 400);
         }
 
-        const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
-        if (rows.length === 0) return errorResponse(res, 'User account not found', [], 404);
+        let rows = [];
+        if (userId) {
+            [rows] = await pool.execute('SELECT id, password FROM users WHERE id = ?', [userId]);
+        }
+        if ((!rows || rows.length === 0) && userEmail) {
+            [rows] = await pool.execute('SELECT id, password FROM users WHERE LOWER(email) = ?', [userEmail.toLowerCase()]);
+        }
+
+        if (!rows || rows.length === 0) {
+            return errorResponse(res, 'User account not found', [], 404);
+        }
+
+        const targetUserId = rows[0].id;
+        const storedPasswordHash = rows[0].password || '';
+
+        const inputPassword = (password || '').toString();
+        const trimmedInputPassword = inputPassword.trim();
 
         let isPasswordValid = false;
-        if (rows[0].password && rows[0].password.startsWith('$2')) {
-            isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        if (storedPasswordHash.startsWith('$2')) {
+            isPasswordValid = await bcrypt.compare(inputPassword, storedPasswordHash);
+            if (!isPasswordValid && trimmedInputPassword !== inputPassword) {
+                isPasswordValid = await bcrypt.compare(trimmedInputPassword, storedPasswordHash);
+            }
         } else {
-            isPasswordValid = (rows[0].password === password);
+            isPasswordValid = (storedPasswordHash === inputPassword || storedPasswordHash === trimmedInputPassword);
         }
 
         if (!isPasswordValid) {
@@ -296,7 +310,7 @@ router.post('/enroll-auth', authenticateToken, async (req, res) => {
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5-min TTL
 
         enrollmentTokenStore.set(enrollmentToken, {
-            userId,
+            userId: targetUserId,
             expiresAt
         });
 
@@ -401,7 +415,8 @@ router.post('/enroll', authenticateToken, async (req, res) => {
  */
 router.delete('/disable', authenticateToken, async (req, res) => {
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-    const userId = req.user.id;
+    let userId = req.user?.id || req.user?.userId || req.user?.sub;
+    let userEmail = req.user?.email;
 
     try {
         const { password } = req.body;
@@ -409,21 +424,39 @@ router.delete('/disable', authenticateToken, async (req, res) => {
             return errorResponse(res, 'Account password is required to disable face biometrics', [], 400);
         }
 
-        const [rows] = await pool.execute('SELECT password FROM users WHERE id = ?', [userId]);
-        if (rows.length === 0) return errorResponse(res, 'User account not found', [], 404);
+        let rows = [];
+        if (userId) {
+            [rows] = await pool.execute('SELECT id, password FROM users WHERE id = ?', [userId]);
+        }
+        if ((!rows || rows.length === 0) && userEmail) {
+            [rows] = await pool.execute('SELECT id, password FROM users WHERE LOWER(email) = ?', [userEmail.toLowerCase()]);
+        }
+
+        if (!rows || rows.length === 0) {
+            return errorResponse(res, 'User account not found', [], 404);
+        }
+
+        const targetUserId = rows[0].id;
+        const storedPasswordHash = rows[0].password || '';
+
+        const inputPassword = (password || '').toString();
+        const trimmedInputPassword = inputPassword.trim();
 
         let isPasswordValid = false;
-        if (rows[0].password && rows[0].password.startsWith('$2')) {
-            isPasswordValid = await bcrypt.compare(password, rows[0].password);
+        if (storedPasswordHash.startsWith('$2')) {
+            isPasswordValid = await bcrypt.compare(inputPassword, storedPasswordHash);
+            if (!isPasswordValid && trimmedInputPassword !== inputPassword) {
+                isPasswordValid = await bcrypt.compare(trimmedInputPassword, storedPasswordHash);
+            }
         } else {
-            isPasswordValid = (rows[0].password === password);
+            isPasswordValid = (storedPasswordHash === inputPassword || storedPasswordHash === trimmedInputPassword);
         }
 
         if (!isPasswordValid) {
             return errorResponse(res, 'Incorrect password. Disablement denied.', [], 401);
         }
 
-        await pool.execute('DELETE FROM user_face_biometrics WHERE user_id = ?', [userId]);
+        await pool.execute('DELETE FROM user_face_biometrics WHERE user_id = ?', [targetUserId]);
 
         await pool.execute(
             'INSERT INTO face_audit_logs (user_id, identifier, event_type, ip_address) VALUES (?, ?, ?, ?)',
