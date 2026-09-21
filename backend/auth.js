@@ -418,12 +418,16 @@ router.delete('/admin/users/:id', authenticateToken, authorizeRole(['Admin']), a
             await pool.execute('DELETE FROM students WHERE user_id = ?', [userId]).catch(() => {});
         }
 
-        const [facultyRows] = await pool.execute('SELECT id FROM faculties WHERE user_id = ?', [userId]);
-        if (facultyRows.length > 0) {
-            const fcId = facultyRows[0].id;
-            await pool.execute('DELETE FROM faculty_departments WHERE faculty_id = ?', [fcId]).catch(() => {});
-            await pool.execute('DELETE FROM faculties WHERE user_id = ?', [userId]).catch(() => {});
-        }
+        // Handle faculty deletion for both 'faculty' and 'faculties' table names
+        try {
+            const [fRows] = await pool.execute('SELECT id FROM faculty WHERE user_id = ?', [userId]);
+            if (fRows.length > 0) {
+                const fcId = fRows[0].id;
+                await pool.execute('DELETE FROM faculty_departments WHERE faculty_id = ?', [fcId]).catch(() => {});
+            }
+        } catch (e) {}
+        await pool.execute('DELETE FROM faculty WHERE user_id = ?', [userId]).catch(() => {});
+        await pool.execute('DELETE FROM faculties WHERE user_id = ?', [userId]).catch(() => {});
 
         await pool.execute('DELETE FROM parents WHERE user_id = ?', [userId]).catch(() => {});
         await pool.execute('DELETE FROM webauthn_credentials WHERE user_id = ?', [userId]).catch(() => {});
