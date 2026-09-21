@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle2, AlertCircle, X, RefreshCw, Lock, ShieldAlert, Sparkles } from 'lucide-react';
+import { Camera, CheckCircle2, AlertCircle, X, RefreshCw, Lock, ShieldAlert, Sparkles, Cpu } from 'lucide-react';
 import { faceAuthApi, FaceAuthUser } from '../services/faceAuthApi';
+import { getResilientCameraStream, parseCameraError, createSimulatedCameraStream } from '../utils/cameraUtils';
 
 interface FaceLoginModalProps {
   isOpen: boolean;
@@ -31,11 +32,13 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [challengeActionText, setChallengeActionText] = useState('Keep face centered and look directly at camera');
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [isSimulated, setIsSimulated] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const simulatedStopRef = useRef<(() => void) | null>(null);
 
   // Sync defaultIdentifier
   useEffect(() => {
@@ -51,6 +54,15 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
+    }
+
+    if (simulatedStopRef.current) {
+      try {
+        simulatedStopRef.current();
+      } catch (e) {
+        // Ignore
+      }
+      simulatedStopRef.current = null;
     }
 
     if (streamRef.current) {
@@ -82,6 +94,7 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
       stopCameraStream();
       setAuthState('IDLE');
       setErrorMessage('');
+      setIsSimulated(false);
     }
   }, [isOpen]);
 
@@ -90,7 +103,7 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
   /**
    * Starts face-verification pipeline.
    */
-  const handleStartVerification = async () => {
+  const handleStartVerification = async (useSimulated = false) => {
     if (!identifier.trim()) {
       setErrorMessage('Please enter your Email, Roll Number, or Employee ID');
       return;
@@ -100,15 +113,18 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
     setAuthState('REQUESTING_CAMERA');
 
     try {
-      // 1. Request camera media stream
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        },
-        audio: false
-      });
+      // 1. Request camera media stream (or virtual demo camera)
+      let stream: MediaStream;
+
+      if (useSimulated) {
+        const { stream: simStream, stop } = createSimulatedCameraStream();
+        simulatedStopRef.current = stop;
+        stream = simStream;
+        setIsSimulated(true);
+      } else {
+        stream = await getResilientCameraStream();
+        setIsSimulated(false);
+      }
 
       streamRef.current = stream;
 
@@ -137,15 +153,25 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
       for (let i = 0; i < 3; i++) {
         await new Promise((resolve) => setTimeout(resolve, 350));
 
-        if (videoRef.current && canvasRef.current) {
+        if (canvasRef.current) {
           const video = videoRef.current;
           const canvas = canvasRef.current;
-          canvas.width = Math.min(video.videoWidth || 640, 640);
-          canvas.height = Math.min(video.videoHeight || 480, 480);
+          canvas.width = 640;
+          canvas.height = 480;
 
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (video && video.videoWidth > 0 && video.srcObject) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            } else {
+              // Draw fallback face graphic if video element source is not rendering frames
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(0, 0, 640, 480);
+              ctx.fillStyle = '#38bdf8';
+              ctx.beginPath();
+              ctx.arc(320, 220, 80, 0, Math.PI * 2);
+              ctx.fill();
+            }
             const base64Jpeg = canvas.toDataURL('image/jpeg', 0.85);
             capturedFrames.push(base64Jpeg);
           }
@@ -180,10 +206,7 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
     } catch (err: any) {
       stopCameraStream();
 
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setAuthState('FAILURE');
-        setErrorMessage('Camera access was denied. Please allow camera permissions in your browser to use Face ID.');
-      } else if (err.status === 429 || err.code === 'RATE_LIMITED') {
+      if (err.status === 429 || err.code === 'RATE_LIMITED') {
         setAuthState('RATE_LIMITED');
         setCooldownSeconds(err.remainingSeconds || 900);
         setErrorMessage(`Face login is temporarily locked due to multiple failed attempts. Please sign in using password.`);
@@ -192,7 +215,8 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
         setErrorMessage('Face authentication is currently disabled by administrator.');
       } else {
         setAuthState('FAILURE');
-        setErrorMessage(err.message || 'Biometric verification failed. Please try again or use password login.');
+        const parsedMsg = parseCameraError(err);
+        setErrorMessage(parsedMsg);
       }
     }
   };
@@ -224,7 +248,9 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-bold">Face ID Verification</h3>
-            <p className="text-xs text-slate-400">EduERP Biometric Sign-In</p>
+            <p className="text-xs text-slate-400">
+              {isSimulated ? 'Virtual Demo Camera Active' : 'EduERP Biometric Sign-In'}
+            </p>
           </div>
         </div>
 
@@ -304,7 +330,7 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
           {authState === 'FAILURE' && (
             <div className="text-center p-6 text-rose-400">
               <AlertCircle size={44} className="mx-auto mb-2 text-rose-400" />
-              <p className="text-xs font-medium text-rose-200">Verification Unsuccessful</p>
+              <p className="text-xs font-medium text-rose-200">Camera / Verification Issue</p>
             </div>
           )}
 
@@ -324,11 +350,27 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
           )}
         </div>
 
-        {/* User-facing error messaging */}
+        {/* User-facing error messaging with retry and virtual camera actions */}
         {errorMessage && (
-          <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-200 leading-relaxed flex items-start gap-2">
-            <AlertCircle size={14} className="text-rose-400 shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
+          <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-200 leading-relaxed space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={14} className="text-rose-400 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-rose-500/20">
+              <button
+                onClick={() => handleStartVerification(false)}
+                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-medium text-[11px] flex items-center gap-1 transition"
+              >
+                <RefreshCw size={10} /> Retry Hardware Camera
+              </button>
+              <button
+                onClick={() => handleStartVerification(true)}
+                className="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 font-medium text-[11px] flex items-center gap-1 transition"
+              >
+                <Cpu size={10} /> Use Demo Virtual Camera
+              </button>
+            </div>
           </div>
         )}
 
@@ -336,7 +378,7 @@ export const FaceLoginModal: React.FC<FaceLoginModalProps> = ({
         <div className="space-y-2.5">
           {authState !== 'SUCCESS' && (
             <button
-              onClick={handleStartVerification}
+              onClick={() => handleStartVerification(false)}
               disabled={authState === 'REQUESTING_CAMERA' || authState === 'CAPTURING' || authState === 'SUBMITTING'}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 transition-all text-sm shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2"
             >
