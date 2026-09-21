@@ -46,6 +46,9 @@ export const faceAuthApi = {
       });
       return res.data.data;
     } catch (err: any) {
+      if (!err.response) {
+        throw new Error('Unable to connect to the authentication server. Please make sure the backend is running and try again.');
+      }
       const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to fetch challenge nonce';
       throw new Error(msg);
     }
