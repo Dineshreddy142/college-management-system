@@ -1,15 +1,7 @@
-import dotenv from 'dotenv';
-import mysql from 'mysql2/promise';
-
-dotenv.config({ path: '../.env' });
+import pool from '../db.js';
 
 async function migrate() {
-    const db = await mysql.createConnection({
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || process.env.DB_PASS || '',
-        database: process.env.DB_NAME || 'college_management'
-    });
+    const db = await pool.getConnection();
 
     console.log("Connected to database...");
 
@@ -81,7 +73,7 @@ async function migrate() {
     } catch (error) {
         console.error("Migration failed:", error);
     } finally {
-        await db.end();
+        db.release();
     }
 }
 

@@ -17,7 +17,7 @@ async function runBaselineTests() {
   let failed = 0;
 
   // 1. Database Connection Check
-  console.log('[1/5] Testing MySQL Database Connection...');
+  console.log('[1/5] Testing TiDB Cloud Database Connection...');
   try {
     const [rows] = await pool.execute('SELECT COUNT(*) as count FROM users');
     console.log(`  ✔ DB Connection OK. Total Users: ${rows[0].count}`);

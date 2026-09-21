@@ -4,9 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node run_all.js",
-    "dev:all": "node run_all.js",
+    "dev": "vite",
     "dev:admin": "vite --mode admin --port 5171 --strictPort",
     "dev:student": "vite --mode student --port 5172 --strictPort",
     "dev:faculty": "vite --mode faculty --port 5173 --strictPort",
@@ -16,7 +14,6 @@
     "dev:office": "vite --mode office --port 5177 --strictPort",
     "dev:portals": "concurrently -n \"ADMIN,STUDENT,FACULTY,HOD,PARENT,PRINCIPAL,OFFICE\" -c \"cyan,blue,magenta,yellow,green,red,gray\" \"vite --mode admin --port 5171 --strictPort\" \"vite --mode student --port 5172 --strictPort\" \"vite --mode faculty --port 5173 --strictPort\" \"vite --mode hod --port 5174 --strictPort\" \"vite --mode parent --port 5175 --strictPort\" \"vite --mode principal --port 5176 --strictPort\" \"vite --mode office --port 5177 --strictPort\"",
     "dev:backend": "node backend/server.js",
-    "setup:db": "node backend/setup_all_databases.js",
     "build": "vite build"
   },
   "dependencies": {

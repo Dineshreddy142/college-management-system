@@ -6,23 +6,34 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from both backend directory and root directory
-dotenv.config({ path: path.resolve(__dirname, '.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+const isProduction = process.env.NODE_ENV === 'production';
 
+// Load .env files for local development mode
+if (!isProduction) {
+  dotenv.config({ path: path.resolve(__dirname, '.env') });
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+}
+
+const dbHost = process.env.DB_HOST;
+const dbUser = process.env.DB_USER;
+const dbPass = process.env.DB_PASS || process.env.DB_PASSWORD;
 const dbName = process.env.DB_NAME || 'college_management_system';
-const isRemote = process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1';
+const dbPort = parseInt(process.env.DB_PORT || '4000', 10);
+
+if (!dbHost || !dbUser || !dbPass) {
+  throw new Error('[DATABASE CONFIG FATAL] Database configuration is missing. Configure TiDB Cloud environment variables (DB_HOST, DB_USER, DB_PASS, DB_NAME).');
+}
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || (isRemote ? '4000' : '3306'), 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || process.env.DB_PASSWORD || 'WJ28@krhps',
+  host: dbHost,
+  port: dbPort,
+  user: dbUser,
+  password: dbPass,
   database: dbName,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: isRemote ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined
+  ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true }
 });
 
 export default pool;
@@ -48,4 +59,3 @@ export default pool;
     console.error('[DB] Failed to ensure webauthn_credentials table:', err.message);
   }
 })();
-

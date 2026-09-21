@@ -30,7 +30,7 @@ Once started, the services are available at:
 | Service | Technology | URL / Port | Description |
 | :--- | :--- | :--- | :--- |
 | **Frontend Web App** | React + Vite + Tailwind | [http://localhost:5173](http://localhost:5173) | Main College Management ERP Portal |
-| **Backend API** | Node.js + Express + MySQL | [http://localhost:5000](http://localhost:5000) | RESTful API for auth, academics, students, faculty |
+| **Backend API** | Node.js + Express + TiDB Cloud | [http://localhost:5000](http://localhost:5000) | RESTful API for auth, academics, students, faculty |
 
 ---
 
@@ -40,7 +40,6 @@ If you need to start any service independently:
 
 * **Frontend Only**: `npm run dev:frontend` (or `npx vite`)
 * **Node Backend Only**: `npm run dev:backend` (or `node backend/server.js`)
-* **Database Setup / Migrations**: `npm run setup:db`
 
 ---
 

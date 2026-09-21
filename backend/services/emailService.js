@@ -83,7 +83,7 @@ export async function verifySmtpConfig() {
 }
 
 /**
- * Centralized Core Email Dispatcher with Retry & MySQL Auditing
+ * Centralized Core Email Dispatcher with Retry & TiDB Auditing
  * @param {Object} options
  * @param {string} options.to - Recipient email (verified from database)
  * @param {string} options.subject - Email subject
@@ -91,7 +91,7 @@ export async function verifySmtpConfig() {
  * @param {string} [options.html] - HTML body
  * @param {Array} [options.attachments] - Array of attachment objects
  * @param {string} [options.notificationType] - Category (SECURITY, ACADEMIC, FEE, ATTENDANCE, EXAM, ACCOUNT)
- * @param {number} [options.recipientUserId] - User ID in MySQL
+ * @param {number} [options.recipientUserId] - User ID in TiDB
  * @param {number} [options.maxRetries=2] - Maximum retry attempts
  */
 export async function sendEmail({
@@ -192,7 +192,7 @@ export async function sendEmail({
       console.log(`[EMAIL] Message accepted. Message ID: ${info.messageId}`);
       console.log(`[EMAIL] Email delivery request completed. Status: SENT`);
 
-      // Update MySQL audit record with SUCCESS
+      // Update TiDB audit record with SUCCESS
       await updateEmailNotification(notificationId, {
         status: 'SENT',
         messageId: info.messageId,
@@ -220,7 +220,7 @@ export async function sendEmail({
   const errorCode = lastError?.code || 'SMTP_DELIVERY_FAILED';
   console.error(`[EMAIL] Email delivery request completed. Status: FAILED | Error: ${errorMsg}`);
 
-  // Update MySQL audit record with FAILED
+  // Update TiDB audit record with FAILED
   await updateEmailNotification(notificationId, {
     status: 'FAILED',
     errorMessage: errorMsg

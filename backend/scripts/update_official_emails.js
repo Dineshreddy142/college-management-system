@@ -1,18 +1,5 @@
-import mysql from 'mysql2/promise';
+import pool from '../db.js';
 import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
-
-const dbHost = process.env.DB_HOST || 'localhost';
-const dbUser = process.env.DB_USER || 'root';
-const dbPass = process.env.DB_PASS || 'WJ28@krhps';
-const dbName = process.env.DB_NAME || 'college_management_system';
 
 const targetAccounts = [
   {
@@ -49,15 +36,6 @@ async function updateOfficialEmails() {
   console.log('====================================================');
   console.log(' Updating Official College Management ERP Accounts');
   console.log('====================================================');
-
-  const pool = mysql.createPool({
-    host: dbHost,
-    user: dbUser,
-    password: dbPass,
-    database: dbName,
-    waitForConnections: true,
-    connectionLimit: 5
-  });
 
   const conn = await pool.getConnection();
 
@@ -183,7 +161,6 @@ async function updateOfficialEmails() {
     process.exit(1);
   } finally {
     conn.release();
-    await pool.end();
   }
 }
 
