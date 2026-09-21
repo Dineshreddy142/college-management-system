@@ -57,6 +57,18 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS vehicles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    car_name VARCHAR(100) NOT NULL,
+    license_plate VARCHAR(50) NULL,
+    vehicle_type VARCHAR(50) DEFAULT 'Car',
+    color VARCHAR(50) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- 2. Academic Base
 CREATE TABLE departments (
     id INT AUTO_INCREMENT PRIMARY KEY,

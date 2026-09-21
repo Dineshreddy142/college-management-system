@@ -58,6 +58,21 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 3b. Vehicles table (Car Name, License Plate, Vehicle Type)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vehicles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        car_name VARCHAR(100) NOT NULL,
+        license_plate VARCHAR(50) NULL,
+        vehicle_type VARCHAR(50) DEFAULT 'Car',
+        color VARCHAR(50) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
     // 4. Failed login attempts table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS failed_login_attempts (
