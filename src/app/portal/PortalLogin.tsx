@@ -8,7 +8,6 @@ import {
 import { useAuth } from './AuthContext';
 import client from '../../api/client';
 import { PasskeyAuthModal } from '../../components/PasskeyAuthModal';
-import { FaceLoginModal } from '../../components/FaceLoginModal';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
 export interface PortalLoginProps {
@@ -86,7 +85,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const [warningMessage, setWarningMessage] = useState('');
   const [accountLocked, setAccountLocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
 
   // Authenticator / 2FA Code State (Desktop Mode)
   const [authIdentifier, setAuthIdentifier] = useState('');
@@ -423,26 +421,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                 {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsFaceModalOpen(true)}
-                className="w-full mt-2.5 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium text-xs transition-all flex justify-center items-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-700"
-              >
-                <Sparkles size={14} className="text-blue-500" />
-                Sign in with Face ID
-              </button>
             </div>
           </form>
-
-          <FaceLoginModal
-            isOpen={isFaceModalOpen}
-            onClose={() => setIsFaceModalOpen(false)}
-            defaultIdentifier={identifier}
-            onLoginSuccess={(token, user) => {
-              login(token, user);
-              handleNavigateDashboard(user.role, user.must_change_password);
-            }}
-          />
 
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
             &copy; {new Date().getFullYear()} College Management System. All rights reserved.
