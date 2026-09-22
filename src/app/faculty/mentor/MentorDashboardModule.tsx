@@ -61,10 +61,10 @@ function Overview() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Mentees" value="60" subtitle="Across 4 years" icon={<Users size={19} />} color="blue" />
-        <StatCard title="Risk Alerts" value="5" subtitle="Low attendance / grades" icon={<AlertTriangle size={19} />} color="red" />
-        <StatCard title="Meetings Pending" value="3" subtitle="Parent / Student" icon={<Clock size={19} />} color="amber" />
-        <StatCard title="Avg. CGPA" value="7.8" subtitle="Mentee Performance" icon={<BarChart3 size={19} />} color="green" />
+        <StatCard title="Total Mentees" value="0" subtitle="Across 4 years" icon={<Users size={19} />} color="blue" />
+        <StatCard title="Risk Alerts" value="0" subtitle="Low attendance / grades" icon={<AlertTriangle size={19} />} color="red" />
+        <StatCard title="Meetings Pending" value="0" subtitle="Parent / Student" icon={<Clock size={19} />} color="amber" />
+        <StatCard title="Avg. CGPA" value="0.0" subtitle="Mentee Performance" icon={<BarChart3 size={19} />} color="green" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -75,8 +75,8 @@ function Overview() {
               <div key={year} className="flex-1 min-w-[120px] bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                 <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Year {year}</p>
                 <div className="flex items-end justify-between">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white">15</span>
-                  <Badge variant="success" size="sm">Active</Badge>
+                  <span className="text-2xl font-bold text-slate-900 dark:text-white">0</span>
+                  <Badge variant="default" size="sm">Inactive</Badge>
                 </div>
               </div>
             ))}
@@ -86,23 +86,7 @@ function Overview() {
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Urgent Actions</h3>
           <div className="space-y-3">
-            {[
-              { text: "Priya Patel's attendance is 68%", type: "attendance", time: "2h ago" },
-              { text: "Rahul Verma has 3 pending assignments", type: "academic", time: "5h ago" },
-              { text: "Parent meeting scheduled for Arjun", type: "meeting", time: "Tomorrow" },
-            ].map((alert, i) => (
-              <div key={i} className="flex gap-3 p-3 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-100 dark:border-red-500/20">
-                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
-                  {alert.type === 'attendance' ? <AlertTriangle size={14} className="text-red-600 dark:text-red-400" /> : 
-                   alert.type === 'academic' ? <FileText size={14} className="text-red-600 dark:text-red-400" /> :
-                   <Clock size={14} className="text-red-600 dark:text-red-400" />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-red-100">{alert.text}</p>
-                  <p className="text-xs text-red-500 dark:text-red-400/80 mt-0.5">{alert.time}</p>
-                </div>
-              </div>
-            ))}
+            <p className="text-xs text-slate-400">No urgent alerts recorded.</p>
           </div>
         </Card>
       </div>

@@ -193,9 +193,9 @@ const SIDEBAR_ITEMS = [
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
   { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
-  { id: "students", label: "Students", icon: GraduationCap, badge: "1,280" },
+  { id: "students", label: "Students", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty", icon: Users, badge: null },
-  { id: "academic", label: "Academics", icon: BookOpen, badge: "New" },
+  { id: "academic", label: "Academics", icon: BookOpen, badge: null },
   {
     id: "block-management",
     label: "Block Management",
@@ -209,13 +209,13 @@ const SIDEBAR_ITEMS = [
     ]
   },
 
-  { id: "attendance", label: "Attendance", icon: UserCheck, badge: "3" },
+  { id: "attendance", label: "Attendance", icon: UserCheck, badge: null },
   { id: "exams", label: "Examinations", icon: FileText, badge: null },
   { id: "timetable", label: "Timetable", icon: CalendarDays, badge: null },
   { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: BookOpen, badge: null },
   { id: "hostel", label: "Hostel", icon: Home, badge: null },
-  { id: "placement", label: "Placement", icon: Briefcase, badge: "New" },
+  { id: "placement", label: "Placement", icon: Briefcase, badge: null },
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
   { id: "settings", label: "Settings", icon: Settings, badge: null },
 ];
@@ -599,10 +599,10 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value={stats.totalStudents} change="+48 this semester" changeType="up" icon={<GraduationCap size={19} />} color="blue" />
-        <StatCard title="Faculty Members" value={stats.totalFaculty} change="+5 new joinings" changeType="up" icon={<Users size={19} />} color="indigo" />
-        <StatCard title="Avg Attendance" value={stats.avgAttendance || "88.4%"} change="-2.1% from last month" changeType="down" icon={<UserCheck size={19} />} color="green" />
-        <StatCard title="Fee Collection" value={stats.pendingFees || "₹0"} change="+12% this month" changeType="up" icon={<DollarSign size={19} />} color="amber" />
+        <StatCard title="Total Students" value={stats.totalStudents ?? 0} subtitle="Total enrolled" icon={<GraduationCap size={19} />} color="blue" />
+        <StatCard title="Faculty Members" value={stats.totalFaculty ?? 0} subtitle="Total faculty" icon={<Users size={19} />} color="indigo" />
+        <StatCard title="Avg Attendance" value={stats.avgAttendance || "0%"} subtitle="Attendance rate" icon={<UserCheck size={19} />} color="green" />
+        <StatCard title="Fee Collection" value={stats.pendingFees || "₹0"} subtitle="Fee collection" icon={<DollarSign size={19} />} color="amber" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -681,25 +681,29 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {ACTIVITIES.map((a, i) => (
-              <div key={i} className="flex gap-2.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{a.action}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">{a.subject}</p>
-                  <p className="text-xs text-slate-300 dark:text-slate-600 mt-0.5">{a.time}</p>
+            {ACTIVITIES.length === 0 ? (
+              <p className="text-xs text-slate-400">No recent activity recorded.</p>
+            ) : (
+              ACTIVITIES.map((a, i) => (
+                <div key={i} className="flex gap-2.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{a.action}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">{a.subject}</p>
+                    <p className="text-xs text-slate-300 dark:text-slate-600 mt-0.5">{a.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Placed Students" value="312" change="78% placement rate" changeType="up" icon={<Trophy size={19} />} color="cyan" />
-        <StatCard title="Books Issued" value="847" subtitle="128 overdue" icon={<BookOpen size={19} />} color="indigo" />
-        <StatCard title="Active Courses" value="94" subtitle="12 departments" icon={<Award size={19} />} color="blue" />
-        <StatCard title="Pending Fees" value="₹38L" change="-8% from last month" changeType="up" icon={<AlertTriangle size={19} />} color="amber" />
+        <StatCard title="Placed Students" value={(stats as any).placedStudents ?? 0} subtitle="Placement record" icon={<Trophy size={19} />} color="cyan" />
+        <StatCard title="Books Issued" value={(stats as any).booksIssued ?? 0} subtitle="Library activity" icon={<BookOpen size={19} />} color="indigo" />
+        <StatCard title="Active Courses" value={(stats as any).activeCourses ?? 0} subtitle={`${(stats as any).departments || 0} departments`} icon={<Award size={19} />} color="blue" />
+        <StatCard title="Pending Fees" value={stats.pendingFees || "₹0"} subtitle="Due fees" icon={<AlertTriangle size={19} />} color="amber" />
       </div>
     </div>
   );
@@ -1047,9 +1051,9 @@ function AdminMentorManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Total Mentors" value="45" icon={<Shield size={19} />} color="indigo" />
-        <StatCard title="Total Mentees" value="1,205" icon={<Users size={19} />} color="blue" />
-        <StatCard title="Unassigned Students" value="75" subtitle="Requires action" icon={<AlertTriangle size={19} />} color="amber" />
+        <StatCard title="Total Mentors" value="0" icon={<Shield size={19} />} color="indigo" />
+        <StatCard title="Total Mentees" value="0" icon={<Users size={19} />} color="blue" />
+        <StatCard title="Unassigned Students" value="0" subtitle="Requires action" icon={<AlertTriangle size={19} />} color="amber" />
       </div>
 
       <Card className="p-5">
@@ -1130,10 +1134,10 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Faculty" value={String(displayList.length)} change="+5 this year" changeType="up" icon={<Users size={19} />} color="blue" />
-        <StatCard title="Departments" value="12" subtitle="Across all schools" icon={<Building size={19} />} color="indigo" />
-        <StatCard title="On Leave" value="8" subtitle="5.6% of total" icon={<Clock size={19} />} color="amber" />
-        <StatCard title="Avg Experience" value="11.4 yrs" subtitle="Per faculty member" icon={<Award size={19} />} color="green" />
+        <StatCard title="Total Faculty" value={String(displayList.length)} subtitle="Registered faculty" icon={<Users size={19} />} color="blue" />
+        <StatCard title="Departments" value={displayList.length > 0 ? String(new Set(displayList.map(f => f.dept)).size) : "0"} subtitle="Across all schools" icon={<Building size={19} />} color="indigo" />
+        <StatCard title="On Leave" value={String(displayList.filter(f => f.status === "On Leave").length)} subtitle="Faculty on leave" icon={<Clock size={19} />} color="amber" />
+        <StatCard title="Avg Experience" value={displayList.length > 0 ? `${(displayList.reduce((acc, f) => acc + (f.experience || 0), 0) / displayList.length).toFixed(1)} yrs` : "0 yrs"} subtitle="Per faculty member" icon={<Award size={19} />} color="green" />
       </div>
 
       <div className="flex justify-end gap-2">
@@ -1209,10 +1213,10 @@ function AttendanceModule({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Today's Attendance" value="86.2%" change="+2.1% from yesterday" changeType="up" icon={<UserCheck size={19} />} color="green" />
-        <StatCard title="Classes Today" value="24" subtitle="8 pending" icon={<BookOpen size={19} />} color="blue" />
-        <StatCard title="Defaulters ≤75%" value="47" change="+3 this week" changeType="down" icon={<AlertTriangle size={19} />} color="red" />
-        <StatCard title="Avg Monthly" value="88.4%" subtitle="AY 2023-24" icon={<Activity size={19} />} color="indigo" />
+        <StatCard title="Today's Attendance" value="0%" subtitle="No sessions marked" icon={<UserCheck size={19} />} color="green" />
+        <StatCard title="Classes Today" value="0" subtitle="0 pending" icon={<BookOpen size={19} />} color="blue" />
+        <StatCard title="Defaulters ≤75%" value="0" subtitle="Shortage students" icon={<AlertTriangle size={19} />} color="red" />
+        <StatCard title="Avg Monthly" value="0%" subtitle="Current AY" icon={<Activity size={19} />} color="indigo" />
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1339,10 +1343,10 @@ function ExaminationModule({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Upcoming Exams" value="6" subtitle="Next: May 15, 2024" icon={<FileText size={19} />} color="blue" />
-        <StatCard title="Results Published" value="3" subtitle="This semester" icon={<CheckCircle size={19} />} color="green" />
-        <StatCard title="Avg Pass Rate" value="94.2%" change="+2.1% from last" changeType="up" icon={<Award size={19} />} color="indigo" />
-        <StatCard title="Pending Results" value="2" subtitle="To be processed" icon={<Clock size={19} />} color="amber" />
+        <StatCard title="Upcoming Exams" value="0" subtitle="No exams scheduled" icon={<FileText size={19} />} color="blue" />
+        <StatCard title="Results Published" value="0" subtitle="This semester" icon={<CheckCircle size={19} />} color="green" />
+        <StatCard title="Avg Pass Rate" value="0%" subtitle="Exam records" icon={<Award size={19} />} color="indigo" />
+        <StatCard title="Pending Results" value="0" subtitle="To be processed" icon={<Clock size={19} />} color="amber" />
       </div>
       <Card>
         <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -1401,10 +1405,10 @@ function FeeManagement() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Collected" value="₹4.82Cr" change="+12% this month" changeType="up" icon={<DollarSign size={19} />} color="green" />
-        <StatCard title="Pending Fees" value="₹38.2L" change="-8% from last month" changeType="up" icon={<AlertTriangle size={19} />} color="amber" />
-        <StatCard title="Students Paid" value="1,124" subtitle="87.8% collection rate" icon={<CheckCircle size={19} />} color="blue" />
-        <StatCard title="Overdue" value="156" subtitle="Fees past due date" icon={<Clock size={19} />} color="red" />
+        <StatCard title="Total Collected" value="₹0" subtitle="Current term" icon={<DollarSign size={19} />} color="green" />
+        <StatCard title="Pending Fees" value="₹0" subtitle="Pending collection" icon={<AlertTriangle size={19} />} color="amber" />
+        <StatCard title="Students Paid" value="0" subtitle="0% collection rate" icon={<CheckCircle size={19} />} color="blue" />
+        <StatCard title="Overdue" value="0" subtitle="Fees past due date" icon={<Clock size={19} />} color="red" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1499,10 +1503,10 @@ function LibraryManagement() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Books" value="8,420" subtitle="4,230 unique titles" icon={<BookOpen size={19} />} color="blue" />
-        <StatCard title="Issued" value="847" subtitle="Currently checked out" icon={<BookMarked size={19} />} color="indigo" />
-        <StatCard title="Overdue" value="128" subtitle="Return pending" icon={<AlertTriangle size={19} />} color="amber" />
-        <StatCard title="Fines Collected" value="₹12,400" subtitle="This month" icon={<DollarSign size={19} />} color="green" />
+        <StatCard title="Total Books" value="0" subtitle="0 unique titles" icon={<BookOpen size={19} />} color="blue" />
+        <StatCard title="Issued" value="0" subtitle="Currently checked out" icon={<BookMarked size={19} />} color="indigo" />
+        <StatCard title="Overdue" value="0" subtitle="Return pending" icon={<AlertTriangle size={19} />} color="amber" />
+        <StatCard title="Fines Collected" value="₹0" subtitle="This month" icon={<DollarSign size={19} />} color="green" />
       </div>
       <Card>
         <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row gap-3 justify-between">
@@ -1542,10 +1546,10 @@ function PlacementModule() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Placed Students" value="312" change="+42 this month" changeType="up" icon={<Trophy size={19} />} color="green" />
-        <StatCard title="Placement Rate" value="78%" change="+5% from last year" changeType="up" icon={<TrendingUp size={19} />} color="blue" />
-        <StatCard title="Highest Package" value="₹28 LPA" subtitle="Google — Arjun Sharma" icon={<Award size={19} />} color="indigo" />
-        <StatCard title="Avg Package" value="₹8.4 LPA" change="+1.2 LPA from last yr" changeType="up" icon={<DollarSign size={19} />} color="amber" />
+        <StatCard title="Placed Students" value="0" subtitle="0% placement rate" icon={<Trophy size={19} />} color="green" />
+        <StatCard title="Placement Rate" value="0%" subtitle="Current batch" icon={<TrendingUp size={19} />} color="blue" />
+        <StatCard title="Highest Package" value="₹0 LPA" subtitle="Highest offer" icon={<Award size={19} />} color="indigo" />
+        <StatCard title="Avg Package" value="₹0 LPA" subtitle="Average package" icon={<DollarSign size={19} />} color="amber" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
