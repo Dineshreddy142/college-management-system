@@ -73,24 +73,13 @@ export function MenteeDetails({ onBack }: { onBack?: () => void }) {
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <StatCard title="Current CGPA" value="5.8" subtitle="Needs improvement" color="red" icon={<BarChart3 size={19} />} />
-            <StatCard title="Attendance" value="68.2%" subtitle="Below 75% threshold" color="amber" icon={<Clock size={19} />} />
+            <StatCard title="Current CGPA" value="N/A" subtitle="Cumulative CGPA" color="blue" icon={<BarChart3 size={19} />} />
+            <StatCard title="Attendance" value="N/A" subtitle="Current session" color="amber" icon={<Clock size={19} />} />
           </div>
 
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Academic Progress</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={[
-                { sem: "Sem 1", cgpa: 8.0 }, { sem: "Sem 2", cgpa: 7.8 }, { sem: "Sem 3", cgpa: 7.5 },
-                { sem: "Sem 4", cgpa: 6.2 }, { sem: "Sem 5", cgpa: 5.8 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                <XAxis dataKey="sem" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 10]} />
-                <Tooltip contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 30px rgba(0,0,0,0.1)", fontSize: "12px" }} />
-                <Line type="monotone" dataKey="cgpa" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, fill: "#ef4444", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} name="CGPA" />
-              </LineChart>
-            </ResponsiveContainer>
+            <p className="text-xs text-slate-400 py-8 text-center">No academic progress records available.</p>
           </Card>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1578,22 +1578,7 @@ function PlacementModule() {
 
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Placement by Department</h3>
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart data={[
-              { dept: "CS", placed: 142, eligible: 168 },
-              { dept: "EC", placed: 82, eligible: 104 },
-              { dept: "ME", placed: 54, eligible: 88 },
-              { dept: "CE", placed: 34, eligible: 62 },
-            ]} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" />
-              <XAxis type="number" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis dataKey="dept" type="category" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 30px rgba(0,0,0,0.1)", fontSize: "12px" }} />
-              <Bar dataKey="eligible" fill="#E2E8F0" radius={[0, 4, 4, 0]} name="Eligible" />
-              <Bar dataKey="placed" fill="#2563EB" radius={[0, 4, 4, 0]} name="Placed" />
-              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-            </BarChart>
-          </ResponsiveContainer>
+          <p className="text-xs text-slate-400 py-12 text-center">No department placement data recorded.</p>
         </Card>
       </div>
 
@@ -1602,34 +1587,8 @@ function PlacementModule() {
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Upcoming Placement Drives</h3>
           <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Drive</Btn>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-50 dark:border-slate-700/50">
-                {["Company", "Date", "Roles", "Package Range", "Eligible", "Registered", "Status"].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/30">
-              {[
-                { co: "Google", date: "Mar 15", roles: "SDE, Data Analyst", range: "₹22–28 LPA", el: 48, reg: 42, status: "Open" },
-                { co: "Microsoft", date: "Mar 20", roles: "SDE I, PM", range: "₹18–24 LPA", el: 52, reg: 38, status: "Open" },
-                { co: "Amazon", date: "Mar 28", roles: "SDE, SRE", range: "₹14–20 LPA", el: 68, reg: 55, status: "Open" },
-                { co: "Wipro", date: "Apr 5", roles: "Software Engineer", range: "₹5–7 LPA", el: 220, reg: 180, status: "Upcoming" },
-              ].map((d, i) => (
-                <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{d.co}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{d.date}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{d.roles}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">{d.range}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{d.el}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{d.reg}</td>
-                  <td className="px-4 py-3"><Badge variant={d.status === "Open" ? "success" : "info"} size="sm">{d.status}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center">
+          <p className="text-xs text-slate-400">No placement drives scheduled.</p>
         </div>
       </Card>
     </div>
@@ -1637,16 +1596,36 @@ function PlacementModule() {
 }
 
 function ReportsAnalytics() {
+  const [students, setStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    client.get('/students').then(res => setStudents(res.data || [])).catch(console.error);
+  }, []);
+
+  const cgpaDistData = [
+    { range: "9–10", count: students.filter(s => parseFloat(s.cgpa) >= 9).length },
+    { range: "8–9", count: students.filter(s => parseFloat(s.cgpa) >= 8 && parseFloat(s.cgpa) < 9).length },
+    { range: "7–8", count: students.filter(s => parseFloat(s.cgpa) >= 7 && parseFloat(s.cgpa) < 8).length },
+    { range: "6–7", count: students.filter(s => parseFloat(s.cgpa) >= 6 && parseFloat(s.cgpa) < 7).length },
+    { range: "<6", count: students.filter(s => parseFloat(s.cgpa) > 0 && parseFloat(s.cgpa) < 6).length },
+  ];
+
+  const deptNames = Array.from(new Set(students.map(s => s.department_name || s.dept).filter(Boolean)));
+  const deptAttData = deptNames.map(dept => {
+    const deptStudents = students.filter(s => (s.department_name || s.dept) === dept);
+    return {
+      dept: String(dept),
+      pct: deptStudents.length > 0 ? 0 : 0
+    };
+  });
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">CGPA Distribution</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={[
-              { range: "9–10", count: 142 }, { range: "8–9", count: 384 },
-              { range: "7–8", count: 428 }, { range: "6–7", count: 218 }, { range: "<6", count: 108 },
-            ]}>
+            <BarChart data={cgpaDistData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" />
               <XAxis dataKey="range" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -1659,42 +1638,26 @@ function ReportsAnalytics() {
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Dept-wise Attendance</h3>
           <div className="space-y-3 mt-2">
-            {[
-              { dept: "Computer Science", pct: 91 },
-              { dept: "Electronics", pct: 87 },
-              { dept: "Mechanical", pct: 84 },
-              { dept: "Civil", pct: 89 },
-              { dept: "Electrical", pct: 86 },
-            ].map(d => (
-              <div key={d.dept}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{d.dept}</span>
-                  <span className="text-xs text-slate-500">{d.pct}%</span>
+            {deptAttData.length === 0 ? (
+              <p className="text-xs text-slate-400 py-6 text-center">No department attendance records available.</p>
+            ) : (
+              deptAttData.map(d => (
+                <div key={d.dept}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{d.dept}</span>
+                    <span className="text-xs text-slate-500">{d.pct}%</span>
+                  </div>
+                  <PBar value={d.pct} color={d.pct >= 90 ? "green" : d.pct >= 85 ? "blue" : "amber"} />
                 </div>
-                <PBar value={d.pct} color={d.pct >= 90 ? "green" : d.pct >= 85 ? "blue" : "amber"} />
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </div>
 
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Year-over-Year Attendance Comparison</h3>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={[
-            { m: "Aug", y23: 88, y24: 91 }, { m: "Sep", y23: 84, y24: 87 }, { m: "Oct", y23: 90, y24: 93 },
-            { m: "Nov", y23: 76, y24: 80 }, { m: "Dec", y23: 82, y24: 85 }, { m: "Jan", y23: 87, y24: 91 },
-            { m: "Feb", y23: 84, y24: 87 }, { m: "Mar", y23: 89, y24: 93 },
-          ]}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" />
-            <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[70, 100]} />
-            <Tooltip contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 30px rgba(0,0,0,0.1)", fontSize: "12px" }} />
-            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }} />
-            <Line type="monotone" dataKey="y23" stroke="#94a3b8" strokeWidth={2} strokeDasharray="4 4" name="2022-23" dot={false} />
-            <Line type="monotone" dataKey="y24" stroke="#2563EB" strokeWidth={2.5} name="2023-24" dot={{ fill: "#2563EB", r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <p className="text-xs text-slate-400 py-8 text-center">No historical attendance comparison data recorded.</p>
       </Card>
     </div>
   );
