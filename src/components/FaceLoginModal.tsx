@@ -123,10 +123,10 @@ export function FaceLoginModal({
 
       setStatus('scanning');
 
-      // Sample 3-4 frames over 1.2 seconds for temporal liveness
+      // Sample 2 frames over 300ms for temporal liveness
       setTimeout(async () => {
         try {
-          const capturedFrames = captureFramesFromVideo();
+          const capturedFrames = await captureFramesFromVideo();
           stopCamera();
 
           if (capturedFrames.length === 0) {
@@ -152,7 +152,7 @@ export function FaceLoginModal({
               }, 800);
             } else {
               setStatus('error');
-              setErrorMessage(verifyRes.error || 'Face authentication verification failed');
+              setErrorMessage(verifyRes.error || verifyRes.message || 'Face authentication verification failed');
             }
           } else {
             // Enroll mode
@@ -165,7 +165,7 @@ export function FaceLoginModal({
               }, 800);
             } else {
               setStatus('error');
-              setErrorMessage(enrollRes.error || 'Face biometric enrollment failed');
+              setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed');
             }
           }
         } catch (procErr: any) {
@@ -173,7 +173,7 @@ export function FaceLoginModal({
           setStatus('error');
           setErrorMessage(procErr.message || 'Error processing face verification payload');
         }
-      }, 1200);
+      }, 1000);
 
     } catch (camErr: any) {
       stopCamera();
@@ -187,9 +187,9 @@ export function FaceLoginModal({
     }
   };
 
-  const captureFramesFromVideo = (): string[] => {
+  const captureFramesFromVideo = async (): Promise<string[]> => {
     const video = videoRef.current;
-    if (!video || !video.videoWidth) return [];
+    if (!video || !video.videoWidth || !video.videoHeight) return [];
 
     const canvas = canvasRef.current || document.createElement('canvas');
     canvas.width = Math.min(640, video.videoWidth);
@@ -198,16 +198,18 @@ export function FaceLoginModal({
     if (!ctx) return [];
 
     const frames: string[] = [];
-    // Draw frame 1
+
+    // Frame 1
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.85));
 
-    // Slight brightness modulation to satisfy motion liveness sampling
-    ctx.filter = 'brightness(1.02)';
+    // Delay 250ms for real temporal motion liveness delta across video stream
+    await new Promise(r => setTimeout(r, 250));
+
+    // Frame 2
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.85));
 
-    ctx.filter = 'none';
     return frames;
   };
 

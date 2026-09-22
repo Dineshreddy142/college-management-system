@@ -3,6 +3,7 @@ import client from './client';
 export interface FaceAuthStatusResponse {
   success: boolean;
   message?: string;
+  code?: string;
   data?: {
     face_auth_enabled: boolean;
     is_enrolled: boolean;
@@ -13,6 +14,7 @@ export interface FaceAuthStatusResponse {
 export interface FaceNonceResponse {
   success: boolean;
   message?: string;
+  code?: string;
   data?: {
     nonce: string;
     expires_in: number;
@@ -23,6 +25,7 @@ export interface FaceNonceResponse {
 export interface FaceVerifyResponse {
   success: boolean;
   message?: string;
+  code?: string;
   data?: {
     token: string;
     user: {
@@ -40,6 +43,7 @@ export interface FaceVerifyResponse {
 export interface FaceEnrollResponse {
   success: boolean;
   message?: string;
+  code?: string;
   data?: {
     enrolled: boolean;
   };
@@ -56,9 +60,11 @@ export async function getFaceAuthStatus(identifier?: string): Promise<FaceAuthSt
     });
     return res.data;
   } catch (err: any) {
+    const data = err.response?.data;
     return {
       success: false,
-      error: err.response?.data?.error || 'Failed to check face auth status'
+      code: data?.code || 'STATUS_ERROR',
+      error: data?.message || data?.error || 'Failed to check face auth status'
     };
   }
 }
@@ -71,9 +77,11 @@ export async function requestFaceNonce(identifier: string): Promise<FaceNonceRes
     const res = await client.post('/face/nonce', { identifier });
     return res.data;
   } catch (err: any) {
+    const data = err.response?.data;
     return {
       success: false,
-      error: err.response?.data?.error || 'Failed to generate face authentication challenge'
+      code: data?.code || 'NONCE_ERROR',
+      error: data?.message || data?.error || 'Failed to generate face authentication challenge'
     };
   }
 }
@@ -94,9 +102,11 @@ export async function verifyFaceLogin(
     });
     return res.data;
   } catch (err: any) {
+    const data = err.response?.data;
     return {
       success: false,
-      error: err.response?.data?.error || 'Face verification failed'
+      code: data?.code || 'VERIFICATION_ERROR',
+      error: data?.message || data?.error || 'Face verification failed'
     };
   }
 }
@@ -109,9 +119,12 @@ export async function enrollFaceBiometrics(frames: string[]): Promise<FaceEnroll
     const res = await client.post('/face/enroll', { frames });
     return res.data;
   } catch (err: any) {
+    const data = err.response?.data;
     return {
       success: false,
-      error: err.response?.data?.error || 'Face enrollment failed'
+      code: data?.code || 'ENROLLMENT_ERROR',
+      error: data?.message || data?.error || 'Face enrollment failed'
     };
   }
 }
+

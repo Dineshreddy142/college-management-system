@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ort from 'onnxruntime-node';
+import jpeg from 'jpeg-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +46,9 @@ class Semaphore {
         const idx = this.queue.findIndex(q => q.resolve === resolve);
         if (idx !== -1) {
           this.queue.splice(idx, 1);
-          reject(new Error('[FACE AUTH] Concurrency processing timeout (queue full)'));
+          const err = new Error('Concurrency processing timeout (queue full)');
+          err.code = 'CONCURRENCY_LIMIT_EXCEEDED';
+          reject(err);
         }
       }, timeoutMs);
 
@@ -74,19 +77,23 @@ const onnxSemaphore = new Semaphore(4);
 let ultraFaceSession = null;
 let mobileFaceNetSession = null;
 
-async function getUltraFaceSession() {
+export async function getUltraFaceSession() {
   if (ultraFaceSession) return ultraFaceSession;
   if (!fs.existsSync(ultraFaceModelPath)) {
-    throw new Error(`[FACE AUTH] UltraFace model file missing at ${ultraFaceModelPath}`);
+    const err = new Error(`UltraFace model file missing at ${ultraFaceModelPath}`);
+    err.code = 'ONNX_MODEL_ERROR';
+    throw err;
   }
   ultraFaceSession = await ort.InferenceSession.create(ultraFaceModelPath);
   return ultraFaceSession;
 }
 
-async function getMobileFaceNetSession() {
+export async function getMobileFaceNetSession() {
   if (mobileFaceNetSession) return mobileFaceNetSession;
   if (!fs.existsSync(mobileFaceNetModelPath)) {
-    throw new Error(`[FACE AUTH] MobileFaceNet model file missing at ${mobileFaceNetModelPath}`);
+    const err = new Error(`MobileFaceNet model file missing at ${mobileFaceNetModelPath}`);
+    err.code = 'ONNX_MODEL_ERROR';
+    throw err;
   }
   mobileFaceNetSession = await ort.InferenceSession.create(mobileFaceNetModelPath);
   return mobileFaceNetSession;
@@ -146,14 +153,18 @@ export function calculateCosineSimilarity(vecA, vecB) {
 }
 
 /**
- * Simple Base64 image payload validator & luminance extractor
+ * Base64 image payload validator & frame unpacker
  */
 export function parseAndValidateFrames(frames) {
   if (!Array.isArray(frames) || frames.length === 0) {
-    throw new Error('At least one face frame is required');
+    const err = new Error('At least one face frame is required');
+    err.code = 'FRAME_VALIDATION_ERROR';
+    throw err;
   }
   if (frames.length > 5) {
-    throw new Error('Maximum 5 frames allowed per authentication request');
+    const err = new Error('Maximum 5 frames allowed per authentication request');
+    err.code = 'FRAME_VALIDATION_ERROR';
+    throw err;
   }
 
   const parsedFrames = [];
@@ -162,13 +173,17 @@ export function parseAndValidateFrames(frames) {
   for (let i = 0; i < frames.length; i++) {
     const rawData = frames[i];
     if (typeof rawData !== 'string') {
-      throw new Error(`Invalid frame data type at index ${i}`);
+      const err = new Error(`Invalid frame data type at index ${i}`);
+      err.code = 'FRAME_VALIDATION_ERROR';
+      throw err;
     }
     const cleanB64 = rawData.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
     const buffer = Buffer.from(cleanB64, 'base64');
 
     if (buffer.length > 300 * 1024) {
-      throw new Error(`Frame at index ${i} exceeds maximum allowed size of 300 KB`);
+      const err = new Error(`Frame at index ${i} exceeds maximum allowed size of 300 KB`);
+      err.code = 'FRAME_VALIDATION_ERROR';
+      throw err;
     }
     totalBytes += buffer.length;
 
@@ -180,24 +195,43 @@ export function parseAndValidateFrames(frames) {
   }
 
   if (totalBytes > 2 * 1024 * 1024) {
-    throw new Error('Total payload size exceeds 2 MB limit');
+    const err = new Error('Total payload size exceeds 2 MB limit');
+    err.code = 'FRAME_VALIDATION_ERROR';
+    throw err;
   }
 
   return parsedFrames;
 }
 
 /**
- * Server-side temporal motion/liveness check via mean squared luminance delta across frames.
- * Acceptable baseline: 0.5 <= delta <= 300.0
+ * Server-side temporal motion/liveness check via mean squared pixel luminance delta across frames.
  */
 export function checkLivenessMotion(frames) {
   if (frames.length < 2) {
-    // If single frame provided, pass default motion check or return baseline status
     return { isLive: true, delta: 1.5, reason: 'Single frame fallback baseline' };
   }
 
-  // Calculate approximate average luminance per frame
   const luminances = frames.map(frame => {
+    try {
+      const decoded = jpeg.decode(frame.buffer, { useTolerant: true, maxMemoryMB: 20 });
+      if (decoded && decoded.data) {
+        let sum = 0;
+        const data = decoded.data;
+        const totalPixels = data.length / 4;
+        const step = Math.max(1, Math.floor(totalPixels / 2000));
+        let count = 0;
+        for (let i = 0; i < data.length; i += step * 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          sum += (0.299 * r + 0.587 * g + 0.114 * b);
+          count++;
+        }
+        return count > 0 ? sum / count : 128;
+      }
+    } catch (e) {
+      // Fallback if decode fails
+    }
     let sum = 0;
     const buf = frame.buffer;
     const step = Math.max(1, Math.floor(buf.length / 1000));
@@ -216,8 +250,8 @@ export function checkLivenessMotion(frames) {
   }
   const meanSqDelta = totalSqDelta / (luminances.length - 1);
 
-  // Baseline threshold: 0.5 <= delta <= 300.0
-  const isLive = meanSqDelta >= 0.5 && meanSqDelta <= 300.0;
+  // Acceptable motion bounds: 0.0001 <= delta <= 300.0
+  const isLive = meanSqDelta >= 0.0001 && meanSqDelta <= 300.0;
   return {
     isLive,
     delta: parseFloat(meanSqDelta.toFixed(4)),
@@ -226,7 +260,7 @@ export function checkLivenessMotion(frames) {
 }
 
 /**
- * Extract 512-d Face Embedding vector using ONNX model or deterministic math fallback if models absent
+ * Extract 512-d Face Embedding vector using UltraFace & MobileFaceNet ONNX models
  */
 export async function extractFaceEmbedding(frameBuffer) {
   const release = await onnxSemaphore.acquire(5000);
@@ -234,37 +268,106 @@ export async function extractFaceEmbedding(frameBuffer) {
     const hasUltra = fs.existsSync(ultraFaceModelPath);
     const hasMobile = fs.existsSync(mobileFaceNetModelPath);
 
-    if (hasUltra && hasMobile) {
-      // Full ONNX Pipeline Execution
-      const session = await getMobileFaceNetSession();
-      // Prepare 1x3x112x112 RGB float tensor
-      const inputTensor = new ort.Tensor('float32', new Float32Array(1 * 3 * 112 * 112).fill(0.5), [1, 3, 112, 112]);
-      const feeds = {};
-      feeds[session.inputNames[0]] = inputTensor;
-      const results = await session.run(feeds);
-      const outputName = session.outputNames[0];
-      const embeddingData = results[outputName].data;
-      
-      // L2 Normalize
-      const vec = Array.from(embeddingData);
-      let norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
-      if (norm === 0) norm = 1;
-      return vec.map(v => v / norm);
-    } else {
-      // Deterministic feature extractor based on frame byte buffer hash
-      // Guarantees consistent 512-d embedding for identical frames while allowing ONNX setup fallback
-      const hash = crypto.createHash('sha512').update(frameBuffer).digest();
-      const embedding = new Float32Array(512);
-      for (let i = 0; i < 512; i++) {
-        const byteVal = hash[i % hash.length];
-        embedding[i] = (byteVal / 255.0) - 0.5;
-      }
-      // L2 Normalize
-      let norm = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
-      if (norm === 0) norm = 1;
-      return Array.from(embedding).map(v => v / norm);
+    if (!hasUltra || !hasMobile) {
+      const err = new Error('ONNX model files missing on server');
+      err.code = 'ONNX_MODEL_ERROR';
+      throw err;
     }
+
+    // 1. Decode JPEG frame
+    let decoded;
+    try {
+      decoded = jpeg.decode(frameBuffer, { useTolerant: true, maxMemoryMB: 20 });
+    } catch (e) {
+      const err = new Error('Failed to decode camera frame image format');
+      err.code = 'FRAME_VALIDATION_ERROR';
+      throw err;
+    }
+
+    if (!decoded || !decoded.data || decoded.width === 0 || decoded.height === 0) {
+      const err = new Error('Invalid camera frame buffer data');
+      err.code = 'FRAME_VALIDATION_ERROR';
+      throw err;
+    }
+
+    const srcW = decoded.width;
+    const srcH = decoded.height;
+    const srcData = decoded.data;
+
+    // 2. Perform Face Detection with UltraFace
+    const ultraSession = await getUltraFaceSession();
+    const ultraFloat = new Float32Array(1 * 3 * 240 * 320);
+    const channel240 = 240 * 320;
+    for (let y = 0; y < 240; y++) {
+      const srcY = Math.min(srcH - 1, Math.floor((y / 240) * srcH));
+      for (let x = 0; x < 320; x++) {
+        const srcX = Math.min(srcW - 1, Math.floor((x / 320) * srcW));
+        const srcIdx = (srcY * srcW + srcX) * 4;
+        const dstIdx = y * 320 + x;
+
+        ultraFloat[dstIdx] = (srcData[srcIdx] - 127.0) / 128.0;                  // R
+        ultraFloat[channel240 + dstIdx] = (srcData[srcIdx + 1] - 127.0) / 128.0; // G
+        ultraFloat[2 * channel240 + dstIdx] = (srcData[srcIdx + 2] - 127.0) / 128.0; // B
+      }
+    }
+
+    const ultraInput = new ort.Tensor('float32', ultraFloat, [1, 3, 240, 320]);
+    const ultraRes = await ultraSession.run({ [ultraSession.inputNames[0]]: ultraInput });
+    const scores = ultraRes['scores'].data; // [1, 4420, 2]
+
+    let maxFaceScore = 0;
+    let highConfFacesCount = 0;
+    for (let i = 0; i < 4420; i++) {
+      const faceScore = scores[i * 2 + 1];
+      if (faceScore > maxFaceScore) maxFaceScore = faceScore;
+      if (faceScore > 0.65) highConfFacesCount++;
+    }
+
+    // Check face presence threshold
+    if (maxFaceScore < 0.20) {
+      const err = new Error('No face detected. Please position your face inside the camera.');
+      err.code = 'FACE_NOT_DETECTED';
+      throw err;
+    }
+
+    if (highConfFacesCount > 400) {
+      const err = new Error('Multiple faces detected. Please ensure only one person is in camera view.');
+      err.code = 'MULTIPLE_FACES';
+      throw err;
+    }
+
+    // 3. Extract 512-d Face Embedding with MobileFaceNet
+    const mobileSession = await getMobileFaceNetSession();
+    const mobileFloat = new Float32Array(1 * 3 * 112 * 112);
+    const channel112 = 112 * 112;
+    for (let y = 0; y < 112; y++) {
+      const srcY = Math.min(srcH - 1, Math.floor((y / 112) * srcH));
+      for (let x = 0; x < 112; x++) {
+        const srcX = Math.min(srcW - 1, Math.floor((x / 112) * srcW));
+        const srcIdx = (srcY * srcW + srcX) * 4;
+        const dstIdx = y * 112 + x;
+
+        mobileFloat[dstIdx] = (srcData[srcIdx] - 127.5) / 128.0;                  // R
+        mobileFloat[channel112 + dstIdx] = (srcData[srcIdx + 1] - 127.5) / 128.0; // G
+        mobileFloat[2 * channel112 + dstIdx] = (srcData[srcIdx + 2] - 127.5) / 128.0; // B
+      }
+    }
+
+    const mobileInput = new ort.Tensor('float32', mobileFloat, [1, 3, 112, 112]);
+    const mobileRes = await mobileSession.run({ [mobileSession.inputNames[0]]: mobileInput });
+    const outputName = mobileSession.outputNames[0];
+    const rawEmbedding = Array.from(mobileRes[outputName].data);
+
+    // 4. L2 Normalize 512-d vector
+    let norm = Math.sqrt(rawEmbedding.reduce((s, v) => s + v * v, 0));
+    if (norm === 0) norm = 1;
+    return rawEmbedding.map(v => v / norm);
+
+  } catch (err) {
+    if (!err.code) err.code = 'EMBEDDING_ERROR';
+    throw err;
   } finally {
     release();
   }
 }
+

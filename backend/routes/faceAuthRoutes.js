@@ -21,7 +21,7 @@ const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD ||
 function checkFaceAuthFeatureFlag(req, res, next) {
   const isEnabled = process.env.FACE_AUTH_ENABLED !== 'false';
   if (!isEnabled) {
-    return errorResponse(res, 'Face authentication service is currently disabled', [], 503);
+    return errorResponse(res, 'Face authentication service is currently disabled', [], 503, { code: 'FEATURE_DISABLED' });
   }
   next();
 }
@@ -104,16 +104,16 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
   try {
     const { identifier } = req.body;
     if (!identifier) {
-      return errorResponse(res, 'User identifier is required', [], 400);
+      return errorResponse(res, 'User identifier is required', [], 400, { code: 'INVALID_IDENTIFIER' });
     }
 
     const user = await findUserByIdentifier(identifier);
     if (!user) {
-      return errorResponse(res, 'Account not found', [], 404);
+      return errorResponse(res, 'Account not found. Please check your username, email, or roll number.', [], 444, { code: 'ACCOUNT_NOT_FOUND' });
     }
 
     if (user.status === 'blocked' || user.status === 'inactive') {
-      return errorResponse(res, 'Account is inactive or blocked', [], 403);
+      return errorResponse(res, 'Account is inactive or blocked. Please contact admin.', [], 403, { code: 'ACCOUNT_BLOCKED' });
     }
 
     // Check face-specific 15-minute cooldown
@@ -131,7 +131,7 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
           `Too many failed face login attempts. Face login locked for ${remainingMinutes} more minutes. Please use password login.`,
           [],
           429,
-          { cooldownRemainingMinutes: remainingMinutes }
+          { code: 'FACE_LOCKED_COOLDOWN', cooldownRemainingMinutes: remainingMinutes }
         );
       }
     }
@@ -142,7 +142,7 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
       [user.id]
     );
     if (bioRows.length === 0) {
-      return errorResponse(res, 'Face biometrics not enrolled for this account. Please log in with password to enroll.', [], 400);
+      return errorResponse(res, 'Face biometrics not enrolled for this account. Please log in with password to enroll.', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
     }
 
     // Generate 256-bit random nonce
@@ -154,13 +154,13 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
       [nonce, user.id, expiresAt]
     );
 
-    return successResponse(res, 'Face authentication nonce generated', {
+    return successResponse(res, 'Face authentication challenge generated', {
       nonce,
       expires_in: 15
     });
   } catch (err) {
     console.error('[FACE AUTH NONCE ERROR]:', err);
-    return errorResponse(res, 'Failed to generate face authentication challenge', [], 500);
+    return errorResponse(res, 'Failed to generate face authentication challenge', [], 500, { code: 'NONCE_ERROR' });
   }
 });
 
@@ -172,12 +172,12 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
   try {
     const { identifier, nonce, frames } = req.body;
     if (!identifier || !nonce || !frames) {
-      return errorResponse(res, 'Identifier, nonce, and face frames are required', [], 400);
+      return errorResponse(res, 'Identifier, nonce challenge, and face frames are required', [], 400, { code: 'INVALID_PAYLOAD' });
     }
 
     const user = await findUserByIdentifier(identifier);
     if (!user) {
-      return errorResponse(res, 'Invalid account identifier', [], 401);
+      return errorResponse(res, 'Invalid account identifier', [], 401, { code: 'ACCOUNT_NOT_FOUND' });
     }
 
     // Check rate limit / cooldown
@@ -186,7 +186,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       [user.id]
     );
     if (attemptRows.length > 0 && attemptRows[0].cooldown_until && new Date(attemptRows[0].cooldown_until) > new Date()) {
-      return errorResponse(res, 'Face authentication is temporarily locked due to multiple failed attempts.', [], 429);
+      return errorResponse(res, 'Face authentication is locked due to multiple failed attempts. Please use password login.', [], 429, { code: 'FACE_LOCKED_COOLDOWN' });
     }
 
     // Nonce Validation (Single-use, <= 15s expiry)
@@ -196,12 +196,12 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     );
 
     if (nonceRows.length === 0) {
-      return errorResponse(res, 'Invalid or expired authentication challenge', [], 401);
+      return errorResponse(res, 'Invalid or missing authentication challenge', [], 401, { code: 'NONCE_ERROR' });
     }
 
     const nonceRecord = nonceRows[0];
     if (nonceRecord.used === 1) {
-      return errorResponse(res, 'Authentication challenge has already been used', [], 401);
+      return errorResponse(res, 'Authentication challenge has already been used. Please retry.', [], 401, { code: 'NONCE_REUSED' });
     }
 
     // Instantly invalidate nonce (Single-use!)
@@ -211,7 +211,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     );
 
     if (new Date(nonceRecord.expires_at) < new Date()) {
-      return errorResponse(res, 'Authentication challenge expired. Please retry.', [], 401);
+      return errorResponse(res, 'Authentication challenge expired. Please retry.', [], 401, { code: 'NONCE_EXPIRED' });
     }
 
     // Payload & Resource Validation
@@ -220,8 +220,8 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     // Liveness Motion Verification
     const liveness = checkLivenessMotion(parsedFrames);
     if (!liveness.isLive) {
-      console.warn(`[FACE AUTH LIVENESS REJECT] User ${user.username}: ${liveness.reason}`);
-      return handleFailedFaceAttempt(res, user.id, 'Liveness verification failed. Please present a real face video.');
+      console.warn(`[FACE AUTH LIVENESS REJECT] User ${user.username}: ${liveness.reason} (delta=${liveness.delta})`);
+      return handleFailedFaceAttempt(res, user.id, 'Liveness verification failed. Please present a live face video.', 'LIVENESS_ERROR');
     }
 
     // Fetch Stored Encrypted Biometric Template
@@ -230,7 +230,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       [user.id]
     );
     if (bioRows.length === 0) {
-      return errorResponse(res, 'Face biometrics not enrolled for this user', [], 400);
+      return errorResponse(res, 'Face biometrics not enrolled for this account', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
     }
 
     const bio = bioRows[0];
@@ -262,7 +262,12 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     console.log(`[FACE AUTH VERIFY] User ${user.username} similarity score: ${similarity.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
 
     if (similarity < SIMILARITY_THRESHOLD) {
-      return handleFailedFaceAttempt(res, user.id, 'Face verification failed. Similarity score below baseline.');
+      return handleFailedFaceAttempt(
+        res,
+        user.id,
+        `Face verification failed. Similarity score (${similarity.toFixed(2)}) below baseline.`,
+        'SIMILARITY_FAILED'
+      );
     }
 
     // Success! Reset failed face attempt counter
@@ -299,15 +304,16 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('[FACE AUTH VERIFY ERROR]:', err);
-    return errorResponse(res, 'Face authentication processing failed', [], 500);
+    console.error('[FACE AUTH VERIFY ERROR]:', err.code || 'UNKNOWN', err.message);
+    const code = err.code || 'VERIFICATION_ERROR';
+    return errorResponse(res, err.message || 'Face authentication processing failed', [], 400, { code });
   }
 });
 
 /**
  * Helper to handle failed face attempts & 15-min cooldown
  */
-async function handleFailedFaceAttempt(res, userId, message) {
+async function handleFailedFaceAttempt(res, userId, message, code = 'SIMILARITY_FAILED') {
   let [attemptRows] = await pool.execute(
     `SELECT failed_count FROM face_failed_attempts WHERE user_id = ?`,
     [userId]
@@ -333,7 +339,7 @@ async function handleFailedFaceAttempt(res, userId, message) {
       'Maximum 5 failed face attempts reached. Face login locked for 15 minutes. Please use password login.',
       [],
       429,
-      { faceAttemptsRemaining: 0, cooldownActive: true }
+      { code: 'FACE_LOCKED_COOLDOWN', faceAttemptsRemaining: 0, cooldownActive: true }
     );
   }
 
@@ -342,7 +348,7 @@ async function handleFailedFaceAttempt(res, userId, message) {
     `${message} (${5 - newCount} attempts remaining before 15-min face lock).`,
     [],
     401,
-    { faceAttemptsRemaining: 5 - newCount }
+    { code, faceAttemptsRemaining: 5 - newCount }
   );
 }
 
@@ -356,7 +362,7 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
     const userId = req.user.id;
 
     if (!frames || !Array.isArray(frames) || frames.length === 0) {
-      return errorResponse(res, 'Face frames are required for enrollment', [], 400);
+      return errorResponse(res, 'Face frames are required for enrollment', [], 400, { code: 'INVALID_PAYLOAD' });
     }
 
     const parsedFrames = parseAndValidateFrames(frames);
@@ -398,7 +404,8 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
             res,
             'This face biometric pattern is already registered under another account. Duplicate enrollment rejected.',
             [],
-            409
+            409,
+            { code: 'DUPLICATE_FACE_ENROLLED' }
           );
         }
       } catch (decErr) {
@@ -424,9 +431,11 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
       enrolled: true
     });
   } catch (err) {
-    console.error('[FACE ENROLL ERROR]:', err);
-    return errorResponse(res, 'Face biometric enrollment failed', [], 500);
+    console.error('[FACE ENROLL ERROR]:', err.code || 'UNKNOWN', err.message);
+    const code = err.code || 'ENROLLMENT_ERROR';
+    return errorResponse(res, err.message || 'Face biometric enrollment failed', [], 400, { code });
   }
 });
 
 export default router;
+
