@@ -38,7 +38,7 @@ const pool = mysql.createPool({
 
 export default pool;
 
-// Auto-create webauthn_credentials table if missing
+// Auto-create webauthn & face biometrics tables if missing
 (async () => {
   try {
     await pool.execute(`
@@ -54,8 +54,43 @@ export default pool;
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-    console.log('[DB] Table webauthn_credentials verified/created.');
+
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS face_biometrics (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        encrypted_template TEXT NOT NULL,
+        iv VARCHAR(64) NOT NULL,
+        auth_tag VARCHAR(64) NOT NULL,
+        algorithm VARCHAR(32) DEFAULT 'aes-256-gcm',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS face_auth_nonces (
+        nonce VARCHAR(64) PRIMARY KEY,
+        user_id INT NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS face_failed_attempts (
+        user_id INT PRIMARY KEY,
+        failed_count INT DEFAULT 0,
+        cooldown_until DATETIME NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] Tables webauthn_credentials, face_biometrics, face_auth_nonces, face_failed_attempts verified/created.');
   } catch (err) {
-    console.error('[DB] Failed to ensure webauthn_credentials table:', err.message);
+    console.error('[DB] Failed to ensure face/webauthn tables:', err.message);
   }
 })();

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
+import { FaceLoginModal } from "../../components/FaceLoginModal";
 
 
 export function ProfileModule() {
@@ -32,6 +33,7 @@ export function ProfileModule() {
   const [pwdState, setPwdState] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPwd, setIsChangingPwd] = useState(false);
   const [showPwdForm, setShowPwdForm] = useState(false);
+  const [showFaceEnrollModal, setShowFaceEnrollModal] = useState(false);
 
   // Streamlined Tabs State
   const [activeTab, setActiveTab] = useState<
@@ -758,6 +760,27 @@ export function ProfileModule() {
 
 
 
+              {/* Face Biometrics Enrollment Card */}
+              <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <Camera className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">AES-256-GCM Face Biometrics</h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Register your face profile for fast 1:1 passwordless face authentication.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowFaceEnrollModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg flex items-center gap-2 transition shrink-0"
+                >
+                  <Camera className="w-4 h-4" /> Enroll Face ID
+                </button>
+              </div>
+
               {/* Passkeys Card */}
               <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-xl flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -895,7 +918,14 @@ export function ProfileModule() {
         </div>
       </div>
 
-
+      <FaceLoginModal
+        isOpen={showFaceEnrollModal}
+        onClose={() => setShowFaceEnrollModal(false)}
+        mode="enroll"
+        onSuccess={() => {
+          triggerToast('✅ Face biometrics enrolled successfully!');
+        }}
+      />
     </div>
   );
 }
