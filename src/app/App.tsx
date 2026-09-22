@@ -1061,39 +1061,8 @@ function AdminMentorManagement() {
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Current Mentor Workloads</h3>
           <SInput placeholder="Search faculty..." icon={<Search size={15} />} />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 rounded-l-xl font-medium">Faculty Name</th>
-                <th className="px-4 py-3 font-medium">Department</th>
-                <th className="px-4 py-3 font-medium">Year 1</th>
-                <th className="px-4 py-3 font-medium">Year 2</th>
-                <th className="px-4 py-3 font-medium">Year 3</th>
-                <th className="px-4 py-3 font-medium">Year 4</th>
-                <th className="px-4 py-3 rounded-r-xl font-medium">Total Mentees</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {[
-                { name: "Dr. Rajesh Kumar", dept: "Computer Science", y1: 15, y2: 15, y3: 15, y4: 15, total: 60 },
-                { name: "Prof. Anjali Sharma", dept: "Information Tech", y1: 20, y2: 20, y3: 10, y4: 10, total: 60 },
-                { name: "Dr. Vikram Singh", dept: "Electronics", y1: 10, y2: 15, y3: 15, y4: 20, total: 60 },
-              ].map((m, i) => (
-                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
-                    <Avatar name={m.name} size="sm" /> {m.name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{m.dept}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{m.y1}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{m.y2}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{m.y3}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{m.y4}</td>
-                  <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{m.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center">
+          <p className="text-xs text-slate-400">No mentor workload records available.</p>
         </div>
       </Card>
     </div>
@@ -1299,39 +1268,8 @@ function AttendanceModule({ onGoBulk }: { onGoBulk?: () => void }) {
             </h3>
             <Btn variant="outline" size="sm" icon={<Download size={13} />}>Download</Btn>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-50 dark:border-slate-700/50">
-                  {["Subject", "Faculty", "Present", "Absent", "Total", "Percentage", "Status"].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-700/30">
-                {[
-                  { sub: "Data Structures", fac: "Dr. R. Gupta", present: 48, absent: 4, total: 52, pct: 92 },
-                  { sub: "Mathematics III", fac: "Dr. S. Sharma", present: 44, absent: 8, total: 52, pct: 85 },
-                  { sub: "Digital Circuits", fac: "Prof. A. Mishra", present: 38, absent: 6, total: 44, pct: 86 },
-                  { sub: "Engineering Physics", fac: "Dr. K. Pillai", present: 35, absent: 9, total: 44, pct: 79 },
-                ].map((r, i) => (
-                  <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{r.sub}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{r.fac}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">{r.present}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">{r.absent}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{r.total}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">{r.pct}%</span>
-                        <div className="w-16"><PBar value={r.pct} color={r.pct >= 85 ? "green" : r.pct >= 75 ? "blue" : "red"} /></div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3"><Badge variant={r.pct >= 85 ? "success" : r.pct >= 75 ? "warning" : "danger"}>{r.pct >= 85 ? "Good" : r.pct >= 75 ? "Average" : "Low"}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-8 text-center">
+            <p className="text-xs text-slate-400">No attendance summary records available for today.</p>
           </div>
         </Card>
       )}
@@ -1365,36 +1303,8 @@ function ExaminationModule({ onGoBulk }: { onGoBulk?: () => void }) {
             <Btn variant="primary" size="sm" icon={<Plus size={13} />}>Add Exam</Btn>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-50 dark:border-slate-700/50">
-                {["Date", "Subject", "Code", "Department", "Venue", "Duration", "Status"].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/30">
-              {[
-                { date: "May 15", sub: "Data Structures", code: "CS301", dept: "CS", venue: "Hall A", dur: "3 hrs", status: "Upcoming" },
-                { date: "May 17", sub: "Digital Circuits", code: "EC201", dept: "EC", venue: "Hall B", dur: "3 hrs", status: "Upcoming" },
-                { date: "May 19", sub: "Engineering Math", code: "MA201", dept: "All", venue: "Main Audi", dur: "3 hrs", status: "Upcoming" },
-                { date: "May 21", sub: "Thermodynamics", code: "ME301", dept: "ME", venue: "Hall C", dur: "3 hrs", status: "Upcoming" },
-                { date: "Apr 20", sub: "Operating Systems", code: "CS302", dept: "CS", venue: "Hall A", dur: "3 hrs", status: "Completed" },
-                { date: "Apr 18", sub: "Control Systems", code: "EC202", dept: "EC", venue: "Hall B", dur: "3 hrs", status: "Result Out" },
-              ].map((e, i) => (
-                <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{e.date}</td>
-                  <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{e.sub}</td>
-                  <td className="px-4 py-3 text-xs text-slate-400 font-mono">{e.code}</td>
-                  <td className="px-4 py-3"><Badge variant="info" size="sm">{e.dept}</Badge></td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{e.venue}</td>
-                  <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{e.dur}</td>
-                  <td className="px-4 py-3"><Badge variant={e.status === "Completed" ? "default" : e.status === "Result Out" ? "success" : "info"}>{e.status}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center">
+          <p className="text-xs text-slate-400">No exams scheduled.</p>
         </div>
       </Card>
     </div>
@@ -1433,22 +1343,8 @@ function FeeManagement() {
 
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Fee Category Breakdown</h3>
-          <div className="space-y-3">
-            {[
-              { cat: "Tuition Fee", amt: "₹2.8Cr", pct: 72, color: "blue" as StatColor },
-              { cat: "Hostel Fee", amt: "₹92L", pct: 68, color: "indigo" as StatColor },
-              { cat: "Exam Fee", amt: "₹28L", pct: 95, color: "green" as StatColor },
-              { cat: "Library Fee", amt: "₹8L", pct: 88, color: "cyan" as StatColor },
-              { cat: "Transportation", amt: "₹14L", pct: 82, color: "amber" as StatColor },
-            ].map(f => (
-              <div key={f.cat}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{f.cat}</span>
-                  <span className="text-xs text-slate-500">{f.amt} · {f.pct}%</span>
-                </div>
-                <PBar value={f.pct} color={f.color} />
-              </div>
-            ))}
+          <div className="space-y-3 py-6 text-center">
+            <p className="text-xs text-slate-400">No fee category records available.</p>
           </div>
         </Card>
       </div>
@@ -1461,35 +1357,8 @@ function FeeManagement() {
             <Btn variant="outline" size="sm" icon={<Download size={13} />}>Export</Btn>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-50 dark:border-slate-700/50">
-                {["Receipt No", "Student", "Amount", "Category", "Date", "Mode", "Status"].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/30">
-              {[
-                { r: "RCP-24001", name: "Arjun Sharma", amt: "₹45,000", cat: "Tuition", date: "Mar 12", mode: "Online", status: "Success" },
-                { r: "RCP-24002", name: "Priya Patel", amt: "₹12,000", cat: "Hostel", date: "Mar 12", mode: "UPI", status: "Success" },
-                { r: "RCP-24003", name: "Rahul Kumar", amt: "₹45,000", cat: "Tuition", date: "Mar 11", mode: "NEFT", status: "Pending" },
-                { r: "RCP-24004", name: "Sneha Reddy", amt: "₹5,800", cat: "Exam Fee", date: "Mar 10", mode: "Online", status: "Success" },
-                { r: "RCP-24005", name: "Vikram Singh", amt: "₹45,000", cat: "Tuition", date: "Mar 10", mode: "Cash", status: "Failed" },
-              ].map((t, i) => (
-                <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-xs text-slate-400 font-mono">{t.r}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{t.name}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{t.amt}</td>
-                  <td className="px-4 py-3"><Badge variant="info" size="sm">{t.cat}</Badge></td>
-                  <td className="px-4 py-3 text-sm text-slate-500">{t.date}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{t.mode}</td>
-                  <td className="px-4 py-3"><Badge variant={t.status === "Success" ? "success" : t.status === "Pending" ? "warning" : "danger"} size="sm">{t.status}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center">
+          <p className="text-xs text-slate-400">No fee transactions recorded.</p>
         </div>
       </Card>
     </div>
