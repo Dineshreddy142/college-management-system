@@ -2,11 +2,7 @@ import { FileText, Search, Upload, Clock } from "lucide-react";
 import { Card, Badge, Btn, PBar } from "../App";
 
 export function AssignmentsModule() {
-  const assignments = [
-    { title: "Sorting Algorithms", sub: "Data Structures", due: "Tomorrow, 11:59 PM", status: "Pending", progress: 0 },
-    { title: "Graph Traversal", sub: "Data Structures", due: "Next Week", status: "Submitted", progress: 100 },
-    { title: "Fourier Transforms", sub: "Mathematics III", due: "Mar 10, 2024", status: "Graded", grade: "9.5/10", progress: 100 },
-  ];
+  const assignments: any[] = [];
 
   return (
     <div className="space-y-5">
@@ -22,7 +18,11 @@ export function AssignmentsModule() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {assignments.map((a, i) => (
+        {assignments.length === 0 ? (
+          <Card className="p-8 text-center text-slate-400 text-sm">
+            No assignments assigned yet.
+          </Card>
+        ) : assignments.map((a, i) => (
           <Card key={i} className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${

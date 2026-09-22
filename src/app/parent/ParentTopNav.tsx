@@ -60,7 +60,7 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
       <div className="flex items-center gap-2 sm:gap-4">
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-100 dark:border-emerald-900/50">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Viewing: Arjun Sharma</span>
+          <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Parent Portal</span>
         </div>
 
         <button onClick={toggleTheme} className="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors">

@@ -5,34 +5,7 @@ import { Card, Badge, Avatar, cn } from "../App";
 export function ChildManagementModule() {
   const [activeChild, setActiveChild] = useState(1);
 
-  const children = [
-    {
-      id: 1,
-      name: "Arjun Sharma",
-      roll: "CS2021001",
-      course: "B.Tech Computer Science",
-      semester: "Semester 6",
-      section: "A",
-      mentor: "Prof. D. Joshi",
-      cgpa: 9.2,
-      attendance: 88.4,
-      status: "Active",
-      lastAttendance: "Today 08:30 AM"
-    },
-    {
-      id: 2,
-      name: "Riya Sharma",
-      roll: "ME2022045",
-      course: "B.Tech Mechanical Engineering",
-      semester: "Semester 4",
-      section: "B",
-      mentor: "Dr. K. Mehta",
-      cgpa: 8.7,
-      attendance: 92.1,
-      status: "Active",
-      lastAttendance: "Yesterday"
-    }
-  ];
+  const children: any[] = [];
 
   return (
     <div className="space-y-5">
@@ -44,7 +17,11 @@ export function ChildManagementModule() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {children.map(child => (
+        {children.length === 0 ? (
+          <Card className="p-8 text-center text-slate-400 text-sm col-span-full">
+            No linked student profiles found for this parent account.
+          </Card>
+        ) : children.map(child => (
           <Card 
             key={child.id} 
             className={cn(

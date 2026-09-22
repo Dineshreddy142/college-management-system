@@ -16,7 +16,7 @@ export function MenteeDetails({ onBack }: { onBack?: () => void }) {
         )}
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Student Details</h2>
-          <p className="text-sm text-slate-500">Comprehensive overview of Priya Patel</p>
+          <p className="text-sm text-slate-500">Mentee Overview</p>
         </div>
       </div>
 
@@ -25,25 +25,20 @@ export function MenteeDetails({ onBack }: { onBack?: () => void }) {
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-bl-full -mr-10 -mt-10" />
           
           <div className="flex flex-col items-center text-center mt-4">
-            <Avatar name="Priya Patel" size="xl" />
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-4">Priya Patel</h3>
-            <p className="text-sm text-slate-500">CS2021045 • Semester 6</p>
+            <Avatar name="Student" size="xl" />
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-4">Student Profile</h3>
+            <p className="text-sm text-slate-500">Mentee Record</p>
             
             <div className="flex flex-wrap justify-center gap-2 mt-3">
-              <Badge variant="error" size="sm">Academic Risk</Badge>
-              <Badge variant="warning" size="sm">Low Attendance</Badge>
+              <Badge variant="info" size="sm">Active Mentee</Badge>
             </div>
             
             <div className="w-full mt-6 space-y-4">
               <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <Mail size={16} /> priya.p@student.edu
+                <Mail size={16} /> student@college.edu
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <Phone size={16} /> +91 87654 32109
-              </div>
-              <div className="flex flex-col text-sm text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-3 mb-1"><MapPin size={16} /> Parent Contact</div>
-                <span className="ml-7 text-xs">Mr. Patel (+91 99988 77766)</span>
+                <Phone size={16} /> Contact Available
               </div>
             </div>
           </div>
@@ -61,20 +56,13 @@ export function MenteeDetails({ onBack }: { onBack?: () => void }) {
                 <BrainCircuit className="text-purple-600" />
                 <h3 className="font-semibold text-purple-900 dark:text-purple-300">AI Risk Analysis & Recommendations</h3>
               </div>
-              <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300 list-disc pl-9">
-                <li><strong>Observation:</strong> Steady decline in CGPA from 7.5 (Sem 3) to 5.8 (Sem 5).</li>
-                <li><strong>Correlation:</strong> High absence in Operating Systems and Data Structures correlates with low marks.</li>
-                <li><strong>Action:</strong> Schedule a parent meeting to discuss attendance. Recommend remedial classes for Data Structures.</li>
-              </ul>
-              <div className="mt-4 pl-9">
-                <Btn variant="primary" size="sm">Schedule Meeting Now</Btn>
-              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 pl-9">No risk patterns identified for this student profile.</p>
             </Card>
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <StatCard title="Current CGPA" value="N/A" subtitle="Cumulative CGPA" color="blue" icon={<BarChart3 size={19} />} />
-            <StatCard title="Attendance" value="N/A" subtitle="Current session" color="amber" icon={<Clock size={19} />} />
+            <StatCard title="Current CGPA" value="0.0" subtitle="Cumulative CGPA" color="blue" icon={<BarChart3 size={19} />} />
+            <StatCard title="Attendance" value="0%" subtitle="Current session" color="amber" icon={<Clock size={19} />} />
           </div>
 
           <Card className="p-5">
@@ -87,31 +75,18 @@ export function MenteeDetails({ onBack }: { onBack?: () => void }) {
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                 <Briefcase size={16} className="text-indigo-500" /> Placement Readiness
               </h3>
-              <p className="text-xs text-slate-500 mb-4">Based on current academic standing.</p>
+              <p className="text-xs text-slate-500 mb-4">Based on academic standing.</p>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-600 dark:text-slate-400">Super Dream</span>
-                  <Badge variant="error" size="sm">Not Eligible</Badge>
-                </div>
-                <div className="flex justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-600 dark:text-slate-400">Dream</span>
-                  <Badge variant="error" size="sm">Not Eligible</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Mass</span>
-                  <Badge variant="warning" size="sm">At Risk</Badge>
+                  <span className="text-slate-600 dark:text-slate-400">Eligibility</span>
+                  <Badge variant="info" size="sm">Pending Evaluation</Badge>
                 </div>
               </div>
             </Card>
             
-            <Card className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-100 dark:border-amber-900/30">
-              <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-500 mb-3">Pending Actions</h3>
-              <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-200/80">
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Library fee pending: ₹150</li>
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> 2 internal assignments due</li>
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> No mentor interaction in 30 days</li>
-              </ul>
-              <Btn variant="primary" size="sm" className="mt-4 bg-amber-500 hover:bg-amber-600 text-white border-0 w-full justify-center">Resolve Now</Btn>
+            <Card className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Pending Actions</h3>
+              <p className="text-xs text-slate-400">No pending action items for this student.</p>
             </Card>
           </div>
         </div>

@@ -93,36 +93,8 @@ function Overview() {
       
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Recent Counseling Sessions</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 rounded-l-xl font-medium">Student</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Topic</th>
-                <th className="px-4 py-3 font-medium">Action Plan</th>
-                <th className="px-4 py-3 rounded-r-xl font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {[
-                { name: "Priya Patel", date: "Oct 12, 2023", topic: "Low Attendance in OS", action: "Submit medical cert.", status: "Pending" },
-                { name: "Arjun Sharma", date: "Oct 10, 2023", topic: "Placement Guidance", action: "Prepare for Infosys", status: "Completed" },
-              ].map((s, i) => (
-                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
-                    <Avatar name={s.name} size="sm" /> {s.name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{s.date}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{s.topic}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{s.action}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={s.status === 'Completed' ? 'success' : 'warning'} size="sm">{s.status}</Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center text-slate-400 text-sm">
+          No recent counseling sessions recorded.
         </div>
       </Card>
     </div>

@@ -48,42 +48,8 @@ export function CounselingModule() {
       )}
 
       <Card className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500">
-              <tr>
-                <th className="px-5 py-4 font-medium">Date</th>
-                <th className="px-5 py-4 font-medium">Student</th>
-                <th className="px-5 py-4 font-medium">Discussion</th>
-                <th className="px-5 py-4 font-medium">Action Plan</th>
-                <th className="px-5 py-4 font-medium">Follow-up</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {[
-                { date: "Oct 12, 2023", student: "Priya Patel", discussion: "Low attendance and backlogs in OS.", action: "Submit medical proofs. Attend remedial.", followup: "Oct 26, 2023", status: "completed" },
-                { date: "Oct 10, 2023", student: "Arjun Sharma", discussion: "Placement preparation for Tier 1.", action: "Mock interview scheduled next week.", followup: "Oct 17, 2023", status: "pending" },
-              ].map((s, i) => (
-                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-5 py-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{s.date}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={s.student} size="sm" />
-                      <span className="font-medium text-slate-900 dark:text-white">{s.student}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300 max-w-xs truncate">{s.discussion}</td>
-                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300 max-w-xs truncate">{s.action}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                      {s.status === 'completed' ? <CheckCircle size={14} className="text-emerald-500" /> : <Clock size={14} className="text-amber-500" />}
-                      {s.followup}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 text-center">
+          <p className="text-xs text-slate-400">No counseling session records available.</p>
         </div>
       </Card>
     </div>

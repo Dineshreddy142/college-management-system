@@ -8,11 +8,11 @@ export function TimetableGrid() {
   
   type ClassInfo = { sub: string; room: string; faculty: string; color: string } | null;
   const schedule: Record<string, Record<string, ClassInfo>> = {
-    Monday: { "09:00": { sub: "Data Structures", room: "CS-101", faculty: "Dr. Smith", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/50 dark:text-blue-400" }, "10:00": { sub: "Mathematics III", room: "LH-201", faculty: "Prof. Alan", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-400" }, "11:00": null, "12:00": null, "13:00": null, "14:00": { sub: "OS Lab", room: "CS-Lab1", faculty: "Dr. Smith", color: "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-950/40 dark:border-purple-800/50 dark:text-purple-400" }, "15:00": { sub: "OS Lab", room: "CS-Lab1", faculty: "Dr. Smith", color: "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-950/40 dark:border-purple-800/50 dark:text-purple-400" }, "16:00": null },
-    Tuesday: { "09:00": { sub: "Eng. Physics", room: "PH-101", faculty: "Dr. Bohr", color: "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800/50 dark:text-indigo-400" }, "10:00": null, "11:00": { sub: "Data Structures", room: "CS-101", faculty: "Dr. Smith", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/50 dark:text-blue-400" }, "12:00": null, "13:00": null, "14:00": { sub: "Mathematics III", room: "LH-201", faculty: "Prof. Alan", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-400" }, "15:00": null, "16:00": null },
-    Wednesday: { "09:00": null, "10:00": { sub: "Digital Circuits", room: "EC-101", faculty: "Dr. Turing", color: "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800/50 dark:text-amber-400" }, "11:00": { sub: "Mathematics III", room: "LH-201", faculty: "Prof. Alan", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-400" }, "12:00": null, "13:00": null, "14:00": null, "15:00": { sub: "Eng. Physics", room: "PH-101", faculty: "Dr. Bohr", color: "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800/50 dark:text-indigo-400" }, "16:00": null },
-    Thursday: { "09:00": { sub: "Data Structures", room: "CS-101", faculty: "Dr. Smith", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/50 dark:text-blue-400" }, "10:00": { sub: "Digital Circuits", room: "EC-101", faculty: "Dr. Turing", color: "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800/50 dark:text-amber-400" }, "11:00": null, "12:00": null, "13:00": null, "14:00": { sub: "DS Lab", room: "CS-Lab2", faculty: "Dr. Smith", color: "bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-950/40 dark:border-cyan-800/50 dark:text-cyan-400" }, "15:00": { sub: "DS Lab", room: "CS-Lab2", faculty: "Dr. Smith", color: "bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-950/40 dark:border-cyan-800/50 dark:text-cyan-400" }, "16:00": null },
-    Friday: { "09:00": { sub: "Eng. Physics", room: "PH-101", faculty: "Dr. Bohr", color: "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800/50 dark:text-indigo-400" }, "10:00": { sub: "Mathematics III", room: "LH-201", faculty: "Prof. Alan", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-400" }, "11:00": { sub: "Data Structures", room: "CS-101", faculty: "Dr. Smith", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/50 dark:text-blue-400" }, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
+    Monday: { "09:00": null, "10:00": null, "11:00": null, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
+    Tuesday: { "09:00": null, "10:00": null, "11:00": null, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
+    Wednesday: { "09:00": null, "10:00": null, "11:00": null, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
+    Thursday: { "09:00": null, "10:00": null, "11:00": null, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
+    Friday: { "09:00": null, "10:00": null, "11:00": null, "12:00": null, "13:00": null, "14:00": null, "15:00": null, "16:00": null },
   };
 
   return (
@@ -20,11 +20,10 @@ export function TimetableGrid() {
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex gap-4 items-center">
           <select className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-medium">
-            <option>CS Dept - Semester 6 - Sec A</option>
-            <option>CS Dept - Semester 6 - Sec B</option>
-            <option>IT Dept - Semester 6 - Sec A</option>
+            <option value="">Select Section</option>
+            <option value="cs-6a">CS Dept - Sem 6 - Sec A</option>
           </select>
-          <Badge variant="success" size="sm">Published v1.0</Badge>
+          <Badge variant="warning" size="sm">No Timetable Published</Badge>
         </div>
         <div className="flex flex-wrap gap-2">
           <Btn variant="outline" size="sm" icon={<Filter size={16} />}>Filter</Btn>
