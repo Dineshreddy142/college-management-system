@@ -31,8 +31,13 @@ export const errorHandler = (err, req, res, next) => {
         return errorResponse(res, 'Database error: Cannot delete record because it is referenced elsewhere.', [], 409);
     }
 
+    if (err.type === 'entity.too.large' || err.status === 413) {
+        return errorResponse(res, 'Request payload too large. Maximum size is 10 MB.', [], 413, { code: 'PAYLOAD_TOO_LARGE' });
+    }
+
     // Fallback for general server errors
-    return errorResponse(res, 'Internal Server Error', [err.message], 500);
+    const statusCode = err.status || err.statusCode || 500;
+    return errorResponse(res, err.message || 'Internal Server Error', [err.message], statusCode, { code: err.code || 'SERVER_ERROR' });
 };
 
 // Custom error classes to throw from controllers/services
