@@ -736,13 +736,22 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const mappedStudents = studentsData.map(s => ({
     dbId: s.id,
     id: s.admission_number || `STU${s.id}`,
-    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Student',
-    email: s.email || 'N/A',
+    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || 'Student',
+    email: s.email || s.user_email || 'N/A',
     dept: s.department_name || "Computer Science",
     semester: s.semester || 1,
-    cgpa: 8.5,
+    cgpa: s.cgpa !== undefined && s.cgpa !== null ? parseFloat(s.cgpa) : (s.gpa ? parseFloat(s.gpa) : 0),
     status: s.status || "Active"
   }));
+
+  const totalCount = studentsData.length;
+  const activeCount = mappedStudents.filter(s => (s.status || 'Active').toLowerCase() === 'active').length;
+  const activeRateStr = totalCount > 0 ? `${((activeCount / totalCount) * 100).toFixed(1)}% active rate` : "0% active rate";
+  const newAdmissionsCount = mappedStudents.filter(s => Number(s.semester) <= 2).length;
+  const studentsWithCgpa = mappedStudents.filter(s => typeof s.cgpa === 'number' && !isNaN(s.cgpa) && s.cgpa > 0);
+  const avgCgpaVal = studentsWithCgpa.length > 0 
+    ? (studentsWithCgpa.reduce((sum, s) => sum + s.cgpa, 0) / studentsWithCgpa.length).toFixed(2)
+    : "0.00";
 
   const filtered = mappedStudents.filter(s =>
     (s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase())) &&
@@ -819,10 +828,10 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value={studentsData.length > 0 ? studentsData.length.toString() : "1,280"} change="+48 this term" changeType="up" icon={<GraduationCap size={19} />} color="blue" />
-        <StatCard title="Active" value={studentsData.length > 0 ? studentsData.length.toString() : "1,247"} subtitle="97.4% active rate" icon={<CheckCircle size={19} />} color="green" />
-        <StatCard title="New Admissions" value="320" subtitle="Current academic year" icon={<UserPlus size={19} />} color="indigo" />
-        <StatCard title="Avg CGPA" value="8.42" change="+0.3 from last year" changeType="up" icon={<Award size={19} />} color="amber" />
+        <StatCard title="Total Students" value={totalCount.toLocaleString()} subtitle={`${totalCount} registered`} icon={<GraduationCap size={19} />} color="blue" />
+        <StatCard title="Active" value={activeCount.toLocaleString()} subtitle={activeRateStr} icon={<CheckCircle size={19} />} color="green" />
+        <StatCard title="New Admissions" value={newAdmissionsCount.toLocaleString()} subtitle="Current academic year" icon={<UserPlus size={19} />} color="indigo" />
+        <StatCard title="Avg CGPA" value={avgCgpaVal} subtitle={studentsWithCgpa.length > 0 ? `Based on ${studentsWithCgpa.length} records` : "No CGPA records"} icon={<Award size={19} />} color="amber" />
       </div>
 
       <Card>

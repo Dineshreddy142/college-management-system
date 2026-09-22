@@ -201,19 +201,19 @@ export function BulkDataHub({ defaultTab = "students" }: { defaultTab?: TabType 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/10">
           <div className="bg-white/5 rounded-xl p-3 border border-white/5">
             <p className="text-xs text-slate-400">Total Enrolled</p>
-            <p className="text-xl font-bold text-white mt-0.5">{stats.totalStudents || "1,280"}</p>
+            <p className="text-xl font-bold text-white mt-0.5">{stats.totalStudents ?? 0}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-3 border border-white/5">
             <p className="text-xs text-slate-400">Active Faculty</p>
-            <p className="text-xl font-bold text-white mt-0.5">{stats.totalFaculty || "84"}</p>
+            <p className="text-xl font-bold text-white mt-0.5">{stats.totalFaculty ?? 0}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-3 border border-white/5">
             <p className="text-xs text-slate-400">Avg Attendance</p>
-            <p className="text-xl font-bold text-emerald-400 mt-0.5">{stats.avgAttendanceRate || "88.5%"}</p>
+            <p className="text-xl font-bold text-emerald-400 mt-0.5">{stats.avgAttendanceRate ?? "0%"}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-3 border border-white/5">
             <p className="text-xs text-slate-400">Graded Records</p>
-            <p className="text-xl font-bold text-indigo-300 mt-0.5">{stats.totalMarksEntries || "3,420"}</p>
+            <p className="text-xl font-bold text-indigo-300 mt-0.5">{stats.totalMarksEntries ?? 0}</p>
           </div>
         </div>
       </div>
