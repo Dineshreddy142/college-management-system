@@ -160,7 +160,7 @@ export function FaceLoginModal({
 
       setStatus('scanning');
 
-      // Allow camera stream video dimensions to stabilize before frame sampling
+      // Stream ready - capture frame sampling instantly
       setTimeout(async () => {
         try {
           const capturedFrames = await captureFramesFromVideo();
@@ -186,7 +186,7 @@ export function FaceLoginModal({
               setTimeout(() => {
                 onSuccess(verifyRes.data);
                 handleClose();
-              }, 800);
+              }, 250);
             } else {
               setStatus('error');
               setErrorMessage(verifyRes.error || verifyRes.message || 'Face verification failed');
@@ -199,7 +199,7 @@ export function FaceLoginModal({
               setTimeout(() => {
                 onSuccess(enrollRes.data);
                 handleClose();
-              }, 800);
+              }, 250);
             } else {
               setStatus('error');
               setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed');
@@ -210,7 +210,7 @@ export function FaceLoginModal({
           setStatus('error');
           setErrorMessage(procErr.message || 'Error processing face verification payload');
         }
-      }, 1200);
+      }, 200);
 
     } catch (camErr: any) {
       stopCamera();
@@ -249,8 +249,8 @@ export function FaceLoginModal({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.85));
 
-    // Delay 300ms for temporal motion liveness delta across video stream
-    await new Promise(r => setTimeout(r, 300));
+    // Delay 100ms for temporal motion liveness delta across video stream
+    await new Promise(r => setTimeout(r, 100));
 
     // Frame 2
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);

@@ -254,12 +254,10 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     const bio = bioRows[0];
     const storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
 
-    // Extract submitted face embedding
-    const sampleEmbeddings = [];
-    for (const frame of parsedFrames) {
-      const emb = await extractFaceEmbedding(frame.buffer);
-      sampleEmbeddings.push(emb);
-    }
+    // Extract submitted face embeddings in parallel
+    const sampleEmbeddings = await Promise.all(
+      parsedFrames.map(frame => extractFaceEmbedding(frame.buffer))
+    );
 
     // Average sample embeddings
     const avgEmbedding = new Array(512).fill(0);
@@ -385,12 +383,10 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
 
     const parsedFrames = parseAndValidateFrames(frames);
 
-    // Extract sample face embeddings
-    const sampleEmbeddings = [];
-    for (const frame of parsedFrames) {
-      const emb = await extractFaceEmbedding(frame.buffer);
-      sampleEmbeddings.push(emb);
-    }
+    // Extract sample face embeddings in parallel
+    const sampleEmbeddings = await Promise.all(
+      parsedFrames.map(frame => extractFaceEmbedding(frame.buffer))
+    );
 
     // Average sample embeddings
     const avgEmbedding = new Array(512).fill(0);
