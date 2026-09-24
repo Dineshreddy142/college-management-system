@@ -15,7 +15,7 @@ import {
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD || '0.68');
+const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD || '0.48');
 
 // Middleware to check feature flag FACE_AUTH_ENABLED
 function checkFaceAuthFeatureFlag(req, res, next) {
@@ -27,7 +27,7 @@ function checkFaceAuthFeatureFlag(req, res, next) {
 }
 
 /**
- * Helper to resolve user by email, username, roll number, admission number, or employee ID
+ * Helper to resolve user by email, username, roll number, admission number, phone, or employee ID
  */
 async function findUserByIdentifier(identifier) {
   const loginIdentifier = (identifier || '').trim().toLowerCase();
@@ -37,8 +37,8 @@ async function findUserByIdentifier(identifier) {
     `SELECT u.*, r.name as role_name 
      FROM users u 
      JOIN roles r ON u.role_id = r.id 
-     WHERE LOWER(u.email) = ? OR LOWER(u.username) = ?`,
-    [loginIdentifier, loginIdentifier]
+     WHERE LOWER(u.email) = ? OR LOWER(u.username) = ? OR LOWER(u.phone) = ?`,
+    [loginIdentifier, loginIdentifier, loginIdentifier]
   );
 
   if (rows.length === 0) {
@@ -48,8 +48,8 @@ async function findUserByIdentifier(identifier) {
          FROM students s 
          JOIN users u ON s.user_id = u.id 
          JOIN roles r ON u.role_id = r.id 
-         WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ?`,
-        [loginIdentifier, loginIdentifier]
+         WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ? OR LOWER(s.phone) = ?`,
+        [loginIdentifier, loginIdentifier, loginIdentifier]
       );
       if (studentRows.length > 0) rows = studentRows;
       else {
@@ -58,8 +58,8 @@ async function findUserByIdentifier(identifier) {
            FROM faculty f 
            JOIN users u ON f.user_id = u.id 
            JOIN roles r ON u.role_id = r.id 
-           WHERE LOWER(f.employee_id) = ?`,
-          [loginIdentifier]
+           WHERE LOWER(f.employee_id) = ? OR LOWER(f.phone) = ?`,
+          [loginIdentifier, loginIdentifier]
         );
         if (facultyRows.length > 0) rows = facultyRows;
       }
@@ -81,21 +81,23 @@ router.get('/status', async (req, res) => {
 
   let targetUserId = null;
 
-  // Check Authorization token if no query identifier provided
-  const authHeader = req.headers['authorization'];
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    try {
-      const token = authHeader.split(' ')[1];
-      const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded && decoded.id) {
-        targetUserId = decoded.id;
-      }
-    } catch (e) {}
-  }
-
-  if (identifier && isEnabled && !targetUserId) {
+  if (identifier && isEnabled) {
     const user = await findUserByIdentifier(identifier);
     if (user) targetUserId = user.id;
+  }
+
+  // Check Authorization token if targetUserId not resolved by query identifier
+  if (!targetUserId) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded && decoded.id) {
+          targetUserId = decoded.id;
+        }
+      } catch (e) {}
+    }
   }
 
   if (targetUserId && isEnabled) {

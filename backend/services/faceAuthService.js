@@ -314,18 +314,23 @@ export async function extractFaceEmbedding(frameBuffer) {
     const ultraInput = new ort.Tensor('float32', ultraFloat, [1, 3, 240, 320]);
     const ultraRes = await ultraSession.run({ [ultraSession.inputNames[0]]: ultraInput });
     const scores = ultraRes['scores'].data; // [1, 4420, 2]
+    const boxes = ultraRes['boxes'].data;   // [1, 4420, 4] -> [xmin, ymin, xmax, ymax]
 
     let maxFaceScore = 0;
+    let maxFaceIndex = -1;
     let highConfFacesCount = 0;
     for (let i = 0; i < 4420; i++) {
       const faceScore = scores[i * 2 + 1];
-      if (faceScore > maxFaceScore) maxFaceScore = faceScore;
+      if (faceScore > maxFaceScore) {
+        maxFaceScore = faceScore;
+        maxFaceIndex = i;
+      }
       if (faceScore > 0.65) highConfFacesCount++;
     }
 
     // Check face presence threshold
-    if (maxFaceScore < 0.20) {
-      const err = new Error('No face detected. Please position your face inside the camera.');
+    if (maxFaceScore < 0.20 || maxFaceIndex === -1) {
+      const err = new Error('No face detected. Please position your face inside the camera view.');
       err.code = 'FACE_NOT_DETECTED';
       throw err;
     }
@@ -336,14 +341,43 @@ export async function extractFaceEmbedding(frameBuffer) {
       throw err;
     }
 
-    // 3. Extract 512-d Face Embedding with MobileFaceNet
+    // 3. Extract Face Bounding Box & Apply 15% Margin Crop
+    let cropX = 0;
+    let cropY = 0;
+    let cropW = srcW;
+    let cropH = srcH;
+
+    if (boxes && boxes.length >= (maxFaceIndex + 1) * 4) {
+      let xmin = Math.max(0, Math.min(1, boxes[maxFaceIndex * 4]));
+      let ymin = Math.max(0, Math.min(1, boxes[maxFaceIndex * 4 + 1]));
+      let xmax = Math.max(0, Math.min(1, boxes[maxFaceIndex * 4 + 2]));
+      let ymax = Math.max(0, Math.min(1, boxes[maxFaceIndex * 4 + 3]));
+
+      if (xmax > xmin && ymax > ymin) {
+        let rawX = Math.floor(xmin * srcW);
+        let rawY = Math.floor(ymin * srcH);
+        let rawW = Math.max(1, Math.floor((xmax - xmin) * srcW));
+        let rawH = Math.max(1, Math.floor((ymax - ymin) * srcH));
+
+        // Add 15% padding margin around face box
+        const marginX = Math.floor(rawW * 0.15);
+        const marginY = Math.floor(rawH * 0.15);
+
+        cropX = Math.max(0, rawX - marginX);
+        cropY = Math.max(0, rawY - marginY);
+        cropW = Math.min(srcW - cropX, rawW + 2 * marginX);
+        cropH = Math.min(srcH - cropY, rawH + 2 * marginY);
+      }
+    }
+
+    // 4. Extract 512-d Face Embedding from Cropped Face with MobileFaceNet
     const mobileSession = await getMobileFaceNetSession();
     const mobileFloat = new Float32Array(1 * 3 * 112 * 112);
     const channel112 = 112 * 112;
     for (let y = 0; y < 112; y++) {
-      const srcY = Math.min(srcH - 1, Math.floor((y / 112) * srcH));
+      const srcY = Math.min(srcH - 1, Math.floor(cropY + (y / 112) * cropH));
       for (let x = 0; x < 112; x++) {
-        const srcX = Math.min(srcW - 1, Math.floor((x / 112) * srcW));
+        const srcX = Math.min(srcW - 1, Math.floor(cropX + (x / 112) * cropW));
         const srcIdx = (srcY * srcW + srcX) * 4;
         const dstIdx = y * 112 + x;
 
@@ -358,7 +392,7 @@ export async function extractFaceEmbedding(frameBuffer) {
     const outputName = mobileSession.outputNames[0];
     const rawEmbedding = Array.from(mobileRes[outputName].data);
 
-    // 4. L2 Normalize 512-d vector
+    // 5. L2 Normalize 512-d vector
     let norm = Math.sqrt(rawEmbedding.reduce((s, v) => s + v * v, 0));
     if (norm === 0) norm = 1;
     return rawEmbedding.map(v => v / norm);
