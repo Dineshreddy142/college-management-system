@@ -37,8 +37,8 @@ async function findUserByIdentifier(identifier) {
     `SELECT u.*, r.name as role_name 
      FROM users u 
      JOIN roles r ON u.role_id = r.id 
-     WHERE LOWER(u.email) = ? OR LOWER(u.username) = ? OR LOWER(u.phone) = ?`,
-    [loginIdentifier, loginIdentifier, loginIdentifier]
+     WHERE LOWER(u.email) = ? OR LOWER(u.username) = ?`,
+    [loginIdentifier, loginIdentifier]
   );
 
   if (rows.length === 0) {
@@ -48,8 +48,8 @@ async function findUserByIdentifier(identifier) {
          FROM students s 
          JOIN users u ON s.user_id = u.id 
          JOIN roles r ON u.role_id = r.id 
-         WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ? OR LOWER(s.phone) = ?`,
-        [loginIdentifier, loginIdentifier, loginIdentifier]
+         WHERE LOWER(s.roll_number) = ? OR LOWER(s.admission_number) = ? OR LOWER(s.phone) = ? OR LOWER(s.email) = ?`,
+        [loginIdentifier, loginIdentifier, loginIdentifier, loginIdentifier]
       );
       if (studentRows.length > 0) rows = studentRows;
       else {
@@ -58,8 +58,8 @@ async function findUserByIdentifier(identifier) {
            FROM faculty f 
            JOIN users u ON f.user_id = u.id 
            JOIN roles r ON u.role_id = r.id 
-           WHERE LOWER(f.employee_id) = ? OR LOWER(f.phone) = ?`,
-          [loginIdentifier, loginIdentifier]
+           WHERE LOWER(f.employee_id) = ? OR LOWER(f.phone) = ? OR LOWER(f.email) = ?`,
+          [loginIdentifier, loginIdentifier, loginIdentifier]
         );
         if (facultyRows.length > 0) rows = facultyRows;
       }
@@ -178,7 +178,7 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
     });
   } catch (err) {
     console.error('[FACE AUTH NONCE ERROR]:', err);
-    return errorResponse(res, 'Failed to generate face authentication challenge', [], 500, { code: 'NONCE_ERROR' });
+    return errorResponse(res, err.message || 'Failed to generate face authentication challenge', [], 500, { code: 'NONCE_ERROR' });
   }
 });
 
