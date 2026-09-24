@@ -245,14 +245,17 @@ export function FaceLoginModal({
 
     const frames: string[] = [];
 
-    // Frame 1
+    // Frame 1 (0ms)
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Delay 200ms for temporal motion liveness delta across video stream
-    await new Promise(r => setTimeout(r, 200));
+    // Frame 2 (300ms)
+    await new Promise(r => setTimeout(r, 300));
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Frame 2
+    // Frame 3 (600ms)
+    await new Promise(r => setTimeout(r, 300));
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
@@ -349,7 +352,7 @@ export function FaceLoginModal({
             {status === 'camera_init' && (
               <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
                 <RefreshCw className="text-indigo-500 animate-spin" size={36} />
-                <p className="text-xs text-slate-300">Initializing camera & 256-bit challenge...</p>
+                <p className="text-xs text-slate-300">Initializing camera & anti-spoof protection...</p>
               </div>
             )}
 
@@ -364,7 +367,7 @@ export function FaceLoginModal({
 
                 <div className="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-400 flex items-center gap-2 border border-slate-800 pointer-events-none">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  Scanning Face...
+                  Live Face & Anti-Spoof Scan...
                 </div>
 
                 {/* Normal / Mirror Mode Toggle */}
