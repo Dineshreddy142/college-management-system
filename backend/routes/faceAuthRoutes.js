@@ -15,7 +15,7 @@ import {
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD || '0.85');
+const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD || '0.68');
 
 // Middleware to check feature flag FACE_AUTH_ENABLED
 function checkFaceAuthFeatureFlag(req, res, next) {
