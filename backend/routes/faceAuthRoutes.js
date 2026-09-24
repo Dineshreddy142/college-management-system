@@ -76,18 +76,34 @@ async function findUserByIdentifier(identifier) {
  */
 router.get('/status', async (req, res) => {
   const isEnabled = process.env.FACE_AUTH_ENABLED !== 'false';
-  const identifier = req.query.identifier;
+  let identifier = req.query.identifier;
   let isEnrolled = false;
 
-  if (identifier && isEnabled) {
+  let targetUserId = null;
+
+  // Check Authorization token if no query identifier provided
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded && decoded.id) {
+        targetUserId = decoded.id;
+      }
+    } catch (e) {}
+  }
+
+  if (identifier && isEnabled && !targetUserId) {
     const user = await findUserByIdentifier(identifier);
-    if (user) {
-      const [bioRows] = await pool.execute(
-        `SELECT id FROM face_biometrics WHERE user_id = ?`,
-        [user.id]
-      );
-      isEnrolled = bioRows.length > 0;
-    }
+    if (user) targetUserId = user.id;
+  }
+
+  if (targetUserId && isEnabled) {
+    const [bioRows] = await pool.execute(
+      `SELECT id FROM face_biometrics WHERE user_id = ?`,
+      [targetUserId]
+    );
+    isEnrolled = bioRows.length > 0;
   }
 
   return successResponse(res, 'Face auth service status', {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, ShieldCheck, AlertCircle, RefreshCw, X, CheckCircle, Zap } from 'lucide-react';
-import { requestFaceNonce, verifyFaceLogin, enrollFaceBiometrics } from '../api/faceAuthApi';
+import { Camera, ShieldCheck, AlertCircle, RefreshCw, X, CheckCircle, Zap, UserX, UserCheck } from 'lucide-react';
+import { requestFaceNonce, verifyFaceLogin, enrollFaceBiometrics, getFaceAuthStatus } from '../api/faceAuthApi';
 
 interface FaceLoginModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export function FaceLoginModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [cameraError, setCameraError] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<'idle' | 'checking' | 'registered' | 'not_registered'>('idle');
   
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -33,6 +34,35 @@ export function FaceLoginModal({
   useEffect(() => {
     if (identifier) setAccountIdentifier(identifier);
   }, [identifier]);
+
+  // Check enrollment status when account identifier changes in login mode
+  useEffect(() => {
+    if (isOpen && mode === 'login' && accountIdentifier.trim()) {
+      const timeoutId = setTimeout(() => {
+        checkUserRegistration(accountIdentifier.trim());
+      }, 400);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [accountIdentifier, isOpen, mode]);
+
+  const checkUserRegistration = async (id: string) => {
+    if (!id) return;
+    setEnrollmentStatus('checking');
+    try {
+      const res = await getFaceAuthStatus(id);
+      if (res.success && res.data) {
+        if (res.data.is_enrolled) {
+          setEnrollmentStatus('registered');
+        } else {
+          setEnrollmentStatus('not_registered');
+        }
+      } else {
+        setEnrollmentStatus('idle');
+      }
+    } catch {
+      setEnrollmentStatus('idle');
+    }
+  };
 
   // Clean camera tracks unconditionally
   const stopCamera = () => {
@@ -60,6 +90,7 @@ export function FaceLoginModal({
       stopCamera();
       setStatus('idle');
       setErrorMessage('');
+      setEnrollmentStatus('idle');
     }
   }, [isOpen]);
 
@@ -88,7 +119,12 @@ export function FaceLoginModal({
         if (!nonceRes.success || !nonceRes.data?.nonce) {
           stopCamera();
           setStatus('error');
-          setErrorMessage(nonceRes.error || 'Could not initialize face login challenge.');
+          if (nonceRes.code === 'BIOMETRIC_NOT_ENROLLED') {
+            setEnrollmentStatus('not_registered');
+            setErrorMessage('Face biometrics NOT registered for this account. Please log in with password to enroll your face.');
+          } else {
+            setErrorMessage(nonceRes.error || 'Could not initialize face login challenge.');
+          }
           return;
         }
         nonceRef.current = nonceRes.data.nonce;
@@ -191,7 +227,6 @@ export function FaceLoginModal({
     const video = videoRef.current;
     if (!video) return [];
 
-    // Wait up to 2 seconds if video dimensions are not ready yet
     let retries = 0;
     while ((!video.videoWidth || !video.videoHeight || video.readyState < 2) && retries < 10) {
       await new Promise(r => setTimeout(r, 200));
@@ -257,13 +292,36 @@ export function FaceLoginModal({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Account Email, Username, or Roll Number
               </label>
-              <input
-                type="text"
-                value={accountIdentifier}
-                onChange={e => setAccountIdentifier(e.target.value)}
-                placeholder="e.g. CS2021001 or admin@college.edu"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={accountIdentifier}
+                  onChange={e => setAccountIdentifier(e.target.value)}
+                  placeholder="e.g. CS2021001 or admin@college.edu"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Registration Status Indicator Badge */}
+              {accountIdentifier.trim() && (
+                <div className="flex items-center gap-2 pt-1">
+                  {enrollmentStatus === 'checking' && (
+                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <RefreshCw size={12} className="animate-spin" /> Checking registration status...
+                    </span>
+                  )}
+                  {enrollmentStatus === 'registered' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      <UserCheck size={14} /> Face Registered & Ready
+                    </span>
+                  )}
+                  {enrollmentStatus === 'not_registered' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                      <UserX size={14} /> Face Not Registered
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -334,7 +392,9 @@ export function FaceLoginModal({
             {status === 'error' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-3 bg-red-950/95 text-red-300 backdrop-blur-sm">
                 <AlertCircle size={44} className="text-red-400 animate-bounce" />
-                <p className="text-sm font-bold text-white">Verification Failed</p>
+                <p className="text-sm font-bold text-white">
+                  {enrollmentStatus === 'not_registered' ? 'Face Not Registered' : 'Verification Failed'}
+                </p>
               </div>
             )}
           </div>
