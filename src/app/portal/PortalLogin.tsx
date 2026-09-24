@@ -347,52 +347,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </select>
           </div>
 
-          {/* Interactive Login Method Tabs (Mobile & Desktop Visible Options) */}
-          <div className="grid grid-cols-3 gap-1 mb-5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={() => {
-                setError('');
-                setLoginMode('password');
-              }}
-              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                loginMode === 'password'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Lock size={13} /> Password
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError('');
-                setLoginMode('face');
-                setShowFaceModal(true);
-              }}
-              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                loginMode === 'face'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ShieldCheck size={13} /> Face ID
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError('');
-                setLoginMode('otp');
-              }}
-              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                loginMode === 'otp'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Send size={13} /> Email OTP
-            </button>
-          </div>
+
 
           {/* Account Locked Banner */}
           {accountLocked && (
@@ -422,162 +377,78 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </div>
           )}
 
-          {/* Standard Password Login Form */}
-          {loginMode === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+          {/* Standard Login Form */}
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in duration-200">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+              <input
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={config.placeholder}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Password</label>
+              <div className="relative">
                 <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={config.placeholder}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
-                  />
-                  <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
-                </label>
-                <Link 
-                  to={`/forgot-password?role=${effectiveRole}`} 
-                  className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-
-              <div className="pt-2 space-y-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
-                </button>
-
                 <button
                   type="button"
-                  onClick={() => setShowFaceModal(true)}
-                  className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-600"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  <ShieldCheck size={16} className="text-indigo-500" />
-                  Launch Face Unlock
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </form>
-          )}
+            </div>
 
-          {/* Email OTP / Authenticator Login Form */}
-          {loginMode === 'otp' && (
-            <form onSubmit={handleAuthenticatorSubmit} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={authIdentifier}
-                    onChange={(e) => setAuthIdentifier(e.target.value)}
-                    placeholder={config.placeholder}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm placeholder:text-slate-400"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={isSendingOtp || cooldown > 0}
-                    className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow disabled:opacity-50 shrink-0"
-                  >
-                    {isSendingOtp ? <Loader2 size={14} className="animate-spin" /> : cooldown > 0 ? `${cooldown}s` : 'Send Code'}
-                  </button>
-                </div>
-                {otpSent && (
-                  <p className="text-[11px] text-emerald-500 mt-1 flex items-center gap-1 font-semibold">
-                    <CheckCircle2 size={12} /> Verification code dispatched to {maskedEmail}
-                  </p>
-                )}
-                {devCodeHint && (
-                  <p className="text-[11px] text-amber-500 mt-0.5 font-mono">
-                    Dev OTP Hint: {devCodeHint}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1.5">6-Digit Authenticator Code</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={authCode}
-                  onChange={(e) => setAuthCode(e.target.value)}
-                  placeholder="e.g. 123456"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center font-mono tracking-widest text-lg text-slate-900 dark:text-white"
-                  required
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
                 />
-              </div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
+              </label>
+              <Link 
+                to={`/forgot-password?role=${effectiveRole}`} 
+                className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code & Sign In'}
-                </button>
-              </div>
-            </form>
-          )}
+            <div className="pt-2 space-y-2.5">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
+              </button>
 
-          {/* Direct Face Unlock Trigger Tab Mode */}
-          {loginMode === 'face' && (
-            <div className="py-4 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 flex items-center justify-center mx-auto shadow-lg">
-                <ShieldCheck size={32} />
-              </div>
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Face ID Authentication</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1">
-                  1:1 Passwordless facial biometric verification.
-                </p>
-              </div>
               <button
                 type="button"
                 onClick={() => setShowFaceModal(true)}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-600 shadow-sm"
               >
-                <ShieldCheck size={18} /> Open Camera Scanner
+                <ShieldCheck size={16} className="text-indigo-500" />
+                Login with Face ID
               </button>
             </div>
-          )}
+          </form>
 
           <FaceLoginModal
             isOpen={showFaceModal}
