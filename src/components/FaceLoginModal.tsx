@@ -234,12 +234,12 @@ export function FaceLoginModal({
       retries++;
     }
 
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 480;
+    const width = video.videoWidth || 480;
+    const height = video.videoHeight || 360;
 
     const canvas = canvasRef.current || document.createElement('canvas');
-    canvas.width = Math.min(640, width);
-    canvas.height = Math.min(480, height);
+    canvas.width = Math.min(480, width);
+    canvas.height = Math.min(360, height);
     const ctx = canvas.getContext('2d');
     if (!ctx) return [];
 
@@ -247,14 +247,14 @@ export function FaceLoginModal({
 
     // Frame 1
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    frames.push(canvas.toDataURL('image/jpeg', 0.85));
+    frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Delay 100ms for temporal motion liveness delta across video stream
-    await new Promise(r => setTimeout(r, 100));
+    // Delay 80ms for temporal motion liveness delta across video stream
+    await new Promise(r => setTimeout(r, 80));
 
     // Frame 2
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    frames.push(canvas.toDataURL('image/jpeg', 0.85));
+    frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
     return frames;
   };

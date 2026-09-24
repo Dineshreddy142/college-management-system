@@ -254,27 +254,11 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     const bio = bioRows[0];
     const storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
 
-    // Extract submitted face embeddings in parallel
-    const sampleEmbeddings = await Promise.all(
-      parsedFrames.map(frame => extractFaceEmbedding(frame.buffer))
-    );
-
-    // Average sample embeddings
-    const avgEmbedding = new Array(512).fill(0);
-    for (let i = 0; i < 512; i++) {
-      let sum = 0;
-      for (const emb of sampleEmbeddings) {
-        sum += emb[i];
-      }
-      avgEmbedding[i] = sum / sampleEmbeddings.length;
-    }
-    // L2 Normalize average vector
-    let norm = Math.sqrt(avgEmbedding.reduce((s, v) => s + v * v, 0));
-    if (norm === 0) norm = 1;
-    const normalizedAvg = avgEmbedding.map(v => v / norm);
+    // Fast 1:1 Vector Extraction from target live frame
+    const targetEmbedding = await extractFaceEmbedding(parsedFrames[0].buffer);
 
     // 1:1 Cosine Similarity Verification
-    const similarity = calculateCosineSimilarity(normalizedAvg, storedEmbedding);
+    const similarity = calculateCosineSimilarity(targetEmbedding, storedEmbedding);
     console.log(`[FACE AUTH VERIFY] User ${user.username} similarity score: ${similarity.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
 
     if (similarity < SIMILARITY_THRESHOLD) {
