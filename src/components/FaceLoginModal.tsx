@@ -23,6 +23,7 @@ export function FaceLoginModal({
   const [cameraError, setCameraError] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [enrollmentStatus, setEnrollmentStatus] = useState<'idle' | 'checking' | 'registered' | 'not_registered'>('idle');
+  const [isMirrored, setIsMirrored] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -331,6 +332,7 @@ export function FaceLoginModal({
               ref={videoRef}
               playsInline
               muted
+              style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }}
               className={`w-full h-full object-cover transition-opacity duration-300 ${status === 'scanning' ? 'opacity-100' : 'opacity-0 absolute'}`}
             />
             <canvas ref={canvasRef} className="hidden" />
@@ -353,20 +355,30 @@ export function FaceLoginModal({
 
             {/* Mobile-Style Oval Scanner Overlay */}
             {status === 'scanning' && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {/* Face Target Oval */}
-                <div className="w-56 h-72 rounded-[50%] border-2 border-indigo-400/80 shadow-[0_0_30px_rgba(99,102,241,0.3)] flex flex-col items-center justify-center relative overflow-hidden animate-pulse">
+                <div className="w-56 h-72 rounded-[50%] border-2 border-indigo-400/80 shadow-[0_0_30px_rgba(99,102,241,0.3)] flex flex-col items-center justify-center relative overflow-hidden animate-pulse pointer-events-none">
                   {/* Laser Scanning Line */}
                   <div className="w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_15px_#818cf8] animate-bounce" />
                 </div>
 
-                <div className="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-400 flex items-center gap-2 border border-slate-800">
+                <div className="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-400 flex items-center gap-2 border border-slate-800 pointer-events-none">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   Scanning Face...
                 </div>
 
+                {/* Normal / Mirror Mode Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsMirrored(!isMirrored)}
+                  className="absolute top-4 right-4 z-20 pointer-events-auto bg-slate-950/80 hover:bg-slate-900 text-slate-200 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-slate-700 backdrop-blur-md flex items-center gap-1.5 transition shadow-lg"
+                >
+                  <RefreshCw size={12} className={isMirrored ? "rotate-180 transition-transform" : "transition-transform"} />
+                  {isMirrored ? 'Mirrored' : 'Normal View'}
+                </button>
+
                 {mode === 'login' && (
-                  <div className="absolute bottom-4 right-4 bg-slate-950/80 text-slate-300 text-[10px] px-3 py-1 rounded-full border border-slate-800 backdrop-blur-md">
+                  <div className="absolute bottom-4 right-4 bg-slate-950/80 text-slate-300 text-[10px] px-3 py-1 rounded-full border border-slate-800 backdrop-blur-md pointer-events-none">
                     Nonce: {timeLeft}s
                   </div>
                 )}
