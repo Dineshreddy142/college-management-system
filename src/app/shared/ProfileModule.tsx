@@ -11,6 +11,7 @@ import {
 import { Card, Avatar, Badge, Btn } from "../App";
 import client from "../../api/client";
 import { FaceLoginModal } from "../../components/FaceLoginModal";
+import { deleteFaceBiometrics } from "../../api/faceAuthApi";
 
 
 export function ProfileModule() {
@@ -30,11 +31,31 @@ export function ProfileModule() {
   const [isFaceEnrolled, setIsFaceEnrolled] = useState<boolean | null>(null);
   
 
-  // Password Reset / Change State
   const [pwdState, setPwdState] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPwd, setIsChangingPwd] = useState(false);
   const [showPwdForm, setShowPwdForm] = useState(false);
   const [showFaceEnrollModal, setShowFaceEnrollModal] = useState(false);
+  const [showDeleteFaceConfirm, setShowDeleteFaceConfirm] = useState(false);
+  const [isDeletingFace, setIsDeletingFace] = useState(false);
+
+  const handleDeleteFace = async () => {
+    setIsDeletingFace(true);
+    try {
+      const res = await deleteFaceBiometrics();
+      if (res.success) {
+        setIsFaceEnrolled(false);
+        setShowDeleteFaceConfirm(false);
+        triggerToast('🗑️ Face biometrics deleted successfully!');
+        fetchProfile();
+      } else {
+        triggerToast(`❌ ${res.error || 'Failed to delete face biometrics.'}`);
+      }
+    } catch {
+      triggerToast('❌ Error deleting face biometrics.');
+    } finally {
+      setIsDeletingFace(false);
+    }
+  };
 
   // Streamlined Tabs State
   const [activeTab, setActiveTab] = useState<
@@ -807,16 +828,27 @@ export function ProfileModule() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowFaceEnrollModal(true)}
-                  className={`px-4 py-2.5 rounded-xl text-white font-extrabold text-xs shadow-lg flex items-center gap-2 transition shrink-0 ${
-                    isFaceEnrolled
-                      ? 'bg-slate-700 hover:bg-slate-600 border border-slate-600'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500'
-                  }`}
-                >
-                  <Camera className="w-4 h-4" /> {isFaceEnrolled ? 'Update Face Profile' : 'Enroll Face ID Now'}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowFaceEnrollModal(true)}
+                    className={`px-4 py-2.5 rounded-xl text-white font-extrabold text-xs shadow-lg flex items-center gap-2 transition ${
+                      isFaceEnrolled
+                        ? 'bg-slate-700 hover:bg-slate-600 border border-slate-600'
+                        : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500'
+                    }`}
+                  >
+                    <Camera className="w-4 h-4" /> {isFaceEnrolled ? 'Update Face Profile' : 'Enroll Face ID Now'}
+                  </button>
+
+                  {isFaceEnrolled === true && (
+                    <button
+                      onClick={() => setShowDeleteFaceConfirm(true)}
+                      className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-extrabold text-xs flex items-center gap-2 transition"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete Face ID
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Passkeys Card */}
@@ -966,6 +998,50 @@ export function ProfileModule() {
           triggerToast('✅ Face biometrics enrolled successfully!');
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteFaceConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/30">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Delete Face Biometrics?</h3>
+                <p className="text-xs text-slate-400">Remove registered facial template</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+              Are you sure you want to delete your registered face biometrics? You will no longer be able to use Face Unlock for passwordless login until you re-enroll.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteFaceConfirm(false)}
+                disabled={isDeletingFace}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteFace}
+                disabled={isDeletingFace}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-lg flex items-center gap-2 transition disabled:opacity-50"
+              >
+                {isDeletingFace ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" /> Yes, Delete Face Profile
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

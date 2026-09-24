@@ -50,6 +50,16 @@ export interface FaceEnrollResponse {
   error?: string;
 }
 
+export interface FaceDeleteResponse {
+  success: boolean;
+  message?: string;
+  code?: string;
+  data?: {
+    deleted: boolean;
+  };
+  error?: string;
+}
+
 /**
  * Fetch face authentication service status and enrollment status
  */
@@ -124,6 +134,23 @@ export async function enrollFaceBiometrics(frames: string[]): Promise<FaceEnroll
       success: false,
       code: data?.code || 'ENROLLMENT_ERROR',
       error: data?.message || data?.error || 'Face enrollment failed'
+    };
+  }
+}
+
+/**
+ * Delete user face biometrics (authenticated route)
+ */
+export async function deleteFaceBiometrics(): Promise<FaceDeleteResponse> {
+  try {
+    const res = await client.delete('/face/delete');
+    return res.data;
+  } catch (err: any) {
+    const data = err.response?.data;
+    return {
+      success: false,
+      code: data?.code || 'DELETE_ERROR',
+      error: data?.message || data?.error || 'Failed to delete face biometrics'
     };
   }
 }

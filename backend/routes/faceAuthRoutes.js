@@ -453,5 +453,33 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
   }
 });
 
+/**
+ * DELETE /api/face/delete
+ * Authenticated endpoint to delete registered face biometrics
+ */
+router.delete('/delete', authenticateToken, checkFaceAuthFeatureFlag, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [result] = await pool.execute(
+      `DELETE FROM face_biometrics WHERE user_id = ?`,
+      [userId]
+    );
+
+    await pool.execute(
+      `DELETE FROM face_failed_attempts WHERE user_id = ?`,
+      [userId]
+    );
+
+    return successResponse(res, 'Face biometrics deleted successfully', {
+      deleted: true,
+      affectedRows: result.affectedRows
+    });
+  } catch (err) {
+    console.error('[FACE DELETE ERROR]:', err);
+    return errorResponse(res, 'Failed to delete face biometrics', [], 500, { code: 'DELETE_ERROR' });
+  }
+});
+
 export default router;
 
