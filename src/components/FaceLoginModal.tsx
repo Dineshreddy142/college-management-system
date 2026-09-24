@@ -124,7 +124,7 @@ export function FaceLoginModal({
             setEnrollmentStatus('not_registered');
             setErrorMessage('Face biometrics NOT registered for this account. Please log in with password to enroll your face.');
           } else {
-            setErrorMessage(nonceRes.error || 'Could not initialize face login challenge.');
+            setErrorMessage(nonceRes.error || nonceRes.message || 'Could not initialize face login challenge.');
           }
           return;
         }
