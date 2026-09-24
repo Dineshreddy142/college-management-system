@@ -530,7 +530,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL,
         FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
         FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-        FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
       )
     `);
 
@@ -641,7 +641,7 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-        FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE,
         FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
       )
     `);

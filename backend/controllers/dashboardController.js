@@ -1,9 +1,6 @@
-import express from 'express';
-import pool from './db.js';
+import pool from '../db.js';
 
-const router = express.Router();
-
-router.get('/admin', async (req, res) => {
+export const getAdminDashboardStats = async (req, res) => {
     try {
         const [students] = await pool.execute('SELECT COUNT(*) as count FROM students').catch(() => [[{ count: 0 }]]);
         
@@ -54,9 +51,9 @@ router.get('/admin', async (req, res) => {
         console.error('Admin Dashboard Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.get('/faculty', async (req, res) => {
+export const getFacultyDashboardStats = async (req, res) => {
     try {
         res.json({
             classesToday: 0,
@@ -66,9 +63,9 @@ router.get('/faculty', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.get('/student', async (req, res) => {
+export const getStudentDashboardStats = async (req, res) => {
     try {
         res.json({
             attendance: '0%',
@@ -78,6 +75,29 @@ router.get('/student', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-export default router;
+export const getAnalyticsSummary = async (req, res) => {
+    try {
+        const [studentCount] = await pool.execute('SELECT COUNT(*) as count FROM students');
+        const [facultyCount] = await pool.execute('SELECT COUNT(*) as count FROM faculties');
+        const [courseCount] = await pool.execute('SELECT COUNT(*) as count FROM courses');
+        let pendingFeesStr = '₹0';
+        try {
+            const [feeResult] = await pool.execute('SELECT SUM(balance_amount) as total FROM student_fee_accounts WHERE status != "paid"');
+            const totalPending = feeResult[0]?.total || 0;
+            pendingFeesStr = totalPending > 100000 ? `₹${(totalPending / 100000).toFixed(1)}L` : `₹${Number(totalPending).toLocaleString('en-IN')}`;
+        } catch (fErr) {
+            // Table might be unpopulated or different status column
+        }
+
+        res.json({
+            totalStudents: studentCount[0]?.count || 0,
+            totalFaculty: facultyCount[0]?.count || 0,
+            activeCourses: courseCount[0]?.count || 0,
+            pendingFees: pendingFeesStr
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

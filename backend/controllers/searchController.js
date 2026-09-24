@@ -1,9 +1,6 @@
-import express from 'express';
-import pool from './db.js';
+import pool from '../db.js';
 
-const router = express.Router();
-
-router.get('/', async (req, res) => {
+export const globalSearch = async (req, res) => {
     try {
         const query = req.query.q;
         if (!query) return res.json([]);
@@ -27,6 +24,4 @@ router.get('/', async (req, res) => {
         console.error('Search Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
-
-export default router;
+};

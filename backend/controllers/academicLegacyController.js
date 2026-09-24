@@ -1,11 +1,6 @@
-import express from 'express';
-import pool from './db.js';
+import pool from '../db.js';
 
-const router = express.Router();
-
-// --- SUBJECTS API ---
-
-router.get('/subjects', async (req, res) => {
+export const getSubjectsLegacy = async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT s.*, d.name as department_name, c.name as course_name, ay.name as academic_year_name, sem.name as semester_name
@@ -21,9 +16,9 @@ router.get('/subjects', async (req, res) => {
     console.error('Error fetching subjects:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-router.post('/subjects', async (req, res) => {
+export const createSubjectLegacy = async (req, res) => {
   try {
     const { code, name, department_id, course_id, academic_year_id, semester_id, credits, theory_hours, lab_hours, tutorial_hours, subject_type } = req.body;
     const [result] = await pool.execute(
@@ -36,9 +31,9 @@ router.post('/subjects', async (req, res) => {
     console.error('Error creating subject:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-router.put('/subjects/:id', async (req, res) => {
+export const updateSubjectLegacy = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, credits, theory_hours, lab_hours, tutorial_hours, subject_type, status } = req.body;
@@ -51,11 +46,9 @@ router.put('/subjects/:id', async (req, res) => {
     console.error('Error updating subject:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-// --- ALLOCATIONS API ---
-
-router.get('/allocations', async (req, res) => {
+export const getAllocationsLegacy = async (req, res) => {
   try {
     let query = `
       SELECT sa.*, 
@@ -74,7 +67,6 @@ router.get('/allocations', async (req, res) => {
     `;
     const params = [];
     
-    // RBAC: If HOD, only see their department
     if (req.user && req.user.role === 'HOD' && req.user.department_id) {
         query += ` AND sa.department_id = ?`;
         params.push(req.user.department_id);
@@ -88,13 +80,12 @@ router.get('/allocations', async (req, res) => {
     console.error('Error fetching allocations:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-router.post('/allocations', async (req, res) => {
+export const createAllocationLegacy = async (req, res) => {
   try {
     const { department_id, course_id, academic_year_id, semester_id, section_id, subject_id, faculty_id, weekly_hours, academic_session, start_date, end_date } = req.body;
     
-    // Validation: Prevent duplicate allocation of same subject to same section (unless co-teaching is explicitly supported, but requirement says "Prevent assigning two Faculty to the same Subject and Section unless Co-Teaching is enabled")
     const [existing] = await pool.execute(
         `SELECT id FROM subject_allocations WHERE subject_id = ? AND section_id = ? AND faculty_id = ?`,
         [subject_id, section_id, faculty_id]
@@ -116,9 +107,9 @@ router.post('/allocations', async (req, res) => {
     console.error('Error creating allocation:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-router.delete('/allocations/:id', async (req, res) => {
+export const deleteAllocationLegacy = async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM subject_allocations WHERE id = ?', [id]);
@@ -127,11 +118,9 @@ router.delete('/allocations/:id', async (req, res) => {
     console.error('Error deleting allocation:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+};
 
-// --- METADATA ROUTES ---
-// To populate dropdowns in the frontend forms
-router.get('/metadata', async (req, res) => {
+export const getAcademicMetadata = async (req, res) => {
     try {
         const [departments] = await pool.execute('SELECT id, name, code FROM departments');
         const [courses] = await pool.execute('SELECT id, name, code FROM courses');
@@ -152,20 +141,18 @@ router.get('/metadata', async (req, res) => {
         console.error('Error fetching metadata:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-// --- NEW ACADEMIC ENTITIES (Sessions, Regulations, Curriculum, Promotions) ---
-
-router.get('/sessions', async (req, res) => {
+export const getAcademicSessions = async (req, res) => {
     try {
         const [rows] = await pool.execute('SELECT * FROM academic_sessions ORDER BY id DESC');
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.post('/sessions', async (req, res) => {
+export const createAcademicSession = async (req, res) => {
     try {
         const { name, start_date, end_date, status } = req.body;
         const [result] = await pool.execute(
@@ -176,18 +163,18 @@ router.post('/sessions', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.get('/regulations', async (req, res) => {
+export const getAcademicRegulations = async (req, res) => {
     try {
         const [rows] = await pool.execute('SELECT * FROM regulations ORDER BY effective_year DESC');
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.get('/curriculum', async (req, res) => {
+export const getCurriculumOverview = async (req, res) => {
     try {
         const [rows] = await pool.execute(`
             SELECT c.*, d.name as department_name, crs.name as course_name, r.name as regulation_name, ay.name as year_name, s.name as sem_name
@@ -202,9 +189,9 @@ router.get('/curriculum', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.post('/promote', async (req, res) => {
+export const promoteStudent = async (req, res) => {
     try {
         const { student_id, from_year, to_year, from_sem, to_sem } = req.body;
         const promoted_by = req.user ? req.user.id : null;
@@ -216,6 +203,4 @@ router.post('/promote', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
-
-export default router;
+};

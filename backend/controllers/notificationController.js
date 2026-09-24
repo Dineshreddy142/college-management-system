@@ -1,9 +1,6 @@
-import express from 'express';
-import pool from './db.js';
+import pool from '../db.js';
 
-const router = express.Router();
-
-router.get('/', async (req, res) => {
+export const getUserNotifications = async (req, res) => {
     try {
         const [rows] = await pool.execute(
             'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
@@ -14,9 +11,9 @@ router.get('/', async (req, res) => {
         console.error('Notifications Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
-router.put('/:id/read', async (req, res) => {
+export const markNotificationAsRead = async (req, res) => {
     try {
         await pool.execute(
             'UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
@@ -27,6 +24,4 @@ router.put('/:id/read', async (req, res) => {
         console.error('Notifications Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
-
-export default router;
+};

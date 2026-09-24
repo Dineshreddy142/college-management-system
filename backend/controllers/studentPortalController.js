@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import bcrypt from 'bcryptjs';
 
 // --- STUDENT SECURE CONTEXT RESOLVER HELPER ---
 const resolveStudentContext = async (userId) => {
@@ -26,9 +27,132 @@ const resolveStudentContext = async (userId) => {
   return students[0];
 };
 
-// --- STUDENT ENDPOINTS ---
+// --- CORE STUDENT PORTAL ENDPOINTS ---
+export const getStudentProfile = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT s.*, u.email, u.phone, u.name 
+       FROM Students s 
+       JOIN Users u ON s.user_id = u.id 
+       WHERE s.user_id = ?`,
+      [req.user.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ message: 'Student profile not found' });
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching profile' });
+  }
+};
 
-// GET /api/student/academic-context
+export const getStudentAttendance = async (req, res) => {
+  try {
+    const [studentRows] = await pool.query(`SELECT id FROM Students WHERE user_id = ?`, [req.user.id]);
+    if (studentRows.length === 0) return res.status(404).json({ message: 'Student not found' });
+    
+    const [rows] = await pool.query(
+      `SELECT a.*, sa.subject_name 
+       FROM Attendance a
+       JOIN SubjectAllocations sa ON a.allocation_id = sa.id
+       WHERE a.student_id = ?
+       ORDER BY a.date DESC LIMIT 30`,
+      [studentRows[0].id]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching attendance' });
+  }
+};
+
+export const getStudentAssignments = async (req, res) => {
+  try {
+    res.json([]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getStudentTimetable = async (req, res) => {
+  try {
+    const timetable = {
+      department: "Computer Science",
+      semester: "6",
+      section: "A",
+      batch: "2021-2025",
+      schedule: []
+    };
+    res.json(timetable);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAllStudents = async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT s.*, u.email, u.status FROM students s JOIN users u ON s.user_id = u.id');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+export const createStudent = async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const { first_name, last_name, email, admission_number, password } = req.body;
+
+    if (!email || !admission_number || !first_name) {
+      return res.status(400).json({ error: 'First name, email, and admission number are required' });
+    }
+    
+    const [roleRows] = await conn.execute('SELECT id FROM roles WHERE LOWER(name) = "student"');
+    if (roleRows.length === 0) {
+      throw new Error('Student role not found');
+    }
+    const roleId = roleRows[0].id;
+    const bcryptPassword = await bcrypt.hash(password || 'Student@123', 10);
+    const fullName = `${first_name} ${last_name || ''}`.trim();
+    
+    const [userRes] = await conn.execute(
+      'INSERT INTO users (username, full_name, password, email, role_id, status, must_change_password) VALUES (?, ?, ?, ?, ?, "active", 1)',
+      [admission_number, fullName, bcryptPassword, email, roleId]
+    );
+    
+    const userId = userRes.insertId;
+    
+    const [studentRes] = await conn.execute(
+      'INSERT INTO students (user_id, admission_number, first_name, last_name) VALUES (?, ?, ?, ?)',
+      [userId, admission_number, first_name, last_name || '']
+    );
+    
+    await conn.commit();
+    res.status(201).json({ success: true, id: studentRes.insertId, userId, message: 'Student created successfully' });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Create student error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
+  }
+};
+
+export const deleteStudent = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const [students] = await pool.execute('SELECT user_id FROM students WHERE id = ?', [studentId]);
+    if (students.length > 0) {
+      await pool.execute('DELETE FROM users WHERE id = ?', [students[0].user_id]);
+    }
+    res.json({ message: 'Student deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- STUDENT COURSE & ELECTIVE REGISTRATION ENDPOINTS ---
 export const getStudentAcademicContext = async (req, res) => {
   try {
     const studentCtx = await resolveStudentContext(req.user.id);
@@ -36,7 +160,6 @@ export const getStudentAcademicContext = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student academic record not found' });
     }
 
-    // Check active registration window status
     const [regWindows] = await pool.query(`
       SELECT status, start_date, end_date
       FROM registration_periods
@@ -76,7 +199,6 @@ export const getStudentAcademicContext = async (req, res) => {
   }
 };
 
-// GET /api/student/my-curriculum
 export const getStudentCurriculumSubjects = async (req, res) => {
   try {
     const studentCtx = await resolveStudentContext(req.user.id);
@@ -84,7 +206,6 @@ export const getStudentCurriculumSubjects = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student record not found' });
     }
 
-    // Find curriculum matching student context
     const [currRows] = await pool.query(`
       SELECT c.id as curriculum_id, c.total_credits, c.regulation_id, r.name as regulation_name
       FROM curriculums c
@@ -96,7 +217,6 @@ export const getStudentCurriculumSubjects = async (req, res) => {
 
     let curriculumId = currRows[0]?.curriculum_id;
 
-    // Fetch mapped curriculum subjects or fall back to subjects matching semester & program
     let mappedSubjects = [];
     if (curriculumId) {
       const [rows] = await pool.query(`
@@ -127,12 +247,10 @@ export const getStudentCurriculumSubjects = async (req, res) => {
       mappedSubjects = rows;
     }
 
-    // Categorize into Mandatory, Laboratory, and Elective Groups
     const mandatorySubjects = mappedSubjects.filter(s => s.is_compulsory && !s.is_elective && !s.is_lab);
     const laboratorySubjects = mappedSubjects.filter(s => s.is_lab);
     const electiveSubjects = mappedSubjects.filter(s => s.is_elective);
 
-    // Group electives by group name
     const electiveGroupsMap = {};
     electiveSubjects.forEach(sub => {
       const groupName = sub.elective_group || 'Professional Elective I';
@@ -149,7 +267,6 @@ export const getStudentCurriculumSubjects = async (req, res) => {
 
     const electiveGroups = Object.values(electiveGroupsMap);
 
-    // Fetch existing registrations for this student in this semester
     const [existingRegs] = await pool.query(`
       SELECT subject_id, registration_type, elective_group, status
       FROM student_subject_registrations
@@ -173,7 +290,6 @@ export const getStudentCurriculumSubjects = async (req, res) => {
   }
 };
 
-// GET /api/student/my-subjects
 export const getMyRegisteredSubjects = async (req, res) => {
   try {
     const studentCtx = await resolveStudentContext(req.user.id);
@@ -211,7 +327,6 @@ export const getMyRegisteredSubjects = async (req, res) => {
   }
 };
 
-// POST /api/student/registration/validate
 export const validateElectiveSelection = async (req, res) => {
   try {
     const { selected_elective_subject_ids } = req.body;
@@ -222,7 +337,6 @@ export const validateElectiveSelection = async (req, res) => {
 
     const selectedIds = Array.isArray(selected_elective_subject_ids) ? selected_elective_subject_ids : [];
 
-    // Fetch curriculum mapped electives
     const [electives] = await pool.query(`
       SELECT cs.subject_id, cs.elective_group, s.code, s.name, s.prerequisite
       FROM curriculum_subjects cs
@@ -230,7 +344,6 @@ export const validateElectiveSelection = async (req, res) => {
       WHERE cs.is_elective = 1 AND cs.status = 'Active'
     `);
 
-    // Enforce group validation (1 selection per group)
     const groups = {};
     selectedIds.forEach(id => {
       const el = electives.find(e => e.subject_id === Number(id));
@@ -254,7 +367,6 @@ export const validateElectiveSelection = async (req, res) => {
   }
 };
 
-// POST /api/student/registration/confirm
 export const confirmRegistration = async (req, res) => {
   try {
     const { selected_elective_subject_ids } = req.body;
@@ -263,7 +375,6 @@ export const confirmRegistration = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student record not found' });
     }
 
-    // Check registration window period status
     const [regWindows] = await pool.query(`
       SELECT status FROM registration_periods
       WHERE (department_id IS NULL OR department_id = ?)
@@ -276,7 +387,6 @@ export const confirmRegistration = async (req, res) => {
 
     const selectedElectiveIds = (Array.isArray(selected_elective_subject_ids) ? selected_elective_subject_ids : []).map(Number);
 
-    // Fetch curriculum subjects for this student context
     const [currRows] = await pool.query(`
       SELECT c.id as curriculum_id FROM curriculums c
       WHERE (c.course_id = ? OR c.department_id = ?) AND (c.semester_id = ? OR c.semester_id IS NULL)
@@ -307,7 +417,6 @@ export const confirmRegistration = async (req, res) => {
       mappedSubjects = rows;
     }
 
-    // Filter to insert: Mandatory subjects, Labs, and Selected Electives
     const subjectsToRegister = [];
 
     mappedSubjects.forEach(s => {
@@ -324,7 +433,6 @@ export const confirmRegistration = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No valid subjects found to register.' });
     }
 
-    // Insert into student_subject_registrations
     for (const item of subjectsToRegister) {
       await pool.query(`
         INSERT INTO student_subject_registrations
@@ -354,9 +462,6 @@ export const confirmRegistration = async (req, res) => {
   }
 };
 
-// --- ADMIN / HOD ENDPOINTS ---
-
-// GET /api/admin/registrations
 export const getAdminRegistrationReport = async (req, res) => {
   try {
     const { department_id, course_id, semester_id, section_id, status } = req.query;
@@ -421,7 +526,6 @@ export const getAdminRegistrationReport = async (req, res) => {
   }
 };
 
-// POST /api/admin/registration-periods/toggle
 export const toggleRegistrationPeriod = async (req, res) => {
   try {
     const { status, department_id, course_id } = req.body;
@@ -442,7 +546,6 @@ export const toggleRegistrationPeriod = async (req, res) => {
   }
 };
 
-// POST /api/admin/registrations/override
 export const adminOverrideRegistration = async (req, res) => {
   try {
     const { student_id, subject_id, action, reason } = req.body;
@@ -471,7 +574,6 @@ export const adminOverrideRegistration = async (req, res) => {
   }
 };
 
-// GET /api/admin/elective-analytics
 export const getElectiveAnalytics = async (req, res) => {
   try {
     const [rows] = await pool.query(`
