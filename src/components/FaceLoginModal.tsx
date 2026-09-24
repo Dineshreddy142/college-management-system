@@ -160,7 +160,7 @@ export function FaceLoginModal({
 
       setStatus('scanning');
 
-      // Allow camera stream to stabilize and give user 1s to align face in oval scanner
+      // Allow camera stream to stabilize and give user 2.2s to comfortably align face in oval scanner
       setTimeout(async () => {
         try {
           const capturedFrames = await captureFramesFromVideo();
@@ -210,7 +210,7 @@ export function FaceLoginModal({
           setStatus('error');
           setErrorMessage(procErr.message || 'Error processing face verification payload');
         }
-      }, 1000);
+      }, 2200);
 
     } catch (camErr: any) {
       stopCamera();
@@ -249,13 +249,13 @@ export function FaceLoginModal({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Frame 2 (300ms)
-    await new Promise(r => setTimeout(r, 300));
+    // Frame 2 (450ms)
+    await new Promise(r => setTimeout(r, 450));
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Frame 3 (600ms)
-    await new Promise(r => setTimeout(r, 300));
+    // Frame 3 (900ms)
+    await new Promise(r => setTimeout(r, 450));
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
