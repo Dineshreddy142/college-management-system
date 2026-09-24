@@ -260,11 +260,11 @@ export function FaceLoginModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col my-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="sticky top-0 z-20 flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
               <Camera size={20} />
@@ -273,7 +273,7 @@ export function FaceLoginModal({
               <h3 className="font-bold text-slate-900 dark:text-white text-base">
                 {mode === 'login' ? 'Face Unlock' : 'Enroll Face Biometrics'}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] text-slate-500">
                 {mode === 'login' ? 'Instant passwordless AI face verification' : 'Register your facial profile'}
               </p>
             </div>
@@ -287,9 +287,9 @@ export function FaceLoginModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4">
           {mode === 'login' && status === 'idle' && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Account Email, Username, or Roll Number
               </label>
@@ -299,7 +299,7 @@ export function FaceLoginModal({
                   value={accountIdentifier}
                   onChange={e => setAccountIdentifier(e.target.value)}
                   placeholder="e.g. CS2021001 or admin@college.edu"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -327,7 +327,7 @@ export function FaceLoginModal({
           )}
 
           {/* Camera Scanner Box */}
-          <div className="relative w-full aspect-square bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+          <div className="relative w-full max-w-[320px] aspect-square mx-auto bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
             <video
               ref={videoRef}
               playsInline

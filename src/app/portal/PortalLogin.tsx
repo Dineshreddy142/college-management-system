@@ -87,6 +87,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const [accountLocked, setAccountLocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showFaceModal, setShowFaceModal] = useState(false);
+  const [loginMode, setLoginMode] = useState<'password' | 'face' | 'otp'>('password');
 
   // Authenticator / 2FA Code State (Desktop Mode)
   const [authIdentifier, setAuthIdentifier] = useState('');
@@ -288,27 +289,40 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
         </div>
       </div>
 
-      {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 relative">
+      {/* Right side - Login Form Container */}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8 min-h-screen overflow-y-auto">
 
-        <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-5 sm:p-8">
+        <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-5 sm:p-8 my-auto">
           
-          {/* Header */}
+          {/* Mobile Branding Header */}
+          <div className="lg:hidden flex items-center justify-between mb-5 pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-md">
+                {config.icon}
+              </div>
+              <div>
+                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-none block">EduERP System</span>
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{config.badge}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Header */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <span>{config.icon}</span>
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <span className="hidden sm:inline">{config.icon}</span>
                 <span>{config.title}</span>
               </h2>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Sign in with your username or email and password.
+              Sign in securely with your institutional credentials.
             </p>
           </div>
 
           {/* Quick Portal Switcher Selector */}
-          <div className="mb-5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 shrink-0">
+          <div className="mb-4 p-2 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 shrink-0 pl-1">
               <span>Portal:</span>
             </span>
             <select
@@ -333,13 +347,60 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </select>
           </div>
 
+          {/* Interactive Login Method Tabs (Mobile & Desktop Visible Options) */}
+          <div className="grid grid-cols-3 gap-1 mb-5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setLoginMode('password');
+              }}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                loginMode === 'password'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Lock size={13} /> Password
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setLoginMode('face');
+                setShowFaceModal(true);
+              }}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                loginMode === 'face'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <ShieldCheck size={13} /> Face ID
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setLoginMode('otp');
+              }}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                loginMode === 'otp'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Send size={13} /> Email OTP
+            </button>
+          </div>
+
           {/* Account Locked Banner */}
           {accountLocked && (
-            <div className="mb-5 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 text-sm border border-red-200 dark:border-red-900/50 flex items-start gap-3">
-              <ShieldAlert className="text-red-600 shrink-0 mt-0.5" size={18} />
+            <div className="mb-4 p-3.5 rounded-xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 text-xs border border-red-200 dark:border-red-900/50 flex items-start gap-2.5">
+              <ShieldAlert className="text-red-600 shrink-0 mt-0.5" size={16} />
               <div>
                 <p className="font-bold">Account Temporarily Locked</p>
-                <p className="text-xs mt-1">
+                <p className="text-[11px] mt-0.5">
                   Multiple unsuccessful attempts recorded. Please contact your administrator or reset your password.
                 </p>
               </div>
@@ -348,7 +409,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
           {/* Warning Banner */}
           {!accountLocked && warningMessage && (
-            <div className="mb-5 p-3 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
               <ShieldAlert className="text-amber-600 shrink-0" size={16} />
               <span>{warningMessage}</span>
             </div>
@@ -356,88 +417,172 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
           {/* Error Banner */}
           {!accountLocked && error && (
-            <div className="mb-5 p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium border border-red-100 dark:border-red-900/50">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium border border-red-100 dark:border-red-900/50">
               {error}
             </div>
           )}
 
           {/* Standard Password Login Form */}
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in duration-300">
-            <div>
-              <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
-              <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={config.placeholder}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold mb-1.5">Password</label>
-              <div className="relative">
+          {loginMode === 'password' && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={config.placeholder}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+                  />
+                  <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
+                </label>
+                <Link 
+                  to={`/forgot-password?role=${effectiveRole}`} 
+                  className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
+                </button>
+
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  onClick={() => setShowFaceModal(true)}
+                  className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-600"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <ShieldCheck size={16} className="text-indigo-500" />
+                  Launch Face Unlock
                 </button>
               </div>
-            </div>
+            </form>
+          )}
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+          {/* Email OTP / Authenticator Login Form */}
+          {loginMode === 'otp' && (
+            <form onSubmit={handleAuthenticatorSubmit} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={authIdentifier}
+                    onChange={(e) => setAuthIdentifier(e.target.value)}
+                    placeholder={config.placeholder}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm placeholder:text-slate-400"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp || cooldown > 0}
+                    className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow disabled:opacity-50 shrink-0"
+                  >
+                    {isSendingOtp ? <Loader2 size={14} className="animate-spin" /> : cooldown > 0 ? `${cooldown}s` : 'Send Code'}
+                  </button>
+                </div>
+                {otpSent && (
+                  <p className="text-[11px] text-emerald-500 mt-1 flex items-center gap-1 font-semibold">
+                    <CheckCircle2 size={12} /> Verification code dispatched to {maskedEmail}
+                  </p>
+                )}
+                {devCodeHint && (
+                  <p className="text-[11px] text-amber-500 mt-0.5 font-mono">
+                    Dev OTP Hint: {devCodeHint}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">6-Digit Authenticator Code</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={authCode}
+                  onChange={(e) => setAuthCode(e.target.value)}
+                  placeholder="e.g. 123456"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center font-mono tracking-widest text-lg text-slate-900 dark:text-white"
+                  required
                 />
-                <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
-              </label>
-              <Link 
-                to={`/forgot-password?role=${effectiveRole}`} 
-                className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Forgot Password?
-              </Link>
-            </div>
+              </div>
 
-            <div className="pt-2 space-y-2.5">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
-              </button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code & Sign In'}
+                </button>
+              </div>
+            </form>
+          )}
 
+          {/* Direct Face Unlock Trigger Tab Mode */}
+          {loginMode === 'face' && (
+            <div className="py-4 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 flex items-center justify-center mx-auto shadow-lg">
+                <ShieldCheck size={32} />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Face ID Authentication</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1">
+                  1:1 Passwordless facial biometric verification.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowFaceModal(true)}
-                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-600"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShieldCheck size={16} className="text-indigo-500" />
-                Login with Face ID
+                <ShieldCheck size={18} /> Open Camera Scanner
               </button>
             </div>
-          </form>
+          )}
 
           <FaceLoginModal
             isOpen={showFaceModal}
             onClose={() => setShowFaceModal(false)}
-            identifier={identifier}
+            identifier={identifier || authIdentifier}
             mode="login"
             onSuccess={(data) => {
               if (data?.token && data?.user) {
@@ -447,7 +592,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             }}
           />
 
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400 lg:hidden">
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 text-center text-[11px] text-slate-500 dark:text-slate-400">
             &copy; {new Date().getFullYear()} College Management System. All rights reserved.
           </div>
         </div>
