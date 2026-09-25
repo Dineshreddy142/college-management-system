@@ -314,6 +314,92 @@ router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (r
     }
 });
 
+router.post('/admin/users/create', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const { username, full_name, email, password, role, employee_id, roll_number, department_id, designation } = req.body;
+
+        if (!username || !email || !password || !role) {
+            return errorResponse(res, 'Username, email, password, and role are required', [], 400);
+        }
+
+        const cleanUsername = username.trim();
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Check duplicate
+        const [existing] = await pool.execute(
+            'SELECT id FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?',
+            [cleanUsername.toLowerCase(), cleanEmail]
+        );
+
+        if (existing.length > 0) {
+            return errorResponse(res, 'A user account with this username or email already exists.', [], 400);
+        }
+
+        // Resolve role ID
+        const [roleRows] = await pool.execute(
+            'SELECT id, name FROM roles WHERE LOWER(name) = ?',
+            [role.trim().toLowerCase()]
+        );
+
+        let roleId;
+        let roleName = role;
+        if (roleRows.length > 0) {
+            roleId = roleRows[0].id;
+            roleName = roleRows[0].name;
+        } else {
+            const [newRole] = await pool.execute('INSERT INTO roles (name) VALUES (?)', [role]);
+            roleId = newRole.insertId;
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const displayName = (full_name || cleanUsername).trim();
+
+        const [userRes] = await pool.execute(
+            `INSERT INTO users (username, full_name, email, password, role_id, status, must_change_password)
+             VALUES (?, ?, ?, ?, ?, 'active', 1)`,
+            [cleanUsername, displayName, cleanEmail, passwordHash, roleId]
+        );
+
+        const newUserId = userRes.insertId;
+
+        // Create Faculty Record if role is Faculty / HOD
+        if (roleName.toLowerCase().includes('faculty') || roleName.toLowerCase().includes('hod')) {
+            const facultyEmpId = (employee_id || `FAC${newUserId.toString().padStart(4, '0')}`).trim();
+            await pool.execute(
+                `INSERT INTO faculty (user_id, employee_id, name, email, department_id, designation, status)
+                 VALUES (?, ?, ?, ?, ?, ?, 'Active')
+                 ON DUPLICATE KEY UPDATE employee_id = VALUES(employee_id), name = VALUES(name)`,
+                [newUserId, facultyEmpId, displayName, cleanEmail, department_id || null, designation || 'Assistant Professor']
+            ).catch(err => console.warn('[CREATE FACULTY NOTICE]:', err.message));
+        }
+
+        // Create Student Record if role is Student
+        if (roleName.toLowerCase().includes('student')) {
+            const studentRoll = (roll_number || `STU${newUserId.toString().padStart(4, '0')}`).trim();
+            await pool.execute(
+                `INSERT INTO students (user_id, roll_number, name, email, department_id, status)
+                 VALUES (?, ?, ?, ?, ?, 'Active')
+                 ON DUPLICATE KEY UPDATE roll_number = VALUES(roll_number), name = VALUES(name)`,
+                [newUserId, studentRoll, displayName, cleanEmail, department_id || null]
+            ).catch(err => console.warn('[CREATE STUDENT NOTICE]:', err.message));
+        }
+
+        await logActivity(req.user.id, 'USER_CREATED_BY_ADMIN', `Admin created ${roleName} account for ${cleanUsername} (${cleanEmail})`);
+
+        return successResponse(res, `New ${roleName} account created successfully! Credentials ready.`, {
+            id: newUserId,
+            username: cleanUsername,
+            email: cleanEmail,
+            role_name: roleName,
+            status: 'active',
+            face_enrolled: 0
+        }, 201);
+    } catch (error) {
+        console.error('Admin create user error:', error);
+        return errorResponse(res, 'Failed to create user credentials: ' + error.message, [error.message], 500);
+    }
+});
+
 router.post('/admin/users/toggle-status', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
     try {
         const { userId, status } = req.body;

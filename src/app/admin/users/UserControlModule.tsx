@@ -134,6 +134,76 @@ export const UserControlModule: React.FC = () => {
     }
   };
 
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [creatingUser, setCreatingUser] = useState<boolean>(false);
+  const [createdUserCredentials, setCreatedUserCredentials] = useState<any>(null);
+
+  const [createForm, setCreateForm] = useState({
+    role: 'Faculty',
+    username: '',
+    full_name: '',
+    email: '',
+    password: '',
+    employee_id: '',
+    roll_number: '',
+    designation: 'Assistant Professor'
+  });
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let rand = '';
+    for (let i = 0; i < 10; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCreateForm(prev => ({ ...prev, password: rand }));
+  };
+
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.username || !createForm.email || !createForm.password || !createForm.role) {
+      setFeedbackMsg({ type: 'error', text: 'Please fill out all required fields (username, email, password, role).' });
+      return;
+    }
+
+    setCreatingUser(true);
+    setFeedbackMsg(null);
+    setCreatedUserCredentials(null);
+
+    try {
+      const res = await client.post('/admin/users/create', createForm);
+      if (res.data?.success && res.data?.data) {
+        const newUser = res.data.data;
+        setUsers(prev => [newUser, ...prev]);
+        setCreatedUserCredentials({
+          username: createForm.username,
+          email: createForm.email,
+          password: createForm.password,
+          role: createForm.role,
+          id_number: createForm.employee_id || createForm.roll_number || `ID#${newUser.id}`
+        });
+        setFeedbackMsg({
+          type: 'success',
+          text: `✅ ${createForm.role} account created successfully for ${createForm.username}!`
+        });
+        setCreateForm({
+          role: 'Faculty',
+          username: '',
+          full_name: '',
+          email: '',
+          password: '',
+          employee_id: '',
+          roll_number: '',
+          designation: 'Assistant Professor'
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to create user:', err);
+      setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to create user credentials.' });
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => {
     const matchesSearch = 
       (u.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,18 +232,28 @@ export const UserControlModule: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Access Control</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Control user login permissions, block/unblock accounts, and manage institutional user security.
+            Control user login permissions, create faculty & student login credentials, and manage institutional user security.
           </p>
         </div>
 
-        <button
-          onClick={fetchUsers}
-          disabled={loading}
-          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh List</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowCreateModal(true); setCreatedUserCredentials(null); }}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+          >
+            <Sparkles size={16} />
+            <span>Create User Credentials</span>
+          </button>
+
+          <button
+            onClick={fetchUsers}
+            disabled={loading}
+            className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh List</span>
+          </button>
+        </div>
       </div>
 
       {/* Quick Summary Stats Cards */}
@@ -423,6 +503,212 @@ export const UserControlModule: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Create User Credentials Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Create Login Credentials</h3>
+                  <p className="text-[11px] text-slate-500">Generate new login access for Faculty, Students, or Staff</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleCreateUserSubmit} className="p-6 space-y-4">
+              {/* Role Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Account Role *
+                </label>
+                <select
+                  value={createForm.role}
+                  onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="Faculty">Faculty (Professor / Teacher)</option>
+                  <option value="HOD">Head of Department (HOD)</option>
+                  <option value="Student">Student</option>
+                  <option value="Parent">Parent</option>
+                  <option value="Office Staff">Office Staff</option>
+                  <option value="Accountant">Accountant</option>
+                  <option value="Librarian">Librarian</option>
+                  <option value="Placement Officer">Placement Officer</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Username */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.username}
+                    onChange={e => setCreateForm({ ...createForm, username: e.target.value })}
+                    placeholder="e.g. prof_john or EMP2024"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Full Name */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.full_name}
+                    onChange={e => setCreateForm({ ...createForm, full_name: e.target.value })}
+                    placeholder="e.g. Dr. John Smith"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={createForm.email}
+                  onChange={e => setCreateForm({ ...createForm, email: e.target.value })}
+                  placeholder="e.g. johnsmith@college.edu"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Password with Generator */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Initial Password *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    ⚡ Generate Password
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={createForm.password}
+                  onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
+                  placeholder="Password for initial login"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Faculty Employee ID / Student Roll Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {createForm.role.toLowerCase().includes('faculty') || createForm.role.toLowerCase().includes('hod') ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Employee ID
+                      </label>
+                      <input
+                        type="text"
+                        value={createForm.employee_id}
+                        onChange={e => setCreateForm({ ...createForm, employee_id: e.target.value })}
+                        placeholder="Optional (Auto-generated if empty)"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Designation
+                      </label>
+                      <select
+                        value={createForm.designation}
+                        onChange={e => setCreateForm({ ...createForm, designation: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="Assistant Professor">Assistant Professor</option>
+                        <option value="Associate Professor">Associate Professor</option>
+                        <option value="Professor">Professor</option>
+                        <option value="Head of Department">Head of Department (HOD)</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Student Roll / Admission No
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.roll_number}
+                      onChange={e => setCreateForm({ ...createForm, roll_number: e.target.value })}
+                      placeholder="Optional (Auto-generated if empty)"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Success Credential Display Banner */}
+              {createdUserCredentials && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold">
+                    <CheckCircle2 size={16} />
+                    <span>Credentials Ready — Share with user:</span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-950 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50 space-y-1 font-mono text-[11px] text-slate-800 dark:text-slate-200 select-all">
+                    <div><strong className="text-slate-500">Role:</strong> {createdUserCredentials.role}</div>
+                    <div><strong className="text-slate-500">Username:</strong> {createdUserCredentials.username}</div>
+                    <div><strong className="text-slate-500">Email:</strong> {createdUserCredentials.email}</div>
+                    <div><strong className="text-slate-500">Password:</strong> {createdUserCredentials.password}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Form Buttons */}
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={creatingUser}
+                  className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {creatingUser ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  <span>{creatingUser ? 'Creating Credentials...' : 'Create Account'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
