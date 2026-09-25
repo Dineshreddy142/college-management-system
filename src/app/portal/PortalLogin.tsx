@@ -308,43 +308,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
           </div>
 
           {/* Card Header */}
-          <div className="mb-4">
+          <div className="mb-5">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <span className="hidden sm:inline">{config.icon}</span>
-                <span>{config.title}</span>
+                <span>🏛️ Institutional Portal Login</span>
               </h2>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Sign in securely with your institutional credentials.
+              Sign in securely with your email, roll number, or employee ID.
             </p>
-          </div>
-
-          {/* Quick Portal Switcher Selector */}
-          <div className="mb-4 p-2 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 shrink-0 pl-1">
-              <span>Portal:</span>
-            </span>
-            <select
-              value={effectiveRole}
-              onChange={(e) => {
-                setError('');
-                setWarningMessage('');
-                navigate(`/${e.target.value}/login`);
-              }}
-              className="w-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="student">🎓 Student Portal</option>
-              <option value="faculty">👨‍🏫 Faculty Portal</option>
-              <option value="admin">🛡️ Administrator Portal</option>
-              <option value="hod">🏛️ Head of Dept (HOD) Portal</option>
-              <option value="parent">👨‍👩‍👧 Parent Portal</option>
-              <option value="placement">🏢 Placement Portal</option>
-              <option value="librarian">📚 Librarian Portal</option>
-              <option value="accountant">💰 Accountant Portal</option>
-              <option value="principal">👔 Principal Portal</option>
-              <option value="office">💼 Office Staff Portal</option>
-            </select>
           </div>
 
 
@@ -380,12 +352,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
           {/* Standard Login Form */}
           <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in duration-200">
             <div>
-              <label className="block text-xs font-semibold mb-1.5">{config.field}</label>
+              <label className="block text-xs font-semibold mb-1.5">Email, Roll No, or Employee ID</label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={config.placeholder}
+                placeholder="Enter email, roll number, or employee ID"
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
                 required
               />

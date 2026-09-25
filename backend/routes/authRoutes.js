@@ -140,17 +140,8 @@ router.post('/login', async (req, res) => {
             }
         }
 
+        // Automatic Role-Based Login: Ignore portal role mismatch and authenticate user directly
         const portalRole = req.body.portalRole || req.body.expectedRole || req.body.requiredRole;
-        if (!isRoleAllowedForPortal(user.role_name, portalRole || role)) {
-            await logActivity(user.id, 'LOGIN_ROLE_MISMATCH', `Attempted login to portal '${portalRole || role}' with DB role '${user.role_name}'`);
-
-            return res.status(403).json({
-                success: false,
-                code: 'ROLE_MISMATCH',
-                error: 'UNAUTHORIZED_PORTAL_ACCESS',
-                message: `This account is registered as '${user.role_name}'. Please log in through the ${user.role_name} Portal.`
-            });
-        }
 
         if (user.status !== 'active') {
             return errorResponse(res, 'Account is disabled or locked. Please contact admin.', [], 403);
