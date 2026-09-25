@@ -2522,7 +2522,9 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
       console.warn("Unauthorized API call detected.");
       logout();
     };
-    const handleForbidden = () => alert("Access Forbidden: You do not have permission for this action.");
+    const handleForbidden = () => {
+      console.warn("Access Forbidden: You do not have permission for this action.");
+    };
 
     window.addEventListener("auth-unauthorized", handleUnauthorized);
     window.addEventListener("auth-forbidden", handleForbidden);

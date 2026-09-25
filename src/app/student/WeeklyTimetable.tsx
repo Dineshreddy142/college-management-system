@@ -49,7 +49,7 @@ export function WeeklyTimetable() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedDay, setSelectedDay] = useState('All');
-  
+
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -72,14 +72,14 @@ export function WeeklyTimetable() {
     if (type === 'PDF') {
       const element = document.getElementById('timetable-content');
       if (!element) return;
-      
+
       try {
         const canvas = await html2canvas(element, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('landscape', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
+
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
         pdf.save('Weekly_Timetable.pdf');
       } catch (err) {
@@ -163,20 +163,20 @@ export function WeeklyTimetable() {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Weekly Class Timetable</h2>
           <p className="text-sm text-slate-500 mt-0.5">Current Week Schedule • {data.department} • Sem {data.semester} {data.section}</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search subject..." 
+            <input
+              type="text"
+              placeholder="Search subject..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-40 sm:w-auto"
             />
           </div>
-          <select 
-            value={selectedDay} 
+          <select
+            value={selectedDay}
             onChange={e => setSelectedDay(e.target.value)}
             className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none"
           >
@@ -228,14 +228,14 @@ export function WeeklyTimetable() {
                     {DAYS.map(day => {
                       const daySchedule = data.schedule.find(d => d.day === day);
                       const classDetails = daySchedule?.periods.find(p => p.period === period.p);
-                      
+
                       if (!classDetails || classDetails.type === 'Free') {
                         return <td key={day} className="p-2 border-b border-slate-100 dark:border-slate-800 align-top"><div className="h-full min-h-[100px] rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30" /></td>;
                       }
 
                       // If searching and this cell doesn't match, dim it significantly
-                      const matchesSearch = search === '' || 
-                        classDetails.subject.toLowerCase().includes(search.toLowerCase()) || 
+                      const matchesSearch = search === '' ||
+                        classDetails.subject.toLowerCase().includes(search.toLowerCase()) ||
                         classDetails.faculty.toLowerCase().includes(search.toLowerCase()) ||
                         classDetails.code.toLowerCase().includes(search.toLowerCase());
 
@@ -261,14 +261,14 @@ export function WeeklyTimetable() {
                                 Live Now
                               </div>
                             )}
-                            
+
                             <div className="flex justify-between items-start gap-1 mb-1">
                               <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{classDetails.type}</span>
                               <span className="text-[10px] font-mono bg-white/50 dark:bg-black/20 px-1.5 rounded">{classDetails.code}</span>
                             </div>
-                            
+
                             <h4 className="text-sm font-bold leading-tight mb-2 flex-grow">{classDetails.subject}</h4>
-                            
+
                             <div className="mt-auto space-y-1">
                               <p className="text-xs flex items-center justify-between opacity-90 font-medium truncate">
                                 <span>{classDetails.faculty}</span>
@@ -288,7 +288,7 @@ export function WeeklyTimetable() {
           </table>
         </div>
       </div>
-      
+
       <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-center text-xs font-medium text-slate-500">
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-blue-100 border border-blue-200"></div> Theory</div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-amber-100 border border-amber-200"></div> Lab</div>
