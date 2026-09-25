@@ -31,10 +31,19 @@ export interface FaceVerifyResponse {
     user: {
       id: number;
       username: string;
+      full_name?: string;
       email: string;
       role: string;
       role_id: number;
+      college_id?: string;
       must_change_password?: boolean | number;
+    };
+    matchDetails?: {
+      matched_name: string;
+      student_id: string;
+      role: string;
+      similarity_percent: string;
+      verified: boolean;
     };
   };
   error?: string;
@@ -66,7 +75,7 @@ export interface FaceDeleteResponse {
 export async function getFaceAuthStatus(identifier?: string): Promise<FaceAuthStatusResponse> {
   try {
     const res = await client.get('/face/status', {
-      params: { identifier }
+      params: { identifier: identifier || 'auto' }
     });
     return res.data;
   } catch (err: any) {
@@ -80,11 +89,11 @@ export async function getFaceAuthStatus(identifier?: string): Promise<FaceAuthSt
 }
 
 /**
- * Request a 256-bit single-use 15-second nonce for face verification
+ * Request a 256-bit single-use 15-second nonce for face verification / auto-detection
  */
-export async function requestFaceNonce(identifier: string): Promise<FaceNonceResponse> {
+export async function requestFaceNonce(identifier?: string): Promise<FaceNonceResponse> {
   try {
-    const res = await client.post('/face/nonce', { identifier });
+    const res = await client.post('/face/nonce', { identifier: identifier || 'auto' });
     return res.data;
   } catch (err: any) {
     const data = err.response?.data;
@@ -97,16 +106,16 @@ export async function requestFaceNonce(identifier: string): Promise<FaceNonceRes
 }
 
 /**
- * Verify captured face frames against 1:1 user biometric template
+ * Verify captured face frames against 1:1 user biometric template or 1:N auto-detection
  */
 export async function verifyFaceLogin(
-  identifier: string,
+  identifier: string | undefined,
   nonce: string,
   frames: string[]
 ): Promise<FaceVerifyResponse> {
   try {
     const res = await client.post('/face/verify', {
-      identifier,
+      identifier: identifier || 'auto',
       nonce,
       frames
     });

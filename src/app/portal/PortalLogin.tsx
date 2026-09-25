@@ -442,10 +442,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
               <button
                 type="button"
                 onClick={() => setShowFaceModal(true)}
-                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-600 shadow-sm"
+                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-[0.99]"
               >
-                <ShieldCheck size={16} className="text-indigo-500" />
-                Login with Face ID
+                <ShieldCheck size={18} className="text-amber-300 animate-pulse" />
+                ⚡ 1-Click Instant AI Face Unlock
               </button>
             </div>
           </form>

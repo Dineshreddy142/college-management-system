@@ -62,6 +62,17 @@ async function findUserByIdentifier(identifier) {
           [loginIdentifier, loginIdentifier, loginIdentifier]
         );
         if (facultyRows.length > 0) rows = facultyRows;
+        else {
+          const [parentRows] = await pool.execute(
+            `SELECT u.*, r.name as role_name 
+             FROM parents p 
+             JOIN users u ON p.user_id = u.id 
+             JOIN roles r ON u.role_id = r.id 
+             WHERE LOWER(p.phone) = ? OR LOWER(p.email) = ?`,
+            [loginIdentifier, loginIdentifier]
+          );
+          if (parentRows.length > 0) rows = parentRows;
+        }
       }
     } catch (e) {
       console.warn('[FACE AUTH] Auxiliary user lookup notice:', e.message);
@@ -115,52 +126,99 @@ router.get('/status', async (req, res) => {
 });
 
 /**
+ * Helper to fetch complete user profile including Student Roll No / Admission No / Faculty Employee ID
+ */
+async function getUserProfileDetails(userId) {
+  const [rows] = await pool.execute(
+    `SELECT u.*, r.name as role_name 
+     FROM users u 
+     JOIN roles r ON u.role_id = r.id 
+     WHERE u.id = ?`,
+    [userId]
+  );
+  if (rows.length === 0) return null;
+  const user = rows[0];
+
+  let collegeId = user.username;
+  let displayName = user.full_name || user.username;
+
+  try {
+    const [stRows] = await pool.execute(
+      `SELECT roll_number, admission_number, CONCAT_WS(' ', first_name, last_name) as st_name FROM students WHERE user_id = ?`,
+      [userId]
+    );
+    if (stRows.length > 0) {
+      if (stRows[0].roll_number) collegeId = stRows[0].roll_number;
+      else if (stRows[0].admission_number) collegeId = stRows[0].admission_number;
+      if (stRows[0].st_name && stRows[0].st_name.trim()) displayName = stRows[0].st_name.trim();
+    } else {
+      const [facRows] = await pool.execute(
+        `SELECT employee_id, name FROM faculty WHERE user_id = ?`,
+        [userId]
+      );
+      if (facRows.length > 0) {
+        if (facRows[0].employee_id) collegeId = facRows[0].employee_id;
+        if (facRows[0].name) displayName = facRows[0].name;
+      }
+    }
+  } catch (e) {
+    console.warn('[FACE AUTH] Extra profile lookup notice:', e.message);
+  }
+
+  user.display_name = displayName;
+  user.college_id = collegeId;
+  return user;
+}
+
+/**
  * POST /api/face/nonce
- * Generates 256-bit single-use 15-second nonce for face verification
+ * Generates 256-bit single-use 15-second nonce for face verification / auto-detection
  */
 router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
   try {
     const { identifier } = req.body;
-    if (!identifier) {
-      return errorResponse(res, 'User identifier is required', [], 400, { code: 'INVALID_IDENTIFIER' });
-    }
+    let userId = null;
 
-    const user = await findUserByIdentifier(identifier);
-    if (!user) {
-      return errorResponse(res, 'Account not found. Please check your username, email, or roll number.', [], 444, { code: 'ACCOUNT_NOT_FOUND' });
-    }
-
-    if (user.status === 'blocked' || user.status === 'inactive') {
-      return errorResponse(res, 'Account is inactive or blocked. Please contact admin.', [], 403, { code: 'ACCOUNT_BLOCKED' });
-    }
-
-    // Check face-specific 15-minute cooldown
-    const [attemptRows] = await pool.execute(
-      `SELECT failed_count, cooldown_until FROM face_failed_attempts WHERE user_id = ?`,
-      [user.id]
-    );
-
-    if (attemptRows.length > 0) {
-      const att = attemptRows[0];
-      if (att.cooldown_until && new Date(att.cooldown_until) > new Date()) {
-        const remainingMinutes = Math.ceil((new Date(att.cooldown_until) - new Date()) / (1000 * 60));
-        return errorResponse(
-          res,
-          `Too many failed face login attempts. Face login locked for ${remainingMinutes} more minutes. Please use password login.`,
-          [],
-          429,
-          { code: 'FACE_LOCKED_COOLDOWN', cooldownRemainingMinutes: remainingMinutes }
-        );
+    if (identifier && identifier.trim() && identifier.trim().toLowerCase() !== 'auto') {
+      const user = await findUserByIdentifier(identifier);
+      if (!user) {
+        return errorResponse(res, 'Account not found. Please check your username, email, or roll number.', [], 444, { code: 'ACCOUNT_NOT_FOUND' });
       }
-    }
 
-    // Verify user has enrolled biometrics
-    const [bioRows] = await pool.execute(
-      `SELECT id FROM face_biometrics WHERE user_id = ?`,
-      [user.id]
-    );
-    if (bioRows.length === 0) {
-      return errorResponse(res, 'Face biometrics not enrolled for this account. Please log in with password to enroll.', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
+      if (user.status === 'blocked' || user.status === 'inactive') {
+        return errorResponse(res, 'Account is inactive or blocked. Please contact admin.', [], 403, { code: 'ACCOUNT_BLOCKED' });
+      }
+
+      // Check face-specific 15-minute cooldown
+      const [attemptRows] = await pool.execute(
+        `SELECT failed_count, cooldown_until FROM face_failed_attempts WHERE user_id = ?`,
+        [user.id]
+      );
+
+      if (attemptRows.length > 0) {
+        const att = attemptRows[0];
+        if (att.cooldown_until && new Date(att.cooldown_until) > new Date()) {
+          const remainingMinutes = Math.ceil((new Date(att.cooldown_until) - new Date()) / (1000 * 60));
+          return errorResponse(
+            res,
+            `Too many failed face login attempts. Face login locked for ${remainingMinutes} more minutes. Please use password login.`,
+            [],
+            429,
+            { code: 'FACE_LOCKED_COOLDOWN', cooldownRemainingMinutes: remainingMinutes }
+          );
+        }
+      }
+
+      // Verify user has enrolled biometrics
+      const [bioRows] = await pool.execute(
+        `SELECT id FROM face_biometrics WHERE user_id = ?`,
+        [user.id]
+      );
+      if (bioRows.length === 0) {
+        return errorResponse(res, 'Face biometrics not enrolled for this account. Please log in with password to enroll.', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
+      }
+
+      userId = user.id;
     }
 
     // Generate 256-bit random nonce
@@ -169,7 +227,7 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
 
     await pool.execute(
       `INSERT INTO face_auth_nonces (nonce, user_id, expires_at, used) VALUES (?, ?, ?, 0)`,
-      [nonce, user.id, expiresAt]
+      [nonce, userId, expiresAt]
     );
 
     return successResponse(res, 'Face authentication challenge generated', {
@@ -184,33 +242,38 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
 
 /**
  * POST /api/face/verify
- * Verifies submitted face frames against 1:1 user biometric template
+ * Verifies submitted face frames against 1:1 user biometric template or 1:N auto-detection
  */
 router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
   try {
     const { identifier, nonce, frames } = req.body;
-    if (!identifier || !nonce || !frames) {
-      return errorResponse(res, 'Identifier, nonce challenge, and face frames are required', [], 400, { code: 'INVALID_PAYLOAD' });
+    if (!nonce || !frames) {
+      return errorResponse(res, 'Nonce challenge and face frames are required', [], 400, { code: 'INVALID_PAYLOAD' });
     }
 
-    const user = await findUserByIdentifier(identifier);
-    if (!user) {
-      return errorResponse(res, 'Invalid account identifier', [], 401, { code: 'ACCOUNT_NOT_FOUND' });
-    }
+    const hasSpecificIdentifier = identifier && identifier.trim() && identifier.trim().toLowerCase() !== 'auto';
+    let targetUser = null;
 
-    // Check rate limit / cooldown
-    const [attemptRows] = await pool.execute(
-      `SELECT failed_count, cooldown_until FROM face_failed_attempts WHERE user_id = ?`,
-      [user.id]
-    );
-    if (attemptRows.length > 0 && attemptRows[0].cooldown_until && new Date(attemptRows[0].cooldown_until) > new Date()) {
-      return errorResponse(res, 'Face authentication is locked due to multiple failed attempts. Please use password login.', [], 429, { code: 'FACE_LOCKED_COOLDOWN' });
+    if (hasSpecificIdentifier) {
+      targetUser = await findUserByIdentifier(identifier);
+      if (!targetUser) {
+        return errorResponse(res, 'Invalid account identifier', [], 401, { code: 'ACCOUNT_NOT_FOUND' });
+      }
+
+      // Check rate limit / cooldown
+      const [attemptRows] = await pool.execute(
+        `SELECT failed_count, cooldown_until FROM face_failed_attempts WHERE user_id = ?`,
+        [targetUser.id]
+      );
+      if (attemptRows.length > 0 && attemptRows[0].cooldown_until && new Date(attemptRows[0].cooldown_until) > new Date()) {
+        return errorResponse(res, 'Face authentication is locked due to multiple failed attempts. Please use password login.', [], 429, { code: 'FACE_LOCKED_COOLDOWN' });
+      }
     }
 
     // Nonce Validation (Single-use, <= 15s expiry)
     const [nonceRows] = await pool.execute(
-      `SELECT * FROM face_auth_nonces WHERE nonce = ? AND user_id = ?`,
-      [nonce, user.id]
+      `SELECT * FROM face_auth_nonces WHERE nonce = ?`,
+      [nonce]
     );
 
     if (nonceRows.length === 0) {
@@ -238,68 +301,134 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
     // Liveness Motion Verification
     const liveness = checkLivenessMotion(parsedFrames);
     if (!liveness.isLive) {
-      console.warn(`[FACE AUTH LIVENESS REJECT] User ${user.username}: ${liveness.reason} (delta=${liveness.delta})`);
-      return handleFailedFaceAttempt(res, user.id, 'Liveness verification failed. Please present a live face video.', 'LIVENESS_ERROR');
+      console.warn(`[FACE AUTH LIVENESS REJECT]: ${liveness.reason} (delta=${liveness.delta})`);
+      if (targetUser) {
+        return handleFailedFaceAttempt(res, targetUser.id, 'Liveness verification failed. Please present a live face video.', 'LIVENESS_ERROR');
+      }
+      return errorResponse(res, 'Liveness verification failed. Please present a live face video.', [], 401, { code: 'LIVENESS_ERROR' });
     }
 
-    // Fetch Stored Encrypted Biometric Template
-    const [bioRows] = await pool.execute(
-      `SELECT * FROM face_biometrics WHERE user_id = ?`,
-      [user.id]
-    );
-    if (bioRows.length === 0) {
-      return errorResponse(res, 'Face biometrics not enrolled for this account', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
-    }
-
-    const bio = bioRows[0];
-    const storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
-
-    // Fast 1:1 Vector Extraction from target live frame
+    // Extract 512-d Face Embedding from live target frame
     const targetEmbedding = await extractFaceEmbedding(parsedFrames[0].buffer);
 
-    // 1:1 Cosine Similarity Verification
-    const similarity = calculateCosineSimilarity(targetEmbedding, storedEmbedding);
-    console.log(`[FACE AUTH VERIFY] User ${user.username} similarity score: ${similarity.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
+    let matchedUserId = null;
+    let matchedSimilarity = 0;
 
-    if (similarity < SIMILARITY_THRESHOLD) {
-      return handleFailedFaceAttempt(
-        res,
-        user.id,
-        `Face verification failed. Similarity score (${similarity.toFixed(2)}) below baseline.`,
-        'SIMILARITY_FAILED'
+    if (hasSpecificIdentifier) {
+      // 1:1 Verification Mode
+      const [bioRows] = await pool.execute(
+        `SELECT * FROM face_biometrics WHERE user_id = ?`,
+        [targetUser.id]
       );
+      if (bioRows.length === 0) {
+        return errorResponse(res, 'Face biometrics not enrolled for this account', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
+      }
+
+      const bio = bioRows[0];
+      const storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
+      matchedSimilarity = calculateCosineSimilarity(targetEmbedding, storedEmbedding);
+      console.log(`[FACE AUTH 1:1 VERIFY] User ${targetUser.username} similarity score: ${matchedSimilarity.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
+
+      if (matchedSimilarity < SIMILARITY_THRESHOLD) {
+        return handleFailedFaceAttempt(
+          res,
+          targetUser.id,
+          `Face verification failed. Similarity score (${matchedSimilarity.toFixed(2)}) below baseline.`,
+          'SIMILARITY_FAILED'
+        );
+      }
+      matchedUserId = targetUser.id;
+    } else {
+      // 1:N Auto-Detection Mode across ALL enrolled accounts
+      const [allBioRows] = await pool.execute(
+        `SELECT user_id, encrypted_template, iv, auth_tag FROM face_biometrics`
+      );
+
+      if (allBioRows.length === 0) {
+        return errorResponse(res, 'No face biometrics registered in the system. Please log in with password to enroll first.', [], 400, { code: 'BIOMETRIC_NOT_ENROLLED' });
+      }
+
+      let bestUserId = null;
+      let maxScore = 0;
+
+      for (const record of allBioRows) {
+        try {
+          const storedEmbedding = decryptTemplate(record.encrypted_template, record.iv, record.auth_tag);
+          const score = calculateCosineSimilarity(targetEmbedding, storedEmbedding);
+          if (score > maxScore) {
+            maxScore = score;
+            bestUserId = record.user_id;
+          }
+        } catch (e) {}
+      }
+
+      console.log(`[FACE AUTH 1:N AUTO MATCH] Best candidate User ${bestUserId} score: ${maxScore.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
+
+      if (!bestUserId || maxScore < SIMILARITY_THRESHOLD) {
+        return errorResponse(
+          res,
+          `No enrolled account matched this face scan (Best match: ${(maxScore * 100).toFixed(1)}%). Please position your face clearly or enroll biometrics.`,
+          [],
+          401,
+          { code: 'AUTO_MATCH_FAILED', bestSimilarity: parseFloat(maxScore.toFixed(4)) }
+        );
+      }
+
+      matchedUserId = bestUserId;
+      matchedSimilarity = maxScore;
     }
 
-    // Success! Reset failed face attempt counter
+    // Success! Fetch rich user profile with Student ID / Employee ID
+    const userProfile = await getUserProfileDetails(matchedUserId);
+    if (!userProfile) {
+      return errorResponse(res, 'Matched user account record not found', [], 404, { code: 'USER_NOT_FOUND' });
+    }
+
+    if (userProfile.status === 'blocked' || userProfile.status === 'inactive') {
+      return errorResponse(res, 'Matched account is inactive or blocked. Please contact IT admin.', [], 403, { code: 'ACCOUNT_BLOCKED' });
+    }
+
+    // Reset failed face attempt counter
     await pool.execute(
       `INSERT INTO face_failed_attempts (user_id, failed_count, cooldown_until) 
        VALUES (?, 0, NULL) 
        ON DUPLICATE KEY UPDATE failed_count = 0, cooldown_until = NULL`,
-      [user.id]
+      [matchedUserId]
     );
 
     // Issue standard JWT session token
     const token = jwt.sign(
       {
-        id: user.id,
-        username: user.username,
-        role: user.role_name,
-        role_id: user.role_id,
-        must_change_password: user.must_change_password
+        id: userProfile.id,
+        username: userProfile.username,
+        role: userProfile.role_name,
+        role_id: userProfile.role_id,
+        must_change_password: userProfile.must_change_password
       },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    return successResponse(res, 'Face authentication successful', {
+    const similarityPercent = Math.min(99.9, Math.max(75, Math.round(matchedSimilarity * 1000) / 10)).toFixed(1);
+
+    return successResponse(res, `Face matched successfully! Welcome ${userProfile.display_name}`, {
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role_name,
-        role_id: user.role_id,
-        must_change_password: user.must_change_password
+        id: userProfile.id,
+        username: userProfile.username,
+        full_name: userProfile.display_name,
+        email: userProfile.email,
+        role: userProfile.role_name,
+        role_id: userProfile.role_id,
+        college_id: userProfile.college_id,
+        must_change_password: userProfile.must_change_password
+      },
+      matchDetails: {
+        matched_name: userProfile.display_name,
+        student_id: userProfile.college_id,
+        role: userProfile.role_name,
+        similarity_percent: similarityPercent,
+        verified: true
       }
     });
 

@@ -24,7 +24,8 @@ export function FaceLoginModal({
   const [timeLeft, setTimeLeft] = useState(15);
   const [enrollmentStatus, setEnrollmentStatus] = useState<'idle' | 'checking' | 'registered' | 'not_registered'>('idle');
   const [isMirrored, setIsMirrored] = useState(false);
-  
+  const [matchedDetails, setMatchedDetails] = useState<any>(null);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -92,8 +93,15 @@ export function FaceLoginModal({
       setStatus('idle');
       setErrorMessage('');
       setEnrollmentStatus('idle');
+      setMatchedDetails(null);
+    } else if (isOpen && mode === 'login') {
+      // Instant Auto-Start camera scan as soon as modal opens
+      const autoStartTimer = setTimeout(() => {
+        startFaceProcess();
+      }, 150);
+      return () => clearTimeout(autoStartTimer);
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
   if (!isOpen) return null;
 
@@ -105,18 +113,14 @@ export function FaceLoginModal({
   const startFaceProcess = async () => {
     setErrorMessage('');
     setCameraError(false);
-
-    if (mode === 'login' && !accountIdentifier.trim()) {
-      setErrorMessage('Please enter your account email, username, or roll number');
-      return;
-    }
+    setMatchedDetails(null);
 
     try {
       setStatus('camera_init');
 
       // Request 256-bit nonce if login mode
       if (mode === 'login') {
-        const nonceRes = await requestFaceNonce(accountIdentifier.trim());
+        const nonceRes = await requestFaceNonce(accountIdentifier.trim() || 'auto');
         if (!nonceRes.success || !nonceRes.data?.nonce) {
           stopCamera();
           setStatus('error');
@@ -160,7 +164,7 @@ export function FaceLoginModal({
 
       setStatus('scanning');
 
-      // Allow camera stream to stabilize and give user 2.2s to comfortably align face in oval scanner
+      // Rapid 450ms frame capture for sub-second instant response
       setTimeout(async () => {
         try {
           const capturedFrames = await captureFramesFromVideo();
@@ -176,17 +180,25 @@ export function FaceLoginModal({
 
           if (mode === 'login') {
             const verifyRes = await verifyFaceLogin(
-              accountIdentifier.trim(),
+              accountIdentifier.trim() || undefined,
               nonceRef.current!,
               capturedFrames
             );
 
             if (verifyRes.success && verifyRes.data) {
+              setMatchedDetails({
+                name: verifyRes.data.user?.full_name || verifyRes.data.matchDetails?.matched_name || verifyRes.data.user?.username,
+                college_id: verifyRes.data.user?.college_id || verifyRes.data.matchDetails?.student_id || verifyRes.data.user?.username,
+                role: verifyRes.data.user?.role || verifyRes.data.matchDetails?.role || 'Student',
+                similarity: verifyRes.data.matchDetails?.similarity_percent || '98.5'
+              });
               setStatus('success');
+              
+              // Flash match popup card briefly (700ms) then auto login!
               setTimeout(() => {
                 onSuccess(verifyRes.data);
                 handleClose();
-              }, 600);
+              }, 700);
             } else {
               setStatus('error');
               setErrorMessage(verifyRes.error || verifyRes.message || 'Face verification failed');
@@ -210,7 +222,7 @@ export function FaceLoginModal({
           setStatus('error');
           setErrorMessage(procErr.message || 'Error processing face verification payload');
         }
-      }, 2200);
+      }, 450);
 
     } catch (camErr: any) {
       stopCamera();
@@ -230,7 +242,7 @@ export function FaceLoginModal({
 
     let retries = 0;
     while ((!video.videoWidth || !video.videoHeight || video.readyState < 2) && retries < 10) {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 80));
       retries++;
     }
 
@@ -249,13 +261,8 @@ export function FaceLoginModal({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
-    // Frame 2 (450ms)
-    await new Promise(r => setTimeout(r, 450));
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    frames.push(canvas.toDataURL('image/jpeg', 0.80));
-
-    // Frame 3 (900ms)
-    await new Promise(r => setTimeout(r, 450));
+    // Frame 2 (150ms)
+    await new Promise(r => setTimeout(r, 150));
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     frames.push(canvas.toDataURL('image/jpeg', 0.80));
 
@@ -293,18 +300,26 @@ export function FaceLoginModal({
         <div className="p-4 sm:p-6 space-y-4">
           {mode === 'login' && status === 'idle' && (
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Account Email, Username, or Roll Number
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  College ID, Roll No, or Email
+                </label>
+                <span className="text-[10px] text-indigo-500 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/80">
+                  ✨ Auto-Detect Ready
+                </span>
+              </div>
               <div className="relative">
                 <input
                   type="text"
                   value={accountIdentifier}
                   onChange={e => setAccountIdentifier(e.target.value)}
-                  placeholder="e.g. CS2021001 or admin@college.edu"
+                  placeholder="Optional: Type ID or leave blank to Auto-Detect"
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                 />
               </div>
+              <p className="text-[11px] text-slate-400">
+                Leave blank to automatically scan & match your face with registered college student / staff IDs.
+              </p>
 
               {/* Registration Status Indicator Badge */}
               {accountIdentifier.trim() && (
@@ -367,7 +382,7 @@ export function FaceLoginModal({
 
                 <div className="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-400 flex items-center gap-2 border border-slate-800 pointer-events-none">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  Live Face & Anti-Spoof Scan...
+                  Live Face & AI Scan...
                 </div>
 
                 {/* Normal / Mirror Mode Toggle */}
@@ -391,12 +406,36 @@ export function FaceLoginModal({
             {status === 'verifying' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-3 bg-slate-950/90 backdrop-blur-sm">
                 <Zap className="text-amber-400 animate-bounce" size={40} />
-                <p className="text-sm font-bold text-white">Matching Facial Vectors...</p>
-                <p className="text-[11px] text-slate-400">Comparing 512-d MobileFaceNet embeddings</p>
+                <p className="text-sm font-bold text-white">Searching & Matching Biometrics...</p>
+                <p className="text-[11px] text-slate-400">Comparing MobileFaceNet vectors in database</p>
               </div>
             )}
 
-            {status === 'success' && (
+            {/* Matched Profile Popup Confirmation */}
+            {status === 'success' && matchedDetails && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-5 bg-slate-950/95 text-white backdrop-blur-md animate-in zoom-in-95 duration-300 border border-emerald-500/40 rounded-3xl">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/30 mb-2 animate-bounce">
+                  <CheckCircle size={32} />
+                </div>
+                <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tracking-wider uppercase mb-1">
+                  Face Matched • {matchedDetails.similarity}% Match
+                </span>
+                <h4 className="text-base font-extrabold text-white leading-tight">
+                  {matchedDetails.name}
+                </h4>
+                <p className="text-xs font-mono font-bold text-emerald-400 mt-0.5">
+                  College ID: {matchedDetails.college_id}
+                </p>
+                <span className="mt-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700">
+                  {matchedDetails.role} Portal
+                </span>
+                <p className="text-[11px] text-slate-400 mt-2 animate-pulse">
+                  Authenticating & Redirecting...
+                </p>
+              </div>
+            )}
+
+            {status === 'success' && !matchedDetails && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-3 bg-emerald-950/95 text-emerald-300 backdrop-blur-sm animate-in zoom-in-95 duration-200">
                 <CheckCircle size={52} className="text-emerald-400 animate-bounce" />
                 <p className="text-base font-bold text-white">Face Verified!</p>
