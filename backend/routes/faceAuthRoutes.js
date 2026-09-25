@@ -17,6 +17,13 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD || '0.48');
 
+// Ensure sample_image column exists in face_biometrics table
+(async () => {
+  try {
+    await pool.execute(`ALTER TABLE face_biometrics ADD COLUMN sample_image LONGTEXT NULL`);
+  } catch (e) {}
+})();
+
 // Middleware to check feature flag FACE_AUTH_ENABLED
 function checkFaceAuthFeatureFlag(req, res, next) {
   const isEnabled = process.env.FACE_AUTH_ENABLED !== 'false';
@@ -422,6 +429,26 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    // Retrieve registered face biometric image
+    let storedFaceImage = null;
+    try {
+      const [bioImgRows] = await pool.execute(
+        `SELECT sample_image FROM face_biometrics WHERE user_id = ?`,
+        [matchedUserId]
+      );
+      if (bioImgRows.length > 0 && bioImgRows[0].sample_image) {
+        storedFaceImage = bioImgRows[0].sample_image;
+      }
+    } catch (e) {}
+
+    // Fallback to currently scanned frame if stored image sample is missing
+    if (!storedFaceImage && parsedFrames && parsedFrames[0] && parsedFrames[0].buffer) {
+      storedFaceImage = `data:image/jpeg;base64,${parsedFrames[0].buffer.toString('base64')}`;
+      try {
+        await pool.execute(`UPDATE face_biometrics SET sample_image = ? WHERE user_id = ?`, [storedFaceImage, matchedUserId]);
+      } catch (e) {}
+    }
+
     const similarityPercent = Math.min(99.9, Math.max(75, Math.round(matchedSimilarity * 1000) / 10)).toFixed(1);
 
     return successResponse(res, `Face matched successfully! Welcome ${userProfile.display_name}`, {
@@ -434,6 +461,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
         role: userProfile.role_name,
         role_id: userProfile.role_id,
         college_id: userProfile.college_id,
+        stored_face_image: storedFaceImage,
         must_change_password: userProfile.must_change_password
       },
       matchDetails: {
@@ -441,6 +469,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
         student_id: userProfile.college_id,
         role: userProfile.role_name,
         similarity_percent: similarityPercent,
+        stored_face_image: storedFaceImage,
         verified: true
       }
     });
@@ -555,15 +584,16 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
 
     // Encrypt template with AES-256-GCM
     const encrypted = encryptTemplate(normalizedAvg);
+    const sampleImage = parsedFrames[0] ? `data:image/jpeg;base64,${parsedFrames[0].buffer.toString('base64')}` : null;
 
     // Save/Update in face_biometrics
     await pool.execute(
-      `INSERT INTO face_biometrics (user_id, encrypted_template, iv, auth_tag, algorithm) 
-       VALUES (?, ?, ?, ?, ?) 
-       ON DUPLICATE KEY UPDATE encrypted_template = ?, iv = ?, auth_tag = ?, algorithm = ?, updated_at = CURRENT_TIMESTAMP`,
+      `INSERT INTO face_biometrics (user_id, encrypted_template, iv, auth_tag, algorithm, sample_image) 
+       VALUES (?, ?, ?, ?, ?, ?) 
+       ON DUPLICATE KEY UPDATE encrypted_template = ?, iv = ?, auth_tag = ?, algorithm = ?, sample_image = ?, updated_at = CURRENT_TIMESTAMP`,
       [
-        userId, encrypted.encrypted_template, encrypted.iv, encrypted.auth_tag, encrypted.algorithm,
-        encrypted.encrypted_template, encrypted.iv, encrypted.auth_tag, encrypted.algorithm
+        userId, encrypted.encrypted_template, encrypted.iv, encrypted.auth_tag, encrypted.algorithm, sampleImage,
+        encrypted.encrypted_template, encrypted.iv, encrypted.auth_tag, encrypted.algorithm, sampleImage
       ]
     );
 

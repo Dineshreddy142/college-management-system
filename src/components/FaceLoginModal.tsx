@@ -190,15 +190,16 @@ export function FaceLoginModal({
                 name: verifyRes.data.user?.full_name || verifyRes.data.matchDetails?.matched_name || verifyRes.data.user?.username,
                 college_id: verifyRes.data.user?.college_id || verifyRes.data.matchDetails?.student_id || verifyRes.data.user?.username,
                 role: verifyRes.data.user?.role || verifyRes.data.matchDetails?.role || 'Student',
-                similarity: verifyRes.data.matchDetails?.similarity_percent || '98.5'
+                similarity: verifyRes.data.matchDetails?.similarity_percent || '98.5',
+                stored_face_image: verifyRes.data.matchDetails?.stored_face_image || verifyRes.data.user?.stored_face_image
               });
               setStatus('success');
               
-              // Flash match popup card briefly (700ms) then auto login!
+              // Flash match popup card with stored face image & Student ID (1200ms) then auto login!
               setTimeout(() => {
                 onSuccess(verifyRes.data);
                 handleClose();
-              }, 700);
+              }, 1200);
             } else {
               setStatus('error');
               setErrorMessage(verifyRes.error || verifyRes.message || 'Face not matched or off-center. Please center face in frame and retry.');
@@ -413,24 +414,48 @@ export function FaceLoginModal({
 
             {/* Matched Profile Popup Confirmation */}
             {status === 'success' && matchedDetails && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-5 bg-slate-950/95 text-white backdrop-blur-md animate-in zoom-in-95 duration-300 border border-emerald-500/40 rounded-3xl">
-                <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/30 mb-2 animate-bounce">
-                  <CheckCircle size={32} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/95 text-white backdrop-blur-md animate-in zoom-in-95 duration-300 border border-emerald-500/40 rounded-3xl">
+                {/* Stored Face Profile Avatar Image */}
+                <div className="relative mb-2">
+                  {matchedDetails.stored_face_image ? (
+                    <div className="w-20 h-20 rounded-full border-4 border-emerald-400 p-0.5 bg-slate-900 shadow-xl shadow-emerald-500/40 overflow-hidden mx-auto">
+                      <img
+                        src={matchedDetails.stored_face_image}
+                        alt={matchedDetails.name}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/30 mx-auto">
+                      <CheckCircle size={36} />
+                    </div>
+                  )}
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 border-2 border-slate-950 flex items-center justify-center text-white shadow-md">
+                    <CheckCircle size={16} />
+                  </div>
                 </div>
-                <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tracking-wider uppercase mb-1">
+
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tracking-wider uppercase mb-1">
                   Face Matched • {matchedDetails.similarity}% Match
                 </span>
+
                 <h4 className="text-base font-extrabold text-white leading-tight">
                   {matchedDetails.name}
                 </h4>
-                <p className="text-xs font-mono font-bold text-emerald-400 mt-0.5">
-                  College ID: {matchedDetails.college_id}
-                </p>
-                <span className="mt-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700">
+
+                <div className="mt-1 px-3 py-1 bg-emerald-950/80 border border-emerald-500/30 rounded-lg">
+                  <span className="text-[10px] text-emerald-300 uppercase font-semibold block">Student / Roll / ID No</span>
+                  <p className="text-xs font-mono font-extrabold text-emerald-400 tracking-wide">
+                    🎓 {matchedDetails.college_id}
+                  </p>
+                </div>
+
+                <span className="mt-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest bg-slate-800/80 px-2.5 py-0.5 rounded-md border border-slate-700">
                   {matchedDetails.role} Portal
                 </span>
-                <p className="text-[11px] text-slate-400 mt-2 animate-pulse">
-                  Authenticating & Redirecting...
+
+                <p className="text-[11px] text-slate-400 mt-2 animate-pulse flex items-center gap-1.5 justify-center">
+                  <RefreshCw size={12} className="animate-spin text-emerald-400" /> Authenticating & Redirecting...
                 </p>
               </div>
             )}
