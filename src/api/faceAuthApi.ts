@@ -36,6 +36,7 @@ export interface FaceVerifyResponse {
       role: string;
       role_id: number;
       college_id?: string;
+      stored_face_image?: string;
       must_change_password?: boolean | number;
     };
     matchDetails?: {
@@ -43,6 +44,7 @@ export interface FaceVerifyResponse {
       student_id: string;
       role: string;
       similarity_percent: string;
+      stored_face_image?: string;
       verified: boolean;
     };
   };
