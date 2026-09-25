@@ -16,6 +16,7 @@ export interface UserRecord {
   status: 'active' | 'blocked' | 'inactive';
   last_login?: string;
   failed_attempts?: number;
+  face_enrolled?: number;
 }
 
 export const UserControlModule: React.FC = () => {
@@ -75,6 +76,30 @@ export const UserControlModule: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to toggle user status:', err);
       setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to update user status.' });
+    } finally {
+      setActionUserId(null);
+      setActionType('');
+    }
+  };
+
+  const handleDeleteFaceBiometrics = async (user: UserRecord) => {
+    if (!window.confirm(`Are you sure you want to DELETE registered face biometrics for user "${user.username}" (${user.email})? They will have to re-enroll their face from profile settings.`)) {
+      return;
+    }
+
+    setActionUserId(user.id);
+    setActionType('delete_face');
+    setFeedbackMsg(null);
+
+    try {
+      const res = await client.delete(`/admin/users/face/${user.id}`);
+      if (res.data?.success) {
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, face_enrolled: 0 } : u));
+        setFeedbackMsg({ type: 'success', text: `Registered face biometrics deleted for ${user.username}.` });
+      }
+    } catch (err: any) {
+      console.error('Failed to delete face biometrics:', err);
+      setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to delete user face biometrics.' });
     } finally {
       setActionUserId(null);
       setActionType('');
@@ -253,6 +278,7 @@ export const UserControlModule: React.FC = () => {
                 <th className="py-3.5 px-5">ID</th>
                 <th className="py-3.5 px-5">User / Account</th>
                 <th className="py-3.5 px-5">Role</th>
+                <th className="py-3.5 px-5">Face Biometrics</th>
                 <th className="py-3.5 px-5">Login Access Status</th>
                 <th className="py-3.5 px-5 text-right">Admin Actions</th>
               </tr>
@@ -260,7 +286,7 @@ export const UserControlModule: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 size={24} className="animate-spin text-indigo-600" />
                       <span>Loading user security records...</span>
@@ -269,7 +295,7 @@ export const UserControlModule: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     No user accounts found matching your filters.
                   </td>
                 </tr>
@@ -277,6 +303,7 @@ export const UserControlModule: React.FC = () => {
                 filteredUsers.map(u => {
                   const isBlocked = u.status === 'blocked';
                   const isProcessingThis = actionUserId === u.id;
+                  const hasFace = Boolean(u.face_enrolled && u.face_enrolled > 0);
 
                   return (
                     <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -291,6 +318,20 @@ export const UserControlModule: React.FC = () => {
                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize">
                           {u.role_name || 'User'}
                         </span>
+                      </td>
+
+                      {/* Face Biometrics Status */}
+                      <td className="py-4 px-5">
+                        {hasFace ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
+                            <Sparkles size={12} />
+                            <span>Enrolled</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <span>Not Enrolled</span>
+                          </span>
+                        )}
                       </td>
 
                       {/* Login Status Badge */}
@@ -311,6 +352,25 @@ export const UserControlModule: React.FC = () => {
                       {/* Admin Action Buttons */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Delete Face Biometrics Button */}
+                          {hasFace && (
+                            <button
+                              onClick={() => handleDeleteFaceBiometrics(u)}
+                              disabled={isProcessingThis}
+                              className="px-3 py-1.5 rounded-xl font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              title="Delete user registered face biometrics"
+                            >
+                              {isProcessingThis && actionType === 'delete_face' ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <UserX size={13} />
+                                  <span>Reset Face ID</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
                           {/* Block / Unblock Action Button */}
                           <button
                             onClick={() => handleToggleBlockStatus(u)}

@@ -300,6 +300,7 @@ router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (r
     try {
         const [users] = await pool.execute(
             `SELECT u.id, u.username, u.email, u.role_id, r.name as role_name, u.status,
+                    (SELECT COUNT(*) FROM face_biometrics WHERE user_id = u.id) as face_enrolled,
                     (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
                     (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
                     (SELECT created_at FROM activity_logs WHERE user_id = u.id AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1) as last_login
@@ -327,6 +328,23 @@ router.post('/admin/users/toggle-status', authenticateToken, authorizeRole(['Adm
         return successResponse(res, `User account ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`, { userId, status: newStatus });
     } catch (error) {
         return errorResponse(res, 'Failed to update user status', [error.message], 500);
+    }
+});
+
+router.delete('/admin/users/face/:id', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        if (!userId) {
+            return errorResponse(res, 'User ID is required', [], 400);
+        }
+
+        await pool.execute('DELETE FROM face_biometrics WHERE user_id = ?', [userId]);
+        await pool.execute('DELETE FROM face_failed_attempts WHERE user_id = ?', [userId]);
+
+        await logActivity(req.user.id, 'FACE_BIOMETRICS_DELETED', `Admin deleted face biometrics for User #${userId}`);
+        return successResponse(res, `Face biometrics deleted successfully for user #${userId}`, { userId });
+    } catch (error) {
+        return errorResponse(res, 'Failed to delete face biometrics', [error.message], 500);
     }
 });
 
