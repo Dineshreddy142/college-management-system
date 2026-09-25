@@ -1073,6 +1073,19 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [liveFaculty, setLiveFaculty] = useState<any[]>([]);
 
+  // Add Faculty Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [newFaculty, setNewFaculty] = useState({
+    fullName: "",
+    employeeId: "",
+    email: "",
+    department: "Computer Science",
+    designation: "Assistant Professor",
+    password: "Faculty@123"
+  });
+
   const fetchFaculty = useCallback(async () => {
     try {
       const res = await client.get('/academic/available-faculty');
@@ -1087,6 +1100,52 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   useEffect(() => {
     fetchFaculty();
   }, [fetchFaculty]);
+
+  const handleAddFacultySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    if (!newFaculty.fullName.trim() || !newFaculty.email.trim()) {
+      setFormError("Full Name and Email are required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const empIdClean = newFaculty.employeeId.trim();
+      const username = empIdClean || newFaculty.email.trim().split('@')[0] || `FAC${Date.now().toString().slice(-4)}`;
+      
+      const res = await client.post('/admin/users/create', {
+        username,
+        full_name: newFaculty.fullName.trim(),
+        email: newFaculty.email.trim(),
+        password: newFaculty.password || 'Faculty@123',
+        role: 'Faculty',
+        employee_id: empIdClean,
+        designation: newFaculty.designation
+      });
+
+      if (res.data?.success || res.status === 201 || res.status === 200) {
+        fetchFaculty();
+        setShowAddModal(false);
+        setNewFaculty({
+          fullName: "",
+          employeeId: "",
+          email: "",
+          department: "Computer Science",
+          designation: "Assistant Professor",
+          password: "Faculty@123"
+        });
+        alert(`✨ Faculty account "${newFaculty.fullName}" created successfully!`);
+      }
+    } catch (err: any) {
+      console.error('Failed to create faculty:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to create faculty account.";
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const displayList = liveFaculty.length > 0
     ? liveFaculty.map(f => ({
@@ -1109,7 +1168,16 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
         <StatCard title="Avg Experience" value={displayList.length > 0 ? `${(displayList.reduce((acc, f) => acc + (f.experience || 0), 0) / displayList.length).toFixed(1)} yrs` : "0 yrs"} subtitle="Per faculty member" icon={<Award size={19} />} color="green" />
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => { setFormError(""); setShowAddModal(true); }}
+          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-500/20"
+        >
+          <UserPlus size={14} />
+          <span>Add Faculty</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setIsBulkModalOpen(true)}
@@ -1163,6 +1231,137 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
           </Card>
         ))}
       </div>
+
+      {/* ADD FACULTY MODAL OVERLAY */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span>Add New Faculty Member</span>
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-900/50">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddFacultySubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newFaculty.fullName}
+                  onChange={e => setNewFaculty({ ...newFaculty, fullName: e.target.value })}
+                  placeholder="e.g. Dr. Rajesh Kumar"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Employee ID</label>
+                  <input
+                    type="text"
+                    value={newFaculty.employeeId}
+                    onChange={e => setNewFaculty({ ...newFaculty, employeeId: e.target.value })}
+                    placeholder="e.g. EMP1042"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Faculty Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newFaculty.email}
+                    onChange={e => setNewFaculty({ ...newFaculty, email: e.target.value })}
+                    placeholder="e.g. rajesh.kumar@college.edu"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Department</label>
+                  <select
+                    value={newFaculty.department}
+                    onChange={e => setNewFaculty({ ...newFaculty, department: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Mechanical Eng">Mechanical Eng</option>
+                    <option value="Civil Eng">Civil Eng</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Designation</label>
+                  <select
+                    value={newFaculty.designation}
+                    onChange={e => setNewFaculty({ ...newFaculty, designation: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Assistant Professor">Assistant Professor</option>
+                    <option value="Associate Professor">Associate Professor</option>
+                    <option value="Professor">Professor</option>
+                    <option value="HOD">HOD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Initial Account Password</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newFaculty.password}
+                    onChange={e => setNewFaculty({ ...newFaculty, password: e.target.value })}
+                    placeholder="Faculty@123"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randPass = 'Fac$' + Math.random().toString(36).slice(-6);
+                      setNewFaculty({ ...newFaculty, password: randPass });
+                    }}
+                    className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl font-semibold text-[11px] shrink-0"
+                  >
+                    ⚡ Gen
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                  <span>Create Faculty</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <FacultyBulkUploadModal
         isOpen={isBulkModalOpen}
