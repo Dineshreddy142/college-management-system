@@ -23,7 +23,7 @@ export function FaceLoginModal({
   const [cameraError, setCameraError] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [enrollmentStatus, setEnrollmentStatus] = useState<'idle' | 'checking' | 'registered' | 'not_registered'>('idle');
-  const [isMirrored, setIsMirrored] = useState(false);
+  const [isMirrored, setIsMirrored] = useState(true);
   const [matchedDetails, setMatchedDetails] = useState<any>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -164,7 +164,7 @@ export function FaceLoginModal({
 
       setStatus('scanning');
 
-      // Rapid 450ms frame capture for sub-second instant response
+      // 1000ms stabilization window so user has time to position face inside circle
       setTimeout(async () => {
         try {
           const capturedFrames = await captureFramesFromVideo();
@@ -201,7 +201,7 @@ export function FaceLoginModal({
               }, 700);
             } else {
               setStatus('error');
-              setErrorMessage(verifyRes.error || verifyRes.message || 'Face verification failed');
+              setErrorMessage(verifyRes.error || verifyRes.message || 'Face not matched or off-center. Please center face in frame and retry.');
             }
           } else {
             // Enroll mode
@@ -214,7 +214,7 @@ export function FaceLoginModal({
               }, 600);
             } else {
               setStatus('error');
-              setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed');
+              setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed. Please align face clearly.');
             }
           }
         } catch (procErr: any) {
@@ -222,7 +222,7 @@ export function FaceLoginModal({
           setStatus('error');
           setErrorMessage(procErr.message || 'Error processing face verification payload');
         }
-      }, 450);
+      }, 1000);
 
     } catch (camErr: any) {
       stopCamera();

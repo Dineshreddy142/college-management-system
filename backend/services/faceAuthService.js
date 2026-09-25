@@ -302,12 +302,12 @@ export function checkLivenessMotion(frames) {
   const avgMse = mseValues.reduce((a, b) => a + b, 0) / mseValues.length;
 
   // A) Static Photo Detection (Only electronic sensor noise present)
-  // A static photo resting or held in front of camera has sensor noise MSE < 0.02 across frames.
-  if (avgMse < 0.02) {
-    console.warn(`[ANTI-SPOOF REJECT] Static photo detected (avgMse = ${avgMse.toFixed(4)})`);
+  // Lowered threshold to 0.0001 so live users holding steady don't trigger false positives.
+  if (avgMse < 0.0001) {
+    console.warn(`[ANTI-SPOOF REJECT] Completely static flat photo detected (avgMse = ${avgMse.toFixed(6)})`);
     return {
       isLive: false,
-      delta: parseFloat(avgMse.toFixed(4)),
+      delta: parseFloat(avgMse.toFixed(6)),
       reason: 'Photo or printed image detected. Face must be live with natural movement.'
     };
   }
