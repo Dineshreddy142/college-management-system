@@ -429,25 +429,17 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Retrieve registered face biometric image
-    let storedFaceImage = null;
+    // Retrieve registered face biometric image captured during enrollment
+    let registeredFaceImage = null;
     try {
       const [bioImgRows] = await pool.execute(
         `SELECT sample_image FROM face_biometrics WHERE user_id = ?`,
         [matchedUserId]
       );
       if (bioImgRows.length > 0 && bioImgRows[0].sample_image) {
-        storedFaceImage = bioImgRows[0].sample_image;
+        registeredFaceImage = bioImgRows[0].sample_image;
       }
     } catch (e) {}
-
-    // Fallback to currently scanned frame if stored image sample is missing
-    if (!storedFaceImage && parsedFrames && parsedFrames[0] && parsedFrames[0].buffer) {
-      storedFaceImage = `data:image/jpeg;base64,${parsedFrames[0].buffer.toString('base64')}`;
-      try {
-        await pool.execute(`UPDATE face_biometrics SET sample_image = ? WHERE user_id = ?`, [storedFaceImage, matchedUserId]);
-      } catch (e) {}
-    }
 
     const similarityPercent = Math.min(99.9, Math.max(75, Math.round(matchedSimilarity * 1000) / 10)).toFixed(1);
 
@@ -461,7 +453,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
         role: userProfile.role_name,
         role_id: userProfile.role_id,
         college_id: userProfile.college_id,
-        stored_face_image: storedFaceImage,
+        stored_face_image: registeredFaceImage,
         must_change_password: userProfile.must_change_password
       },
       matchDetails: {
@@ -469,7 +461,7 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
         student_id: userProfile.college_id,
         role: userProfile.role_name,
         similarity_percent: similarityPercent,
-        stored_face_image: storedFaceImage,
+        stored_face_image: registeredFaceImage,
         verified: true
       }
     });
