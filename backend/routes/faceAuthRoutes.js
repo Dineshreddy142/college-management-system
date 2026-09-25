@@ -549,7 +549,8 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
     if (norm === 0) norm = 1;
     const normalizedAvg = avgEmbedding.map(v => v / norm);
 
-    // 1:N Duplicate Biometric Check across ALL existing enrolled accounts
+    // 1:N Duplicate Biometric Check across DIFFERENT enrolled accounts (High threshold 0.85)
+    const DUPLICATE_REJECTION_THRESHOLD = 0.85;
     const [existingBioRows] = await pool.execute(
       `SELECT user_id, encrypted_template, iv, auth_tag FROM face_biometrics WHERE user_id != ?`,
       [userId]
@@ -559,11 +560,11 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
       try {
         const otherTemplate = decryptTemplate(record.encrypted_template, record.iv, record.auth_tag);
         const duplicateSim = calculateCosineSimilarity(normalizedAvg, otherTemplate);
-        if (duplicateSim >= SIMILARITY_THRESHOLD) {
+        if (duplicateSim >= DUPLICATE_REJECTION_THRESHOLD) {
           console.warn(`[FACE ENROLL REJECT] Duplicate face detected between User ${userId} and User ${record.user_id} (Score: ${duplicateSim.toFixed(4)})`);
           return errorResponse(
             res,
-            'This face biometric pattern is already registered under another account. Duplicate enrollment rejected.',
+            'This face biometric pattern is already registered under another user account. Duplicate enrollment rejected.',
             [],
             409,
             { code: 'DUPLICATE_FACE_ENROLLED' }
@@ -578,6 +579,13 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
     const encrypted = encryptTemplate(normalizedAvg);
     const sampleImage = parsedFrames[0] ? `data:image/jpeg;base64,${parsedFrames[0].buffer.toString('base64')}` : null;
 
+    // Check if user already has an enrolled record
+    const [userRecord] = await pool.execute(
+      `SELECT id FROM face_biometrics WHERE user_id = ?`,
+      [userId]
+    );
+    const isUpdate = userRecord.length > 0;
+
     // Save/Update in face_biometrics
     await pool.execute(
       `INSERT INTO face_biometrics (user_id, encrypted_template, iv, auth_tag, algorithm, sample_image) 
@@ -589,8 +597,9 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
       ]
     );
 
-    return successResponse(res, 'Face biometrics enrolled successfully', {
-      enrolled: true
+    return successResponse(res, isUpdate ? 'Face biometrics updated successfully' : 'Face biometrics enrolled successfully', {
+      enrolled: true,
+      updated: isUpdate
     });
   } catch (err) {
     console.error('[FACE ENROLL ERROR]:', err.code || 'UNKNOWN', err.message);
