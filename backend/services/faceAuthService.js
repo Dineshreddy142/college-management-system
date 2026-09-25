@@ -123,16 +123,22 @@ export function encryptTemplate(embeddingArray) {
  * Decrypt AES-256-GCM string to 512-d Float32Array embedding
  */
 export function decryptTemplate(encryptedTemplateB64, ivHex, authTagHex) {
-  const key = getEncryptionKey();
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(authTag);
+  try {
+    const key = getEncryptionKey();
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
 
-  const encryptedBuffer = Buffer.from(encryptedTemplateB64, 'base64');
-  const decryptedBuffer = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
+    const encryptedBuffer = Buffer.from(encryptedTemplateB64, 'base64');
+    const decryptedBuffer = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
 
-  return Array.from(new Float32Array(decryptedBuffer.buffer, decryptedBuffer.byteOffset, decryptedBuffer.byteLength / 4));
+    return Array.from(new Float32Array(decryptedBuffer.buffer, decryptedBuffer.byteOffset, decryptedBuffer.byteLength / 4));
+  } catch (err) {
+    const customErr = new Error('Face biometrics template encryption key mismatch or invalid biometric data.');
+    customErr.code = 'DECRYPTION_FAILED';
+    throw customErr;
+  }
 }
 
 /**

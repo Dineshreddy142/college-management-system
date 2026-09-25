@@ -325,7 +325,20 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       }
 
       const bio = bioRows[0];
-      const storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
+      let storedEmbedding;
+      try {
+        storedEmbedding = decryptTemplate(bio.encrypted_template, bio.iv, bio.auth_tag);
+      } catch (decErr) {
+        console.warn(`[FACE AUTH 1:1] Cannot decrypt template for User ${targetUser.id}:`, decErr.message);
+        return errorResponse(
+          res,
+          'Your registered face template is from an earlier security key version. Please log in with password once to re-enroll your face.',
+          [],
+          400,
+          { code: 'BIOMETRIC_NOT_ENROLLED' }
+        );
+      }
+
       matchedSimilarity = calculateCosineSimilarity(targetEmbedding, storedEmbedding);
       console.log(`[FACE AUTH 1:1 VERIFY] User ${targetUser.username} similarity score: ${matchedSimilarity.toFixed(4)} (Threshold: ${SIMILARITY_THRESHOLD})`);
 
