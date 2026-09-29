@@ -33,12 +33,14 @@ export const UserControlModule: React.FC = () => {
     setLoading(true);
     try {
       const res = await client.get('/admin/users');
-      if (res.data?.success) {
-        setUsers(res.data.data || []);
+      if (res.data) {
+        const raw = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        setUsers(raw);
       }
     } catch (err: any) {
       console.error('Failed to fetch users:', err);
       setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to load user records.' });
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -204,7 +206,8 @@ export const UserControlModule: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => {
+  const safeUsers = Array.isArray(users) ? users : [];
+  const filteredUsers = safeUsers.filter(u => {
     const matchesSearch = 
       (u.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -217,9 +220,9 @@ export const UserControlModule: React.FC = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const totalUsers = users.length;
-  const activeCount = users.filter(u => u.status === 'active').length;
-  const blockedCount = users.filter(u => u.status === 'blocked').length;
+  const totalUsers = safeUsers.length;
+  const activeCount = safeUsers.filter(u => u.status === 'active').length;
+  const blockedCount = safeUsers.filter(u => u.status === 'blocked').length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
