@@ -19,6 +19,7 @@ import { FloorVersions } from "./admin/block-management/FloorVersions";
 import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
+import { UserControlModule } from "./admin/users/UserControlModule";
 import { AdminRegistrationControl } from "./admin/registration-control/AdminRegistrationControl";
 import { AdminOfferingRegistrationControl } from "./admin/offering-management/AdminOfferingRegistrationControl";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
