@@ -549,8 +549,8 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
     if (norm === 0) norm = 1;
     const normalizedAvg = avgEmbedding.map(v => v / norm);
 
-    // 1:N Duplicate Biometric Check across DIFFERENT enrolled accounts (High threshold 0.85)
-    const DUPLICATE_REJECTION_THRESHOLD = 0.85;
+    // 1:N Duplicate Biometric Check across DIFFERENT enrolled accounts (Strict threshold aligned with SIMILARITY_THRESHOLD)
+    const DUPLICATE_REJECTION_THRESHOLD = Math.max(0.50, SIMILARITY_THRESHOLD);
     const [existingBioRows] = await pool.execute(
       `SELECT user_id, encrypted_template, iv, auth_tag FROM face_biometrics WHERE user_id != ?`,
       [userId]
@@ -561,13 +561,13 @@ router.post('/enroll', authenticateToken, checkFaceAuthFeatureFlag, async (req, 
         const otherTemplate = decryptTemplate(record.encrypted_template, record.iv, record.auth_tag);
         const duplicateSim = calculateCosineSimilarity(normalizedAvg, otherTemplate);
         if (duplicateSim >= DUPLICATE_REJECTION_THRESHOLD) {
-          console.warn(`[FACE ENROLL REJECT] Duplicate face detected between User ${userId} and User ${record.user_id} (Score: ${duplicateSim.toFixed(4)})`);
+          console.warn(`[FACE ENROLL REJECT] Duplicate face detected between User ${userId} and User ${record.user_id} (Score: ${duplicateSim.toFixed(4)}, Threshold: ${DUPLICATE_REJECTION_THRESHOLD})`);
           return errorResponse(
             res,
             'This face biometric pattern is already registered under another user account. Duplicate enrollment rejected.',
             [],
             409,
-            { code: 'DUPLICATE_FACE_ENROLLED' }
+            { code: 'DUPLICATE_FACE_ENROLLED', similarity: parseFloat(duplicateSim.toFixed(4)) }
           );
         }
       } catch (decErr) {
