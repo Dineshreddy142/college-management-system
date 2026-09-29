@@ -203,6 +203,17 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Seed semesters 1 to 8 if not already present
+    const [existingSemCount] = await pool.query('SELECT COUNT(*) as cnt FROM semesters');
+    if (existingSemCount[0]?.cnt < 8) {
+      for (let sNum = 1; sNum <= 8; sNum++) {
+        await pool.query(
+          'INSERT INTO semesters (name, semester_number) SELECT ?, ? WHERE NOT EXISTS (SELECT id FROM semesters WHERE semester_number = ?)',
+          [`Semester ${sNum}`, sNum, sNum]
+        );
+      }
+    }
+
     // 11. Sections table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sections (
@@ -318,34 +329,40 @@ export async function initializeDatabase() {
         await pool.query('ALTER TABLE subjects ADD COLUMN regulation VARCHAR(50) NULL AFTER regulation_id');
       }
       if (!sColNames.includes('lecture_hours')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN lecture_hours INT DEFAULT 3 AFTER credits');
+        await pool.query('ALTER TABLE subjects ADD COLUMN lecture_hours INT DEFAULT 3');
+      }
+      if (!sColNames.includes('tutorial_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN tutorial_hours INT DEFAULT 0');
       }
       if (!sColNames.includes('practical_hours')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN practical_hours INT DEFAULT 0 AFTER tutorial_hours');
+        await pool.query('ALTER TABLE subjects ADD COLUMN practical_hours INT DEFAULT 0');
       }
       if (!sColNames.includes('total_hours')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN total_hours INT DEFAULT 3 AFTER practical_hours');
+        await pool.query('ALTER TABLE subjects ADD COLUMN total_hours INT DEFAULT 3');
       }
       if (!sColNames.includes('internal_marks')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN internal_marks INT DEFAULT 40 AFTER total_hours');
+        await pool.query('ALTER TABLE subjects ADD COLUMN internal_marks INT DEFAULT 40');
       }
       if (!sColNames.includes('external_marks')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN external_marks INT DEFAULT 60 AFTER internal_marks');
+        await pool.query('ALTER TABLE subjects ADD COLUMN external_marks INT DEFAULT 60');
       }
       if (!sColNames.includes('total_marks')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN total_marks INT DEFAULT 100 AFTER external_marks');
+        await pool.query('ALTER TABLE subjects ADD COLUMN total_marks INT DEFAULT 100');
       }
       if (!sColNames.includes('passing_marks')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN passing_marks INT DEFAULT 40 AFTER total_marks');
+        await pool.query('ALTER TABLE subjects ADD COLUMN passing_marks INT DEFAULT 40');
       }
       if (!sColNames.includes('offering_type')) {
-        await pool.query("ALTER TABLE subjects ADD COLUMN offering_type ENUM('Theory', 'Practical', 'Theory + Practical') DEFAULT 'Theory' AFTER passing_marks");
+        await pool.query("ALTER TABLE subjects ADD COLUMN offering_type ENUM('Theory', 'Practical', 'Theory + Practical') DEFAULT 'Theory'");
       }
       if (!sColNames.includes('elective_group')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN elective_group VARCHAR(100) NULL AFTER offering_type');
+        await pool.query('ALTER TABLE subjects ADD COLUMN elective_group VARCHAR(100) NULL');
       }
       if (!sColNames.includes('prerequisite')) {
-        await pool.query('ALTER TABLE subjects ADD COLUMN prerequisite TEXT NULL AFTER elective_group');
+        await pool.query('ALTER TABLE subjects ADD COLUMN prerequisite TEXT NULL');
+      }
+      if (!sColNames.includes('status')) {
+        await pool.query("ALTER TABLE subjects ADD COLUMN status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active'");
       }
 
       // Default category for legacy subjects if missing
@@ -2017,6 +2034,109 @@ export async function initializeDatabase() {
     }
 
 
+
+    // --- SEED B.TECH MASTER CURRICULUM (SEM 1 TO SEM 8) ---
+    try {
+      const [existingSubjects] = await pool.query("SELECT COUNT(*) AS cnt FROM subjects WHERE regulation = 'R25'");
+      if (existingSubjects[0]?.cnt < 10) {
+        console.log('[DATABASE INIT] Seeding standard B.Tech R25 Semesters 1 to 8 Master Curriculum...');
+        
+        // Find default CSE department & semester IDs if present
+        const [cseDept] = await pool.query("SELECT id FROM departments WHERE code = 'CSE' OR name LIKE '%Computer%' LIMIT 1");
+        const deptId = cseDept[0]?.id || 1;
+
+        const btechSyllabus = [
+          // SEMESTER 1
+          { code: '25BS101', name: 'Mathematics - I (Linear Algebra & Calculus)', sem: 1, credits: 3, type: 'Theory', cat: 'BS' },
+          { code: '25BS102', name: 'Engineering Physics', sem: 1, credits: 3, type: 'Theory', cat: 'BS' },
+          { code: '25CS101', name: 'Programming for Problem Solving (C)', sem: 1, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25ME101', name: 'Engineering Graphics & Design', sem: 1, credits: 3, type: 'Theory', cat: 'ES' },
+          { code: '25BS1L01', name: 'Engineering Physics Lab', sem: 1, credits: 1.5, type: 'Practical', cat: 'BS' },
+          { code: '25CS1L01', name: 'Programming Lab', sem: 1, credits: 1.5, type: 'Practical', cat: 'PC' },
+
+          // SEMESTER 2
+          { code: '25BS201', name: 'Mathematics - II (Differential Equations)', sem: 2, credits: 3, type: 'Theory', cat: 'BS' },
+          { code: '25BS202', name: 'Engineering Chemistry', sem: 2, credits: 3, type: 'Theory', cat: 'BS' },
+          { code: '25EE201', name: 'Basic Electrical & Electronics Engineering', sem: 2, credits: 3, type: 'Theory', cat: 'ES' },
+          { code: '25HS201', name: 'Technical English & Communication', sem: 2, credits: 2, type: 'Theory', cat: 'HS' },
+          { code: '25BS2L01', name: 'Engineering Chemistry Lab', sem: 2, credits: 1.5, type: 'Practical', cat: 'BS' },
+          { code: '25EE2L01', name: 'Basic Electrical Lab', sem: 2, credits: 1.5, type: 'Practical', cat: 'ES' },
+
+          // SEMESTER 3
+          { code: '25CS301', name: 'Data Structures & Algorithms', sem: 3, credits: 4, type: 'Theory', cat: 'PC' },
+          { code: '25CS302', name: 'Discrete Mathematics', sem: 3, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS303', name: 'Computer Organization & Architecture', sem: 3, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS304', name: 'Object Oriented Programming in Java', sem: 3, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS3L01', name: 'Data Structures Lab', sem: 3, credits: 1.5, type: 'Practical', cat: 'PC' },
+          { code: '25CS3L02', name: 'Java Programming Lab', sem: 3, credits: 1.5, type: 'Practical', cat: 'PC' },
+
+          // SEMESTER 4
+          { code: '25CS401', name: 'Operating Systems', sem: 4, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS402', name: 'Database Management Systems', sem: 4, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS403', name: 'Design and Analysis of Algorithms', sem: 4, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS404', name: 'Formal Languages and Automata Theory', sem: 4, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS4L01', name: 'Operating Systems Lab', sem: 4, credits: 1.5, type: 'Practical', cat: 'PC' },
+          { code: '25CS4L02', name: 'DBMS Lab', sem: 4, credits: 1.5, type: 'Practical', cat: 'PC' },
+
+          // SEMESTER 5
+          { code: '25CS501', name: 'Computer Networks', sem: 5, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS502', name: 'Software Engineering', sem: 5, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS5E01', name: 'Cloud Computing (Professional Elective - I)', sem: 5, credits: 3, type: 'Theory', cat: 'PE', group: 'PE-1' },
+          { code: '25CS5O01', name: 'Artificial Intelligence Fundamentals (Open Elective - I)', sem: 5, credits: 3, type: 'Theory', cat: 'OE', group: 'OE-1' },
+          { code: '25CS5L01', name: 'Computer Networks Lab', sem: 5, credits: 1.5, type: 'Practical', cat: 'PC' },
+
+          // SEMESTER 6
+          { code: '25CS601', name: 'Compiler Design', sem: 6, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS602', name: 'Information Security', sem: 6, credits: 3, type: 'Theory', cat: 'PC' },
+          { code: '25CS6E01', name: 'Machine Learning (Professional Elective - II)', sem: 6, credits: 3, type: 'Theory', cat: 'PE', group: 'PE-2' },
+          { code: '25CS6O01', name: 'Data Analytics (Open Elective - II)', sem: 6, credits: 3, type: 'Theory', cat: 'OE', group: 'OE-2' },
+          { code: '25CS6L01', name: 'Machine Learning & Security Lab', sem: 6, credits: 1.5, type: 'Practical', cat: 'PC' },
+
+          // SEMESTER 7
+          { code: '25CS7E01', name: 'Deep Learning (Professional Elective - III)', sem: 7, credits: 3, type: 'Theory', cat: 'PE', group: 'PE-3' },
+          { code: '25CS7E02', name: 'Blockchain Technologies (Professional Elective - IV)', sem: 7, credits: 3, type: 'Theory', cat: 'PE', group: 'PE-4' },
+          { code: '25CS7O01', name: 'Management Information Systems (Open Elective - III)', sem: 7, credits: 3, type: 'Theory', cat: 'OE', group: 'OE-3' },
+          { code: '25CS7P01', name: 'Industry Internship / Mini Project', sem: 7, credits: 3, type: 'Practical', cat: 'PROJ' },
+          { code: '25CS7P02', name: 'Major Project Work Phase - I', sem: 7, credits: 4, type: 'Practical', cat: 'PROJ' },
+
+          // SEMESTER 8
+          { code: '25CS8E01', name: 'DevOps & Cloud Operations (Professional Elective - V)', sem: 8, credits: 3, type: 'Theory', cat: 'PE', group: 'PE-5' },
+          { code: '25CS8P01', name: 'Major Project Work Phase - II & Viva-Voce', sem: 8, credits: 10, type: 'Practical', cat: 'PROJ' }
+        ];
+
+        for (const s of btechSyllabus) {
+          // Find or fallback semester_id
+          const [semRows] = await pool.query('SELECT id FROM semesters WHERE semester_number = ? LIMIT 1', [s.sem]);
+          const semesterId = semRows[0]?.id || null;
+
+          await pool.query(
+            `INSERT INTO subjects (
+              code, name, short_name, department_id, semester_id, regulation,
+              credits, lecture_hours, tutorial_hours, practical_hours, total_hours,
+              internal_marks, external_marks, total_marks, passing_marks,
+              offering_type, elective_group, status
+            ) VALUES (?, ?, ?, ?, ?, 'R25', ?, ?, 0, ?, ?, 40, 60, 100, 40, ?, ?, 'Active')
+            ON DUPLICATE KEY UPDATE name = VALUES(name), credits = VALUES(credits)`,
+            [
+              s.code,
+              s.name,
+              s.code,
+              deptId,
+              semesterId,
+              s.credits,
+              s.type === 'Theory' ? 3 : 0,
+              s.type === 'Practical' ? 3 : 0,
+              3,
+              s.type,
+              s.group || ''
+            ]
+          );
+        }
+        console.log('[DATABASE INIT] Standard B.Tech Semesters 1 to 8 Master Curriculum seeded successfully.');
+      }
+    } catch (seedErr) {
+      console.warn('[DATABASE INIT] Note on B.Tech curriculum seeding:', seedErr.message);
+    }
 
     console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');
     return { success: true, message: 'Database schema and permanent admin ready' };

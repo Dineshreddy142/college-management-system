@@ -434,3 +434,135 @@ export const updateSubjectStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update subject status', error: error.message });
   }
 };
+
+// POST /api/subjects/bulk-import
+export const bulkImportSubjects = async (req, res) => {
+  try {
+    const { subjects: items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'An array of subjects is required.' });
+    }
+
+    let insertedCount = 0;
+    const insertedRecords = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      let {
+        code,
+        name,
+        short_name,
+        category_id,
+        department_id,
+        course_id,
+        semester_id,
+        regulation,
+        credits = 3,
+        lecture_hours = 3,
+        tutorial_hours = 0,
+        practical_hours = 0,
+        offering_type = 'Theory',
+        elective_group = '',
+        prerequisite = '',
+        description = ''
+      } = item;
+
+      if (!name) continue;
+
+      const regStr = regulation ? String(regulation).trim() : 'R25';
+      const regYear = regStr.replace(/[^0-9]/g, '') || '25';
+      
+      // Generate code if AUTO or empty
+      if (!code || code.trim().toUpperCase() === 'AUTO') {
+        let deptCode = 'CS';
+        if (department_id) {
+          const [dRows] = await pool.query('SELECT code, name FROM departments WHERE id = ?', [department_id]);
+          if (dRows.length > 0) {
+            const dName = (dRows[0].code || dRows[0].name || '').toUpperCase();
+            if (dName.includes('COMPUTER') || dName.includes('CSE') || dName === 'CS') deptCode = 'CS';
+            else if (dName.includes('ELECTRONICS') || dName.includes('ECE') || dName === 'EC') deptCode = 'EC';
+            else if (dName.includes('ELECTRICAL') || dName.includes('EEE') || dName === 'EE') deptCode = 'EE';
+            else if (dName.includes('MECHANICAL') || dName.includes('MECH') || dName === 'ME') deptCode = 'ME';
+            else if (dName.includes('CIVIL') || dName === 'CE') deptCode = 'CE';
+            else if (dName.includes('INFORMATION') || dName.includes('IT')) deptCode = 'IT';
+            else if (dName.includes('ARTIFICIAL') || dName.includes('AI')) deptCode = 'AI';
+            else deptCode = dName.substring(0, 2);
+          }
+        }
+
+        let semNum = '1';
+        if (semester_id) {
+          const [sRows] = await pool.query('SELECT semester_number, name FROM semesters WHERE id = ?', [semester_id]);
+          if (sRows.length > 0) {
+            if (sRows[0].semester_number) semNum = String(sRows[0].semester_number);
+            else {
+              const m = sRows[0].name.match(/\d+/);
+              if (m) semNum = m[0];
+            }
+          }
+        }
+
+        let typePrefix = '0';
+        if (offering_type && (offering_type.toLowerCase().includes('lab') || offering_type.toLowerCase().includes('practical'))) {
+          typePrefix = 'L0';
+        } else if (elective_group && elective_group.trim() !== '') {
+          typePrefix = 'E0';
+        }
+
+        const seq = (i + 1).toString().padStart(2, '0');
+        code = `${regYear}${deptCode}${semNum}${typePrefix}${seq}`;
+      }
+
+      let cleanCode = code.trim().toUpperCase();
+      
+      // Check existing duplicate
+      const [existing] = await pool.query('SELECT id FROM subjects WHERE UPPER(code) = ?', [cleanCode]);
+      if (existing.length > 0) {
+        cleanCode = `${cleanCode}_${Date.now().toString().slice(-4)}`;
+      }
+
+      const totalH = (Number(lecture_hours) || 0) + (Number(tutorial_hours) || 0) + (Number(practical_hours) || 0);
+
+      const [result] = await pool.query(
+        `INSERT INTO subjects (
+          code, name, short_name, category_id, department_id, course_id, semester_id,
+          regulation, credits, lecture_hours, tutorial_hours, practical_hours,
+          total_hours, internal_marks, external_marks, total_marks, passing_marks,
+          offering_type, elective_group, prerequisite, description, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 40, 60, 100, 40, ?, ?, ?, ?, 'Active')`,
+        [
+          cleanCode,
+          name,
+          short_name || name.substring(0, 10),
+          category_id || null,
+          department_id || null,
+          course_id || null,
+          semester_id || null,
+          regStr,
+          credits || 3,
+          lecture_hours || 3,
+          tutorial_hours || 0,
+          practical_hours || 0,
+          totalH || 3,
+          offering_type || 'Theory',
+          elective_group || '',
+          prerequisite || '',
+          description || ''
+        ]
+      );
+
+      insertedCount++;
+      insertedRecords.push({ id: result.insertId, code: cleanCode, name });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported ${insertedCount} master subjects into curriculum database.`,
+      count: insertedCount,
+      inserted: insertedRecords
+    });
+  } catch (error) {
+    console.error('Error bulk importing subjects:', error);
+    res.status(500).json({ success: false, message: 'Failed to bulk import subjects', error: error.message });
+  }
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, BookOpen, Clock, Award, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Save, BookOpen, Clock, Award, ShieldCheck, AlertCircle, Wand2 } from 'lucide-react';
 import { SubjectItem } from './SubjectList';
 import { SubjectCategory } from './SubjectCategoryList';
 
@@ -107,6 +107,43 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
   const calculatedTotalHours = (Number(lectureHours) || 0) + (Number(tutorialHours) || 0) + (Number(practicalHours) || 0);
   const calculatedTotalMarks = (Number(internalMarks) || 0) + (Number(externalMarks) || 0);
 
+  const handleAutoGenerateCode = () => {
+    const regYear = (regulation || 'R25').replace(/[^0-9]/g, '') || '25';
+    const selDept = departments.find(d => String(d.id) === String(departmentId));
+    let deptCode = 'CS';
+    if (selDept?.code) {
+      deptCode = selDept.code.toUpperCase();
+    } else if (selDept?.name) {
+      const dName = selDept.name.toUpperCase();
+      if (dName.includes('COMPUTER') || dName.includes('CSE')) deptCode = 'CS';
+      else if (dName.includes('ELECTRONICS') || dName.includes('ECE')) deptCode = 'EC';
+      else if (dName.includes('ELECTRICAL') || dName.includes('EEE')) deptCode = 'EE';
+      else if (dName.includes('MECHANICAL') || dName.includes('MECH')) deptCode = 'ME';
+      else if (dName.includes('CIVIL')) deptCode = 'CE';
+      else if (dName.includes('INFORMATION') || dName.includes('IT')) deptCode = 'IT';
+      else if (dName.includes('ARTIFICIAL') || dName.includes('AI')) deptCode = 'AI';
+      else deptCode = dName.substring(0, 2);
+    }
+
+    const selSem = semesters.find(s => String(s.id) === String(semesterId));
+    let semNum = '1';
+    if (selSem?.semester_number) semNum = String(selSem.semester_number);
+    else if (selSem?.name) {
+      const match = selSem.name.match(/\d+/);
+      if (match) semNum = match[0];
+    }
+
+    let typePrefix = '0';
+    if (offeringType.toLowerCase().includes('lab') || offeringType.toLowerCase().includes('practical')) {
+      typePrefix = 'L0';
+    } else if (electiveGroup.trim() !== '') {
+      typePrefix = 'E0';
+    }
+
+    const seq = Math.floor(Math.random() * 8) + 1;
+    setCode(`${regYear}${deptCode}${semNum}${typePrefix}${seq}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -199,14 +236,24 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Subject Code <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Subject Code <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateCode}
+                    className="text-[10px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 hover:underline"
+                    title="Auto-generate code based on Regulation, Department & Sem"
+                  >
+                    <Wand2 className="w-2.5 h-2.5" /> Auto Code
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="e.g. CS301"
+                  placeholder="e.g. 25CS101"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

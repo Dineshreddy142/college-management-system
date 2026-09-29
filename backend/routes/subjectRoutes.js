@@ -5,7 +5,8 @@ import {
   getSubjectById,
   createSubject,
   updateSubject,
-  updateSubjectStatus
+  updateSubjectStatus,
+  bulkImportSubjects
 } from '../controllers/subjectController.js';
 import {
   getSubjectPrerequisites,
@@ -45,6 +46,7 @@ router.get('/subject-categories', getSubjectCategories);
 router.get('/subjects', getSubjects);
 router.get('/subjects/:id', getSubjectById);
 router.post('/subjects', authenticateToken, authorizeRole(['Admin', 'HOD']), createSubject);
+router.post('/subjects/bulk-import', authenticateToken, authorizeRole(['Admin', 'HOD']), bulkImportSubjects);
 router.put('/subjects/:id', authenticateToken, authorizeRole(['Admin', 'HOD']), updateSubject);
 router.patch('/subjects/:id/status', authenticateToken, authorizeRole(['Admin', 'HOD']), updateSubjectStatus);
 
