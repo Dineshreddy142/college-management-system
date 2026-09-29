@@ -18,6 +18,7 @@ import searchRoutes from './routes/searchRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 import departmentRoutes from './routes/departmentRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
@@ -115,10 +116,11 @@ app.use('/api/notifications', authenticateToken, notificationRoutes);
 app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/profile', authenticateToken, profileRoutes);
 
-// --- VEHICLES, SETTINGS & BULK UPLOAD ---
+// --- VEHICLES, SETTINGS, AI & BULK UPLOAD ---
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/bulk', bulkUploadRoutes);
+app.use('/api/ai', aiRoutes);
 
 // --- DASHBOARD ANALYTICS ---
 app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), getAnalyticsSummary);
