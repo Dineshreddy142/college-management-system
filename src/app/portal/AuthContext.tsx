@@ -8,6 +8,7 @@ type User = {
   full_name?: string;
   email: string;
   role: string;
+  avatar?: string | null;
   must_change_password?: boolean;
 };
 
