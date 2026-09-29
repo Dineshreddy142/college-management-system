@@ -91,11 +91,19 @@ export function Card({ children, className = "", hover = false, onClick }: {
   );
 }
 
-export function Avatar({ name, size = "md" }: { name: string; size?: "xs" | "sm" | "md" | "lg" | "xl" }) {
-  const initials = name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+export function Avatar({ name, src, size = "md" }: { name: string; src?: string; size?: "xs" | "sm" | "md" | "lg" | "xl" }) {
+  if (src) {
+    const sizes = { xs: "w-6 h-6", sm: "w-8 h-8", md: "w-10 h-10", lg: "w-12 h-12", xl: "w-16 h-16" };
+    return (
+      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-xs", sizes[size])}>
+        <img src={src} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  const initials = (name || 'User').split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const sizes = { xs: "w-6 h-6 text-xs", sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-12 h-12 text-base", xl: "w-16 h-16 text-xl" };
   const colors = ["bg-blue-500", "bg-indigo-500", "bg-cyan-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500", "bg-teal-500"];
-  const bg = colors[name.charCodeAt(0) % colors.length];
+  const bg = colors[(name || 'User').charCodeAt(0) % colors.length];
   return (
     <div className={cn("rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0", sizes[size], bg)}>
       {initials}

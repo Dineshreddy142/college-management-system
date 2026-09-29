@@ -140,6 +140,44 @@ export function ProfileModule() {
     setSaving(false);
   };
 
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      triggerToast('⚠️ Image size must be under 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (uploadEvent) => {
+      const base64Str = uploadEvent.target?.result as string;
+      if (!base64Str) return;
+
+      try {
+        setSaving(true);
+        await client.put('/profile', { avatar: base64Str });
+        setProfile((prev: any) => ({ ...prev, avatar: base64Str }));
+        
+        try {
+          const stored = localStorage.getItem('user');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.avatar = base64Str;
+            localStorage.setItem('user', JSON.stringify(parsed));
+          }
+        } catch (e) {}
+
+        triggerToast('📸 Profile picture updated and saved permanently!');
+      } catch (err) {
+        triggerToast('⚠️ Failed to save profile picture.');
+      } finally {
+        setSaving(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const displayName = profile?.name || profile?.full_name || savedUser?.full_name || savedUser?.name || 'User Profile';
   const nameParts = displayName.trim().split(/\s+/);
   const firstName = profile?.first_name || nameParts[0] || 'User';
@@ -177,13 +215,25 @@ export function ProfileModule() {
         <div className="relative z-10 bg-gradient-to-r from-slate-950 via-indigo-950/80 to-slate-950 p-6 sm:p-8 border-b border-indigo-500/20">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             
-            {/* Avatar with status badge */}
-            <div className="relative shrink-0">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-1 shadow-2xl">
-                <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center overflow-hidden">
-                  <Avatar name={displayName} size="lg" />
+            {/* Avatar with camera upload button & status badge */}
+            <div className="relative shrink-0 group">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-1 shadow-2xl relative overflow-hidden">
+                <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center overflow-hidden relative">
+                  {profile?.avatar ? (
+                    <img src={profile.avatar} alt={displayName} className="w-full h-full object-cover" />
+                  ) : (
+                    <Avatar name={displayName} size="lg" />
+                  )}
+
+                  {/* Photo Upload Overlay */}
+                  <label className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity text-xs font-bold gap-1">
+                    <Camera size={22} className="text-cyan-400" />
+                    <span>Upload Photo</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  </label>
                 </div>
               </div>
+
               <span className="absolute -bottom-2 right-2 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider shadow-lg border border-emerald-300">
                 {profile?.status || 'Active'}
               </span>

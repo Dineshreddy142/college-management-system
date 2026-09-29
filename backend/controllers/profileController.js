@@ -1,12 +1,19 @@
 import pool from '../db.js';
 import bcrypt from 'bcryptjs';
 
+// Auto-ensure avatar column exists in users table
+(async () => {
+    try {
+        await pool.execute(`ALTER TABLE users ADD COLUMN avatar LONGTEXT NULL`);
+    } catch (e) {}
+})();
+
 export const getProfile = async (req, res) => {
     try {
         let userRow = null;
         try {
             const [users] = await pool.execute(
-                `SELECT u.id, u.username, u.full_name, u.email, r.name as role, u.created_at 
+                `SELECT u.id, u.username, u.full_name, u.email, u.avatar, r.name as role, u.created_at 
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ?`,
@@ -25,6 +32,19 @@ export const getProfile = async (req, res) => {
         }
 
         if (!userRow) return res.status(404).json({ error: 'User not found' });
+
+        // Fallback to face biometric sample image if user avatar is null
+        if (!userRow.avatar) {
+            try {
+                const [bioRows] = await pool.execute(
+                    `SELECT sample_image FROM face_biometrics WHERE user_id = ?`,
+                    [req.user.id]
+                );
+                if (bioRows.length > 0 && bioRows[0].sample_image) {
+                    userRow.avatar = bioRows[0].sample_image;
+                }
+            } catch (e) {}
+        }
         
         let profile = { ...userRow };
         let resolvedName = userRow.full_name || userRow.username || '';
@@ -141,7 +161,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const { name, fullName, full_name, phone, address, email } = req.body;
+        const { name, fullName, full_name, phone, address, email, avatar } = req.body;
         const newName = (name || fullName || full_name || '').trim();
         
         if (newName) {
@@ -149,6 +169,14 @@ export const updateProfile = async (req, res) => {
                 await pool.execute('UPDATE users SET full_name = ? WHERE id = ?', [newName, req.user.id]);
             } catch (err) {
                 console.warn('Could not update full_name in users table:', err.message);
+            }
+        }
+
+        if (avatar !== undefined) {
+            try {
+                await pool.execute('UPDATE users SET avatar = ? WHERE id = ?', [avatar, req.user.id]);
+            } catch (err) {
+                console.warn('Could not update avatar in users table:', err.message);
             }
         }
 
