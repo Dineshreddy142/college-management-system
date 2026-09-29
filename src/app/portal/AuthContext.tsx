@@ -56,7 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('auth-unauthorized', handleUnauthorized);
 
     const validateToken = async () => {
-      await fetchSettings();
       if (token) {
         try {
           const res = await client.get('/validate-token');
@@ -71,10 +70,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setIsLoading(false);
     };
+
+    fetchSettings();
     validateToken();
+
+    // 5-second heartbeat poll & tab focus check to detect remote logins instantly
+    const interval = setInterval(() => {
+      if (token) {
+        validateToken();
+      }
+    }, 5000);
+
+    const handleFocus = () => {
+      if (token) {
+        validateToken();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('auth-unauthorized', handleUnauthorized);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
     };
   }, [token]);
 

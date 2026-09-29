@@ -55,37 +55,34 @@ export async function createNewSession(userId) {
 export async function isSessionValid(userId, tokenSessionVersion) {
   if (!userId) return false;
   
-  // If token doesn't carry session_version (legacy token), pass check
-  if (tokenSessionVersion === undefined || tokenSessionVersion === null) {
-    return true;
-  }
-
   const numUserId = Number(userId);
-  const numTokenVersion = Number(tokenSessionVersion);
 
-  // 1. Fast path: check in-memory cache
-  if (activeSessionsMap.has(numUserId)) {
-    const currentActiveVersion = activeSessionsMap.get(numUserId);
-    return numTokenVersion === currentActiveVersion;
+  // 1. Get active session version from cache or DB
+  let currentActiveVersion = activeSessionsMap.get(numUserId);
+
+  if (currentActiveVersion === undefined) {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT session_version FROM users WHERE id = ?`,
+        [numUserId]
+      );
+
+      if (rows.length === 0) return false;
+      
+      currentActiveVersion = rows[0].session_version ? Number(rows[0].session_version) : 1;
+      activeSessionsMap.set(numUserId, currentActiveVersion);
+    } catch (err) {
+      console.error('[SESSION MANAGER] Error reading session version:', err);
+      return true;
+    }
   }
 
-  // 2. Fallback path: query DB and populate cache
-  try {
-    const [rows] = await pool.execute(
-      `SELECT session_version FROM users WHERE id = ?`,
-      [numUserId]
-    );
-
-    if (rows.length === 0) return false;
-    
-    const dbVersion = rows[0].session_version ? Number(rows[0].session_version) : 1;
-    activeSessionsMap.set(numUserId, dbVersion);
-
-    return numTokenVersion === dbVersion;
-  } catch (err) {
-    console.error('[SESSION MANAGER] Error validating session:', err);
-    return true; // Graceful degradation on DB error
+  // 2. Reject tokens that lack session_version or don't match active version
+  if (tokenSessionVersion === undefined || tokenSessionVersion === null) {
+    return false;
   }
+
+  return Number(tokenSessionVersion) === Number(currentActiveVersion);
 }
 
 /**
