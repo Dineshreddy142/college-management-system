@@ -16,7 +16,6 @@ import { ReportsModule } from "./ReportsModule";
 import { ProfileModule } from "../shared/ProfileModule";
 import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { MentorDashboardModule } from "./mentor/MentorDashboardModule";
-import { BulkDataHub } from "../admin/bulk/BulkDataHub";
 
 import { FacultyAttendanceMarking } from "./FacultyAttendanceMarking";
 
@@ -28,7 +27,6 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   const render = () => {
     switch (mod) {
       case "dashboard": return <DashboardHome />;
-      case "bulk-data": return <BulkDataHub defaultTab="attendance" />;
       case "mentor": return <MentorDashboardModule />;
       case "classes": return <ClassesModule />;
       case "attendance": return <FacultyAttendanceMarking />;
