@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "db:init": "node run_init_db.js"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

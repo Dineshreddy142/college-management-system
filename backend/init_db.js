@@ -1,10 +1,12 @@
 import bcrypt from 'bcryptjs';
-import pool from './db.js';
+import pool, { ensureBiometricTables } from './db.js';
 
 export async function initializeDatabase() {
   console.log('[DATABASE INIT] Checking and initializing database schema & default seed users...');
   
   try {
+    await ensureBiometricTables();
+
     // 1. Roles table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS roles (

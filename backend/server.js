@@ -137,11 +137,8 @@ app.post('/api/init-db', authenticateToken, authorizeRole(['Admin']), async (req
 // Global Error Handler
 app.use(errorHandler);
 
-const server = app.listen(PORT, async () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-  try {
-    await initializeDatabase();
-  } catch (e) {
-    console.error('Auto database initialization error:', e);
-  }
+const server = app.listen(PORT, () => {
+  console.log(`Backend server running instantly on http://localhost:${PORT}`);
+  console.log(`Database initialization runs via "npm run db:init" or POST /api/init-db`);
 });
+

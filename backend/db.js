@@ -38,8 +38,8 @@ const pool = mysql.createPool({
 
 export default pool;
 
-// Auto-create webauthn & face biometrics tables if missing
-(async () => {
+// Auto-create webauthn & face biometrics tables helper
+export async function ensureBiometricTables() {
   try {
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS webauthn_credentials (
@@ -93,8 +93,9 @@ export default pool;
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-    console.log('[DB] Tables webauthn_credentials, face_biometrics, face_auth_nonces, face_failed_attempts verified/created.');
+    console.log('[DB] Biometric and security tables verified.');
   } catch (err) {
     console.error('[DB] Failed to ensure face/webauthn tables:', err.message);
   }
-})();
+}
+

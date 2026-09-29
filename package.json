@@ -14,6 +14,7 @@
     "dev:office": "vite --mode office --port 5177 --strictPort",
     "dev:portals": "concurrently -n \"ADMIN,STUDENT,FACULTY,HOD,PARENT,PRINCIPAL,OFFICE\" -c \"cyan,blue,magenta,yellow,green,red,gray\" \"vite --mode admin --port 5171 --strictPort\" \"vite --mode student --port 5172 --strictPort\" \"vite --mode faculty --port 5173 --strictPort\" \"vite --mode hod --port 5174 --strictPort\" \"vite --mode parent --port 5175 --strictPort\" \"vite --mode principal --port 5176 --strictPort\" \"vite --mode office --port 5177 --strictPort\"",
     "dev:backend": "node backend/server.js",
+    "db:init": "node backend/run_init_db.js",
     "build": "vite build"
   },
   "dependencies": {
