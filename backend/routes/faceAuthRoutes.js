@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../db.js';
 import { authenticateToken } from '../middleware.js';
 import { successResponse, errorResponse } from '../utils/response.js';
+import { createNewSession } from '../services/sessionManager.js';
 import {
   parseAndValidateFrames,
   checkLivenessMotion,
@@ -416,6 +417,8 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
       [matchedUserId]
     );
 
+    const sessionVersion = await createNewSession(userProfile.id);
+
     // Issue standard JWT session token
     const token = jwt.sign(
       {
@@ -423,7 +426,8 @@ router.post('/verify', checkFaceAuthFeatureFlag, async (req, res) => {
         username: userProfile.username,
         role: userProfile.role_name,
         role_id: userProfile.role_id,
-        must_change_password: userProfile.must_change_password
+        must_change_password: userProfile.must_change_password,
+        session_version: sessionVersion
       },
       JWT_SECRET,
       { expiresIn: '24h' }

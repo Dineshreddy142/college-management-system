@@ -24,6 +24,10 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      const data = error.response.data;
+      if (data && (data.code === 'LOGGED_IN_ELSEWHERE' || data.loggedOutRemote)) {
+        alert('🔒 You have been logged out because your account was logged in from another device.');
+      }
       // Clear token and redirect to login if unauthorized
       localStorage.removeItem('token');
       localStorage.removeItem('user');

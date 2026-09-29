@@ -9,6 +9,7 @@ import {
 import pool from '../db.js';
 import { authenticateToken } from '../middleware.js';
 import { successResponse, errorResponse } from '../utils/response.js';
+import { createNewSession } from '../services/sessionManager.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
@@ -343,9 +344,11 @@ router.post('/login/verify', async (req, res) => {
       [newCounter, dbCred.id]
     );
 
+    const session_version = await createNewSession(user.id);
+
     // Issue Session Token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role_name },
+      { id: user.id, email: user.email, role: user.role_name, session_version },
       JWT_SECRET,
       { expiresIn: '7d' }
     );

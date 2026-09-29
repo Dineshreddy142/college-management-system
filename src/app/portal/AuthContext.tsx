@@ -48,6 +48,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('auth-unauthorized', handleUnauthorized);
+
     const validateToken = async () => {
       await fetchSettings();
       if (token) {
@@ -65,6 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     };
     validateToken();
+
+    return () => {
+      window.removeEventListener('auth-unauthorized', handleUnauthorized);
+    };
   }, [token]);
 
   const login = (newToken: string, newUser: User) => {

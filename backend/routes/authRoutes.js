@@ -8,6 +8,7 @@ import pool from '../db.js';
 import { authenticateToken, authorizeRole } from '../middleware.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { loginAttemptService } from '../services/loginAttemptService.js';
+import { createNewSession, invalidateSessionCache } from '../services/sessionManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,8 +150,10 @@ router.post('/login', async (req, res) => {
 
         await loginAttemptService.resetAttempts(user.id);
 
+        const session_version = await createNewSession(user.id);
+
         const token = jwt.sign(
-            { id: user.id, role: user.role_name, email: user.email }, 
+            { id: user.id, role: user.role_name, email: user.email, session_version }, 
             JWT_SECRET, 
             { expiresIn: '24h' }
         );
@@ -490,6 +493,9 @@ router.delete('/admin/users/:id', authenticateToken, authorizeRole(['Admin']), a
 
 router.post('/logout', authenticateToken, async (req, res) => {
     try {
+        if (req.user && req.user.id) {
+            invalidateSessionCache(req.user.id);
+        }
         await logActivity(req.user.id, 'LOGOUT', 'User logged out');
         return successResponse(res, 'Logged out successfully');
     } catch (error) {

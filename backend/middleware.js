@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { isSessionValid } from './services/sessionManager.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
@@ -8,8 +9,21 @@ export const authenticateToken = (req, res, next) => {
     
     if (!token) return res.status(401).json({ error: 'Access denied, token missing' });
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, async (err, user) => {
         if (err) return res.status(401).json({ error: 'Token is invalid or expired' });
+
+        // Validate single active session across devices
+        if (user && user.id && user.session_version !== undefined) {
+            const isValid = await isSessionValid(user.id, user.session_version);
+            if (!isValid) {
+                return res.status(401).json({
+                    error: 'Your account was logged in from another device. Please log in again.',
+                    code: 'LOGGED_IN_ELSEWHERE',
+                    loggedOutRemote: true
+                });
+            }
+        }
+
         req.user = user;
         next();
     });
