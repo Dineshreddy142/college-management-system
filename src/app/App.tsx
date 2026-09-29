@@ -20,6 +20,7 @@ import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
+import { AdminRegistrationControl } from "./admin/registration-control/AdminRegistrationControl";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
 
@@ -199,6 +200,7 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 const SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
+  { id: "registration-control", label: "Registration Control", icon: UserCheck, badge: "Live" },
   { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
   { id: "students", label: "Students", icon: GraduationCap, badge: null },
@@ -1883,6 +1885,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
     switch (mod) {
       case "dashboard": return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
+      case "registration-control": return <AdminRegistrationControl />;
       case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;
       case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;
