@@ -171,6 +171,7 @@ router.post('/login', async (req, res) => {
                 full_name: displayName,
                 email: user.email, 
                 role: user.role_name,
+                avatar: user.avatar || null,
                 must_change_password: Boolean(user.must_change_password)
             } 
         });
@@ -508,7 +509,7 @@ router.get('/me', authenticateToken, async (req, res) => {
         let rows;
         try {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.full_name, u.email, r.name as role_name
+                `SELECT u.id, u.username, u.full_name, u.email, u.avatar, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -516,7 +517,7 @@ router.get('/me', authenticateToken, async (req, res) => {
             );
         } catch (colErr) {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.email, r.name as role_name
+                `SELECT u.id, u.username, u.email, u.avatar, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -536,7 +537,8 @@ router.get('/me', authenticateToken, async (req, res) => {
                 name: displayName,
                 full_name: displayName,
                 email: user.email, 
-                role: user.role_name 
+                role: user.role_name,
+                avatar: user.avatar || null
             } 
         });
     } catch (error) {
@@ -549,7 +551,7 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
         let rows;
         try {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.full_name, u.email, u.must_change_password, r.name as role_name
+                `SELECT u.id, u.username, u.full_name, u.email, u.avatar, u.must_change_password, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -557,7 +559,7 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
             );
         } catch (colErr) {
             [rows] = await pool.execute(
-                `SELECT u.id, u.username, u.email, u.must_change_password, r.name as role_name
+                `SELECT u.id, u.username, u.email, u.avatar, u.must_change_password, r.name as role_name
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ? AND u.status = 'active'`, 
@@ -575,6 +577,7 @@ router.get('/validate-token', authenticateToken, async (req, res) => {
                 full_name: displayName,
                 email: user.email, 
                 role: user.role_name,
+                avatar: user.avatar || null,
                 must_change_password: Boolean(user.must_change_password)
             } 
         });

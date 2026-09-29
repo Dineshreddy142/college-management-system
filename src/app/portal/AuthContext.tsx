@@ -60,8 +60,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const res = await client.get('/validate-token');
           if (res.data?.data?.user) {
-            setUser(res.data.data.user);
-            localStorage.setItem('user', JSON.stringify(res.data.data.user));
+            const fetchedUser = res.data.data.user;
+            setUser(prevUser => {
+              const merged = {
+                ...prevUser,
+                ...fetchedUser,
+                avatar: fetchedUser.avatar || prevUser?.avatar || null
+              };
+              localStorage.setItem('user', JSON.stringify(merged));
+              return merged;
+            });
           }
         } catch (error) {
           console.error("Token validation failed", error);

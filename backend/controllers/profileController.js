@@ -22,7 +22,7 @@ export const getProfile = async (req, res) => {
             if (users.length > 0) userRow = users[0];
         } catch (colErr) {
             const [users] = await pool.execute(
-                `SELECT u.id, u.username, u.email, r.name as role, u.created_at 
+                `SELECT u.id, u.username, u.full_name, u.email, u.avatar, r.name as role, u.created_at 
                  FROM users u 
                  JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ?`,
