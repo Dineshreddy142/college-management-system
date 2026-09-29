@@ -47,7 +47,7 @@ export const AdminRegistrationControl: React.FC = () => {
 
       const res = await client.get('/admin/registrations', { params });
       if (res.data) {
-        const raw = Array.isArray(res.data) ? res.data : res.data.data || [];
+        const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []);
         setRegistrations(raw);
       }
     } catch (err) {
@@ -60,8 +60,9 @@ export const AdminRegistrationControl: React.FC = () => {
   const fetchAnalytics = useCallback(async () => {
     try {
       const res = await client.get('/admin/elective-analytics');
-      if (res.data && res.data.data) {
-        setAnalytics(res.data.data);
+      if (res.data) {
+        const raw = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        setAnalytics(raw);
       }
     } catch (err) {
       console.error('Error fetching analytics:', err);
@@ -78,16 +79,20 @@ export const AdminRegistrationControl: React.FC = () => {
       ]);
 
       if (dRes.status === 'fulfilled' && dRes.value.data) {
-        setDepartments(Array.isArray(dRes.value.data) ? dRes.value.data : dRes.value.data.data || []);
+        const dRaw = dRes.value.data;
+        setDepartments(Array.isArray(dRaw) ? dRaw : (Array.isArray(dRaw?.data) ? dRaw.data : []));
       }
       if (pRes.status === 'fulfilled' && pRes.value.data) {
-        setPrograms(Array.isArray(pRes.value.data) ? pRes.value.data : pRes.value.data.data || []);
+        const pRaw = pRes.value.data;
+        setPrograms(Array.isArray(pRaw) ? pRaw : (Array.isArray(pRaw?.data) ? pRaw.data : []));
       }
       if (semRes.status === 'fulfilled' && semRes.value.data) {
-        setSemesters(Array.isArray(semRes.value.data) ? semRes.value.data : semRes.value.data.data || []);
+        const semRaw = semRes.value.data;
+        setSemesters(Array.isArray(semRaw) ? semRaw : (Array.isArray(semRaw?.data) ? semRaw.data : []));
       }
       if (secRes.status === 'fulfilled' && secRes.value.data) {
-        setSections(Array.isArray(secRes.value.data) ? secRes.value.data : secRes.value.data.data || []);
+        const secRaw = secRes.value.data;
+        setSections(Array.isArray(secRaw) ? secRaw : (Array.isArray(secRaw?.data) ? secRaw.data : []));
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);

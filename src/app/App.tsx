@@ -740,14 +740,19 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
   });
 
   const fetchStudents = () => {
-    client.get('/students').then(res => setStudentsData(res.data || [])).catch(console.error);
+    client.get('/students').then(res => {
+      const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data?.students) ? res.data.students : []));
+      setStudentsData(raw);
+    }).catch(console.error);
   };
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  const mappedStudents = studentsData.map(s => ({
+  const safeStudentsData = Array.isArray(studentsData) ? studentsData : [];
+
+  const mappedStudents = safeStudentsData.map(s => ({
     dbId: s.id,
     id: s.admission_number || `STU${s.id}`,
     name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || 'Student',
@@ -758,7 +763,7 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
     status: s.status || "Active"
   }));
 
-  const totalCount = studentsData.length;
+  const totalCount = safeStudentsData.length;
   const activeCount = mappedStudents.filter(s => (s.status || 'Active').toLowerCase() === 'active').length;
   const activeRateStr = totalCount > 0 ? `${((activeCount / totalCount) * 100).toFixed(1)}% active rate` : "0% active rate";
   const newAdmissionsCount = mappedStudents.filter(s => Number(s.semester) <= 2).length;
@@ -1677,20 +1682,25 @@ function ReportsAnalytics() {
   const [students, setStudents] = useState<any[]>([]);
 
   useEffect(() => {
-    client.get('/students').then(res => setStudents(res.data || [])).catch(console.error);
+    client.get('/students').then(res => {
+      const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data?.students) ? res.data.students : []));
+      setStudents(raw);
+    }).catch(console.error);
   }, []);
 
+  const safeStudents = Array.isArray(students) ? students : [];
+
   const cgpaDistData = [
-    { range: "9–10", count: students.filter(s => parseFloat(s.cgpa) >= 9).length },
-    { range: "8–9", count: students.filter(s => parseFloat(s.cgpa) >= 8 && parseFloat(s.cgpa) < 9).length },
-    { range: "7–8", count: students.filter(s => parseFloat(s.cgpa) >= 7 && parseFloat(s.cgpa) < 8).length },
-    { range: "6–7", count: students.filter(s => parseFloat(s.cgpa) >= 6 && parseFloat(s.cgpa) < 7).length },
-    { range: "<6", count: students.filter(s => parseFloat(s.cgpa) > 0 && parseFloat(s.cgpa) < 6).length },
+    { range: "9–10", count: safeStudents.filter(s => parseFloat(s.cgpa) >= 9).length },
+    { range: "8–9", count: safeStudents.filter(s => parseFloat(s.cgpa) >= 8 && parseFloat(s.cgpa) < 9).length },
+    { range: "7–8", count: safeStudents.filter(s => parseFloat(s.cgpa) >= 7 && parseFloat(s.cgpa) < 8).length },
+    { range: "6–7", count: safeStudents.filter(s => parseFloat(s.cgpa) >= 6 && parseFloat(s.cgpa) < 7).length },
+    { range: "<6", count: safeStudents.filter(s => parseFloat(s.cgpa) > 0 && parseFloat(s.cgpa) < 6).length },
   ];
 
-  const deptNames = Array.from(new Set(students.map(s => s.department_name || s.dept).filter(Boolean)));
+  const deptNames = Array.from(new Set(safeStudents.map(s => s.department_name || s.dept).filter(Boolean)));
   const deptAttData = deptNames.map(dept => {
-    const deptStudents = students.filter(s => (s.department_name || s.dept) === dept);
+    const deptStudents = safeStudents.filter(s => (s.department_name || s.dept) === dept);
     return {
       dept: String(dept),
       pct: deptStudents.length > 0 ? 0 : 0

@@ -44,8 +44,9 @@ export const StudentMySubjects: React.FC = () => {
   const fetchMySubjects = useCallback(async () => {
     try {
       const res = await client.get('/student/my-subjects');
-      if (res.data && res.data.data) {
-        setRegisteredSubjects(res.data.data);
+      if (res.data) {
+        const raw = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        setRegisteredSubjects(raw);
       }
     } catch (err) {
       console.error('Error fetching registered subjects:', err);
@@ -61,7 +62,8 @@ export const StudentMySubjects: React.FC = () => {
         setCurriculumData(res.data.data);
 
         // Pre-select already registered electives
-        const existingElectives = (res.data.data.existing_registrations || [])
+        const rawRegs = Array.isArray(res.data.data.existing_registrations) ? res.data.data.existing_registrations : [];
+        const existingElectives = rawRegs
           .filter((r: any) => r.registration_type === 'ELECTIVE')
           .map((r: any) => r.subject_id);
         setSelectedElectives(existingElectives);
