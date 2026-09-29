@@ -853,6 +853,105 @@ export async function initializeDatabase() {
       );
     }
 
+    // --- PHASE 2 EXTENSION: SUBJECT OFFERING & MULTI-FACULTY REGISTRATION TABLES ---
+
+    // 12.i Subject Offerings Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_offerings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        offering_code VARCHAR(100) NOT NULL UNIQUE,
+        academic_year_id INT NOT NULL,
+        semester_id INT NOT NULL,
+        regulation_id INT NOT NULL,
+        department_id INT NOT NULL,
+        course_id INT NOT NULL,
+        section_id INT NOT NULL,
+        subject_version_id INT NOT NULL,
+        max_students INT NOT NULL DEFAULT 60,
+        current_students INT NOT NULL DEFAULT 0,
+        registration_start DATETIME NULL,
+        registration_end DATETIME NULL,
+        status ENUM('DRAFT', 'OPEN', 'CLOSED', 'CANCELLED', 'COMPLETED') DEFAULT 'OPEN',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_offering_sec_sub (subject_version_id, section_id, semester_id, academic_year_id),
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+        FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.j Multi-Faculty Offering Assignments Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS faculty_offering_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        offering_id INT NOT NULL,
+        faculty_id INT NOT NULL,
+        component_type ENUM('THEORY', 'LABORATORY', 'TUTORIAL', 'MAIN') DEFAULT 'MAIN',
+        assigned_by INT NOT NULL,
+        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+        UNIQUE KEY uq_offering_faculty_comp (offering_id, faculty_id, component_type),
+        FOREIGN KEY (offering_id) REFERENCES subject_offerings(id) ON DELETE CASCADE,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.k Student Semester Registrations Header Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_semester_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        academic_year_id INT NOT NULL,
+        semester_id INT NOT NULL,
+        regulation_id INT NOT NULL,
+        department_id INT NOT NULL,
+        section_id INT NOT NULL,
+        total_credits DECIMAL(5,1) DEFAULT 0.0,
+        status ENUM('DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'LOCKED', 'CANCELLED') DEFAULT 'DRAFT',
+        submitted_at DATETIME NULL,
+        approved_by INT NULL,
+        approved_at DATETIME NULL,
+        locked_at DATETIME NULL,
+        remarks TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_student_sem_reg (student_id, semester_id, academic_year_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+        FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+        FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 12.l Student Offering Enrollments Item Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_offering_enrollments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        semester_registration_id INT NOT NULL,
+        student_id INT NOT NULL,
+        offering_id INT NOT NULL,
+        subject_version_id INT NOT NULL,
+        registration_category ENUM('REGULAR_CURRENT', 'BACKLOG', 'REPEAT', 'IMPROVEMENT', 'ELECTIVE') DEFAULT 'REGULAR_CURRENT',
+        credits DECIMAL(3,1) DEFAULT 3.0,
+        status ENUM('ENROLLED', 'DROPPED', 'CANCELLED') DEFAULT 'ENROLLED',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_student_offering (student_id, offering_id),
+        FOREIGN KEY (semester_registration_id) REFERENCES student_semester_registrations(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (offering_id) REFERENCES subject_offerings(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+      )
+    `);
+
     // 13. Attendance header table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance (

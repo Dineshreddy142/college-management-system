@@ -23,6 +23,17 @@ import {
   getSubjectVersions,
   getStudentBacklogs
 } from '../controllers/academicRuleController.js';
+import {
+  getSubjectOfferings,
+  createSubjectOffering,
+  assignFacultyToOffering,
+  getRegistrationEligibility,
+  submitSemesterRegistration,
+  approveOrRejectRegistrationController,
+  reopenRegistrationController,
+  getFacultyAssignedOfferings,
+  getOfferingEnrolledStudents
+} from '../controllers/offeringRegistrationController.js';
 import { authenticateToken, authorizeRole } from '../middleware.js';
 
 const router = express.Router();
@@ -57,5 +68,18 @@ router.post('/academic/batches', authenticateToken, authorizeRole(['Admin']), cr
 
 router.get('/academic/subject-versions/:regulationId', authenticateToken, getSubjectVersions);
 router.get('/academic/student-backlogs/:studentId', authenticateToken, getStudentBacklogs);
+
+// Subject Offering & Multi-Faculty Semester Registration Routes
+router.get('/academic/subject-offerings', authenticateToken, getSubjectOfferings);
+router.post('/academic/subject-offerings', authenticateToken, authorizeRole(['Admin', 'HOD']), createSubjectOffering);
+router.post('/academic/subject-offerings/:id/faculty', authenticateToken, authorizeRole(['Admin', 'HOD']), assignFacultyToOffering);
+
+router.get('/academic/registration/eligibility', authenticateToken, getRegistrationEligibility);
+router.post('/academic/semester-registrations', authenticateToken, submitSemesterRegistration);
+router.post('/academic/semester-registrations/:id/approve', authenticateToken, authorizeRole(['Admin', 'HOD']), approveOrRejectRegistrationController);
+router.post('/academic/semester-registrations/:id/reopen', authenticateToken, authorizeRole(['Admin', 'HOD']), reopenRegistrationController);
+
+router.get('/faculty/my-offered-subjects', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), getFacultyAssignedOfferings);
+router.get('/faculty/subjects/:offeringId/students', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), getOfferingEnrolledStudents);
 
 export default router;

@@ -18,6 +18,7 @@ import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { MentorDashboardModule } from "./mentor/MentorDashboardModule";
 
 import { FacultyAttendanceMarking } from "./FacultyAttendanceMarking";
+import { FacultySubjectOfferings } from "./FacultySubjectOfferings";
 
 export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [mod, setMod] = useState("dashboard");
@@ -28,6 +29,7 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
     switch (mod) {
       case "dashboard": return <DashboardHome />;
       case "mentor": return <MentorDashboardModule />;
+      case "offered-subjects": return <FacultySubjectOfferings />;
       case "classes": return <ClassesModule />;
       case "attendance": return <FacultyAttendanceMarking />;
       case "assignments": return <AssignmentsModule />;

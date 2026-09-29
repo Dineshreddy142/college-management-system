@@ -19,8 +19,8 @@ import { FloorVersions } from "./admin/block-management/FloorVersions";
 import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
-import { UserControlModule } from "./admin/users/UserControlModule";
 import { AdminRegistrationControl } from "./admin/registration-control/AdminRegistrationControl";
+import { AdminOfferingRegistrationControl } from "./admin/offering-management/AdminOfferingRegistrationControl";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import client from "../api/client";
 
@@ -1895,7 +1895,8 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
     switch (mod) {
       case "dashboard": return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
-      case "registration-control": return <AdminRegistrationControl />;
+      case "registration-control": return <AdminOfferingRegistrationControl />;
+      case "subject-offerings": return <AdminOfferingRegistrationControl />;
       case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;
       case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;

@@ -10,6 +10,7 @@ import { cn } from "../App";
 export const FACULTY_SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
   { id: "mentor", label: "Mentor Portal", icon: Shield, badge: "New" },
+  { id: "offered-subjects", label: "My Offered Subjects", icon: Layers, badge: "Offerings" },
   { id: "classes", label: "Classes", icon: BookOpen, badge: null },
 
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "Pending" },
