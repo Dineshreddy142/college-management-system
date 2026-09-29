@@ -1455,6 +1455,160 @@ CREATE TABLE IF NOT EXISTS webauthn_credentials (
 CREATE INDEX idx_student_attendance_lookup ON student_attendance(session_id, student_id);
 CREATE INDEX idx_student_fee_accounts_student ON student_fee_accounts(student_id);
 
+-- -------------------------------------------------------------
+-- ADVANCED ACADEMIC REGULATION & TRANSCRIPT MANAGEMENT SCHEMA
+-- -------------------------------------------------------------
+
+-- Batches Definition Table
+CREATE TABLE IF NOT EXISTS batches (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  batch_name VARCHAR(100) NOT NULL,
+  start_year INT NOT NULL,
+  end_year INT NOT NULL,
+  department_id INT NOT NULL,
+  regulation_id INT NOT NULL,
+  status ENUM('ACTIVE', 'COMPLETED', 'ARCHIVED') DEFAULT 'ACTIVE',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+  FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE
+);
+
+-- Versioned Subject Master Table
+CREATE TABLE IF NOT EXISTS subject_versions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  regulation_id INT NOT NULL,
+  subject_code VARCHAR(50) NOT NULL,
+  subject_name VARCHAR(150) NOT NULL,
+  short_name VARCHAR(50),
+  lecture_hours INT DEFAULT 3,
+  tutorial_hours INT DEFAULT 0,
+  practical_hours INT DEFAULT 0,
+  credits DECIMAL(3,1) NOT NULL DEFAULT 3.0,
+  offering_type ENUM('Theory', 'Practical', 'Theory + Practical', 'Project', 'Internship') DEFAULT 'Theory',
+  category_id INT NULL,
+  internal_marks INT DEFAULT 40,
+  external_marks INT DEFAULT 60,
+  total_marks INT DEFAULT 100,
+  min_internal_pct DECIMAL(5,2) DEFAULT 40.00,
+  min_external_pct DECIMAL(5,2) DEFAULT 40.00,
+  min_total_pct DECIMAL(5,2) DEFAULT 40.00,
+  min_attendance_pct DECIMAL(5,2) DEFAULT 75.00,
+  max_attempts_allowed INT DEFAULT 5,
+  is_elective TINYINT(1) DEFAULT 0,
+  elective_group_id INT NULL,
+  status ENUM('ACTIVE', 'INACTIVE', 'DEPRECATED') DEFAULT 'ACTIVE',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_reg_sub_code (regulation_id, subject_code),
+  FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+  FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL
+);
+
+-- Advanced Prerequisites V2 Table (Supports AND/OR logic)
+CREATE TABLE IF NOT EXISTS subject_prerequisites_v2 (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  subject_version_id INT NOT NULL,
+  prerequisite_subject_version_id INT NOT NULL,
+  logic_group_id INT DEFAULT 1,
+  min_grade_required VARCHAR(10) DEFAULT 'PASS',
+  min_grade_point INT DEFAULT 5,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+  FOREIGN KEY (prerequisite_subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+);
+
+-- Subject Corequisites Table
+CREATE TABLE IF NOT EXISTS subject_corequisites (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  subject_version_id INT NOT NULL,
+  corequisite_subject_version_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+  FOREIGN KEY (corequisite_subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+);
+
+-- Elective Groups Table
+CREATE TABLE IF NOT EXISTS elective_groups (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  regulation_id INT NOT NULL,
+  group_name VARCHAR(100) NOT NULL,
+  min_choices INT DEFAULT 1,
+  max_choices INT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE
+);
+
+-- Student Backlog Tracking Table
+CREATE TABLE IF NOT EXISTS student_backlogs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  subject_version_id INT NOT NULL,
+  original_semester_id INT NOT NULL,
+  original_academic_year_id INT NOT NULL,
+  attempt_count INT DEFAULT 1,
+  status ENUM('OPEN_BACKLOG', 'REGISTERED_REATTEMPT', 'CLEARED', 'EXEMPTED') DEFAULT 'OPEN_BACKLOG',
+  cleared_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+  FOREIGN KEY (original_semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  FOREIGN KEY (original_academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
+);
+
+-- Immutable Exam Attempt History Table
+CREATE TABLE IF NOT EXISTS student_exam_attempts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  subject_version_id INT NOT NULL,
+  examination_id INT NULL,
+  attempt_number INT NOT NULL DEFAULT 1,
+  internal_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+  external_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+  total_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+  letter_grade VARCHAR(10) NOT NULL,
+  grade_point INT NOT NULL DEFAULT 0,
+  credits_earned DECIMAL(3,1) DEFAULT 0.0,
+  result_status ENUM('PASSED', 'FAILED', 'ABSENT', 'WITHHELD', 'EXEMPTED') DEFAULT 'FAILED',
+  is_improvement TINYINT(1) DEFAULT 0,
+  attempt_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+);
+
+-- Immutable Semester Transcripts Table
+CREATE TABLE IF NOT EXISTS student_sem_transcripts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  semester_id INT NOT NULL,
+  academic_year_id INT NOT NULL,
+  sgpa DECIMAL(4,2) NOT NULL,
+  cgpa DECIMAL(4,2) NOT NULL,
+  total_registered_credits DECIMAL(5,1) NOT NULL,
+  total_earned_credits DECIMAL(5,1) NOT NULL,
+  backlog_count INT DEFAULT 0,
+  transcript_status ENUM('DRAFT', 'OFFICIAL_PUBLISHED', 'LOCKED') DEFAULT 'OFFICIAL_PUBLISHED',
+  transcript_hash VARCHAR(64) NULL,
+  frozen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
+);
+
+-- Comprehensive Academic Audit Logs Table
+CREATE TABLE IF NOT EXISTS academic_audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  actor_user_id INT NOT NULL,
+  action_type VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id INT NOT NULL,
+  old_value JSON NULL,
+  new_value JSON NULL,
+  reason TEXT NULL,
+  ip_address VARCHAR(45) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 
 
 

@@ -550,6 +550,260 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Note on subject_allocations columns:', colErr.message);
     }
 
+    // --- PHASE 2: ADVANCED ACADEMIC REGULATION & CURRICULUM SCHEMA EXPANSION ---
+
+    // 12.g Batches Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS batches (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        batch_name VARCHAR(100) NOT NULL,
+        start_year INT NOT NULL,
+        end_year INT NOT NULL,
+        department_id INT NOT NULL,
+        regulation_id INT NOT NULL,
+        status ENUM('ACTIVE', 'COMPLETED', 'ARCHIVED') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.h Versioned Subject Master Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_versions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        regulation_id INT NOT NULL,
+        subject_code VARCHAR(50) NOT NULL,
+        subject_name VARCHAR(150) NOT NULL,
+        short_name VARCHAR(50),
+        lecture_hours INT DEFAULT 3,
+        tutorial_hours INT DEFAULT 0,
+        practical_hours INT DEFAULT 0,
+        credits DECIMAL(3,1) NOT NULL DEFAULT 3.0,
+        offering_type ENUM('Theory', 'Practical', 'Theory + Practical', 'Project', 'Internship') DEFAULT 'Theory',
+        category_id INT NULL,
+        internal_marks INT DEFAULT 40,
+        external_marks INT DEFAULT 60,
+        total_marks INT DEFAULT 100,
+        min_internal_pct DECIMAL(5,2) DEFAULT 40.00,
+        min_external_pct DECIMAL(5,2) DEFAULT 40.00,
+        min_total_pct DECIMAL(5,2) DEFAULT 40.00,
+        min_attendance_pct DECIMAL(5,2) DEFAULT 75.00,
+        max_attempts_allowed INT DEFAULT 5,
+        is_elective TINYINT(1) DEFAULT 0,
+        elective_group_id INT NULL,
+        status ENUM('ACTIVE', 'INACTIVE', 'DEPRECATED') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_reg_sub_code (regulation_id, subject_code),
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES subject_categories(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 12.i Advanced Prerequisites V2 Table (Supports AND/OR logic)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_prerequisites_v2 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        subject_version_id INT NOT NULL,
+        prerequisite_subject_version_id INT NOT NULL,
+        logic_group_id INT DEFAULT 1,
+        min_grade_required VARCHAR(10) DEFAULT 'PASS',
+        min_grade_point INT DEFAULT 5,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+        FOREIGN KEY (prerequisite_subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.j Subject Corequisites Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subject_corequisites (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        subject_version_id INT NOT NULL,
+        corequisite_subject_version_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+        FOREIGN KEY (corequisite_subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.k Elective Groups Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS elective_groups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        regulation_id INT NOT NULL,
+        group_name VARCHAR(100) NOT NULL,
+        min_choices INT DEFAULT 1,
+        max_choices INT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.l Student Backlogs Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_backlogs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        subject_version_id INT NOT NULL,
+        original_semester_id INT NOT NULL,
+        original_academic_year_id INT NOT NULL,
+        attempt_count INT DEFAULT 1,
+        status ENUM('OPEN_BACKLOG', 'REGISTERED_REATTEMPT', 'CLEARED', 'EXEMPTED') DEFAULT 'OPEN_BACKLOG',
+        cleared_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE,
+        FOREIGN KEY (original_semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+        FOREIGN KEY (original_academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.m Immutable Exam Attempts Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_exam_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        subject_version_id INT NOT NULL,
+        examination_id INT NULL,
+        attempt_number INT NOT NULL DEFAULT 1,
+        internal_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+        external_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+        total_marks_obtained DECIMAL(5,2) DEFAULT 0.00,
+        letter_grade VARCHAR(10) NOT NULL,
+        grade_point INT NOT NULL DEFAULT 0,
+        credits_earned DECIMAL(3,1) DEFAULT 0.0,
+        result_status ENUM('PASSED', 'FAILED', 'ABSENT', 'WITHHELD', 'EXEMPTED') DEFAULT 'FAILED',
+        is_improvement TINYINT(1) DEFAULT 0,
+        attempt_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_version_id) REFERENCES subject_versions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.n Immutable Semester Transcripts Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_sem_transcripts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        semester_id INT NOT NULL,
+        academic_year_id INT NOT NULL,
+        sgpa DECIMAL(4,2) NOT NULL,
+        cgpa DECIMAL(4,2) NOT NULL,
+        total_registered_credits DECIMAL(5,1) NOT NULL,
+        total_earned_credits DECIMAL(5,1) NOT NULL,
+        backlog_count INT DEFAULT 0,
+        transcript_status ENUM('DRAFT', 'OFFICIAL_PUBLISHED', 'LOCKED') DEFAULT 'OFFICIAL_PUBLISHED',
+        transcript_hash VARCHAR(64) NULL,
+        frozen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 12.o Comprehensive Academic Audit Logs Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS academic_audit_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        actor_user_id INT NOT NULL,
+        action_type VARCHAR(100) NOT NULL,
+        entity_type VARCHAR(100) NOT NULL,
+        entity_id INT NOT NULL,
+        old_value JSON NULL,
+        new_value JSON NULL,
+        reason TEXT NULL,
+        ip_address VARCHAR(45) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Ensure columns on existing regulations table
+    try {
+      const [regCols] = await pool.query('DESCRIBE regulations');
+      const regColNames = regCols.map(c => c.Field);
+      if (!regColNames.includes('code')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN code VARCHAR(50) NULL");
+      }
+      if (!regColNames.includes('degree_name')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN degree_name VARCHAR(50) DEFAULT 'B.Tech'");
+      }
+      if (!regColNames.includes('version')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN version VARCHAR(20) DEFAULT 'v1.0'");
+      }
+      if (!regColNames.includes('total_required_credits')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN total_required_credits DECIMAL(5,1) DEFAULT 160.0");
+      }
+      if (!regColNames.includes('min_promotion_credit_pct')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN min_promotion_credit_pct DECIMAL(5,2) DEFAULT 50.00");
+      }
+      if (!regColNames.includes('max_backlogs_allowed')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN max_backlogs_allowed INT DEFAULT 10");
+      }
+      if (!regColNames.includes('improvement_policy')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN improvement_policy ENUM('BEST_GRADE', 'LATEST_GRADE') DEFAULT 'BEST_GRADE'");
+      }
+      if (!regColNames.includes('cgpa_calculation_rule')) {
+        await pool.query("ALTER TABLE regulations ADD COLUMN cgpa_calculation_rule ENUM('ALL_ATTEMPTS', 'BEST_ATTEMPT_ONLY') DEFAULT 'BEST_ATTEMPT_ONLY'");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on regulations columns:', colErr.message);
+    }
+
+    // Ensure columns on existing students table
+    try {
+      const [stCols] = await pool.query('DESCRIBE students');
+      const stColNames = stCols.map(c => c.Field);
+      if (!stColNames.includes('batch_year')) {
+        await pool.query("ALTER TABLE students ADD COLUMN batch_year INT NOT NULL DEFAULT 2024");
+      }
+      if (!stColNames.includes('regulation_id')) {
+        await pool.query("ALTER TABLE students ADD COLUMN regulation_id INT NULL");
+      }
+      if (!stColNames.includes('current_semester_id')) {
+        await pool.query("ALTER TABLE students ADD COLUMN current_semester_id INT NULL");
+      }
+      if (!stColNames.includes('academic_status')) {
+        await pool.query("ALTER TABLE students ADD COLUMN academic_status ENUM('ACTIVE', 'PROMOTED', 'DETAINED_CREDITS', 'DETAINED_ATTENDANCE', 'SUSPENDED', 'GRADUATED') DEFAULT 'ACTIVE'");
+      }
+      if (!stColNames.includes('cumulative_credits_earned')) {
+        await pool.query("ALTER TABLE students ADD COLUMN cumulative_credits_earned DECIMAL(5,1) DEFAULT 0.0");
+      }
+      if (!stColNames.includes('cgpa')) {
+        await pool.query("ALTER TABLE students ADD COLUMN cgpa DECIMAL(4,2) DEFAULT 0.00");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on students columns:', colErr.message);
+    }
+
+    // Ensure columns on existing marks table
+    try {
+      const [mCols] = await pool.query('DESCRIBE marks');
+      const mColNames = mCols.map(c => c.Field);
+      if (!mColNames.includes('attempt_number')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN attempt_number INT DEFAULT 1");
+      }
+      if (!mColNames.includes('is_improvement')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN is_improvement TINYINT(1) DEFAULT 0");
+      }
+      if (!mColNames.includes('regulation_id')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN regulation_id INT NULL");
+      }
+      if (!mColNames.includes('letter_grade')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN letter_grade VARCHAR(10) NULL");
+      }
+      if (!mColNames.includes('grade_point')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN grade_point INT DEFAULT 0");
+      }
+      if (!mColNames.includes('credits_earned')) {
+        await pool.query("ALTER TABLE marks ADD COLUMN credits_earned DECIMAL(3,1) DEFAULT 0.0");
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on marks columns:', colErr.message);
+    }
+
     // 12.g Student Subject Registrations Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS student_subject_registrations (
@@ -1173,10 +1427,14 @@ export async function initializeDatabase() {
       if (!pNames.includes('verified_at')) {
         await pool.query('ALTER TABLE payments ADD COLUMN verified_at DATETIME NULL AFTER verified_by');
       }
-      await pool.query('ALTER TABLE payments MODIFY COLUMN student_fee_id INT NULL');
-      await pool.query('ALTER TABLE payments MODIFY COLUMN payment_date DATETIME DEFAULT CURRENT_TIMESTAMP');
+      if (pNames.includes('student_fee_id')) {
+        await pool.query('ALTER TABLE payments MODIFY COLUMN student_fee_id INT NULL');
+      }
+      if (pNames.includes('payment_date')) {
+        await pool.query('ALTER TABLE payments MODIFY COLUMN payment_date DATETIME DEFAULT CURRENT_TIMESTAMP');
+      }
     } catch (pErr) {
-      console.error('Migration error for payments:', pErr);
+      console.error('Migration error for payments:', pErr.message);
     }
 
     // 19.i Refunds Table
@@ -1408,9 +1666,11 @@ export async function initializeDatabase() {
       if (!bkNames.includes('status')) {
         await pool.query("ALTER TABLE books ADD COLUMN status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE' AFTER branch_id");
       }
-      await pool.query('ALTER TABLE books MODIFY COLUMN author VARCHAR(100) NULL');
+      if (bkNames.includes('author')) {
+        await pool.query('ALTER TABLE books MODIFY COLUMN author VARCHAR(100) NULL');
+      }
     } catch (bkErr) {
-      console.error('Migration error for books:', bkErr);
+      console.error('Migration error for books:', bkErr.message);
     }
 
     // 20.h Book Authors Table (Many-to-Many)
