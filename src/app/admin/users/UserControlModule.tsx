@@ -295,6 +295,8 @@ export const UserControlModule: React.FC = () => {
           password: '',
           employee_id: '',
           roll_number: '',
+          department: 'Computer Science & Engineering',
+          phone: '',
           designation: 'Assistant Professor'
         });
       }
