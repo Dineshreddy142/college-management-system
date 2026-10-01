@@ -437,18 +437,33 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   
+  const safeNotifs = Array.isArray(notifications) ? notifications : [];
+  const safeSearchResults = Array.isArray(searchResults) ? searchResults : [];
+
   useEffect(() => {
     client.get('/notifications').then(res => {
-      setNotifications(res.data);
-    }).catch(console.error);
+      if (Array.isArray(res.data)) {
+        setNotifications(res.data);
+      } else if (res.data && Array.isArray(res.data.notifications)) {
+        setNotifications(res.data.notifications);
+      } else {
+        setNotifications([]);
+      }
+    }).catch(() => setNotifications([]));
   }, []);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
       client.get(`/api/search?q=${searchQuery}`).then(res => {
-        setSearchResults(res.data);
+        if (Array.isArray(res.data)) {
+          setSearchResults(res.data);
+        } else if (res.data && Array.isArray(res.data.results)) {
+          setSearchResults(res.data.results);
+        } else {
+          setSearchResults([]);
+        }
         setShowSearch(true);
-      }).catch(console.error);
+      }).catch(() => setSearchResults([]));
     } else {
       setSearchResults([]);
       setShowSearch(false);
@@ -458,7 +473,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   const markAsRead = async (id: number) => {
     try {
       await client.put(`/api/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+      setNotifications(prev => (Array.isArray(prev) ? prev : []).map(n => n.id === id ? { ...n, is_read: 1 } : n));
     } catch (error) {
       console.error(error);
     }
@@ -476,7 +491,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
     "campus-map": "Interactive Campus Map",
     reports: "Reports & Analytics", settings: "Settings",
   };
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = safeNotifs.filter(n => n && !n.is_read).length;
 
   return (
     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-20">
@@ -499,17 +514,17 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
             placeholder="Search students, faculty..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => { if(searchResults.length > 0) setShowSearch(true) }}
+            onFocus={() => { if(safeSearchResults.length > 0) setShowSearch(true) }}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-10 py-2 text-sm w-56 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-300 dark:text-slate-600 font-mono">⌘K</span>
           
-          {showSearch && searchResults.length > 0 && (
+          {showSearch && safeSearchResults.length > 0 && (
             <>
               <div className="fixed inset-0" onClick={() => setShowSearch(false)} />
               <div className="absolute top-12 left-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="p-2">
-                  {searchResults.map((r, i) => (
+                  {safeSearchResults.map((r, i) => (
                     <div key={i} className="px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-lg">
                       <p className="text-sm font-medium text-slate-900 dark:text-white">{r.name}</p>
                       <p className="text-xs text-slate-500">{r.role}</p>
@@ -539,9 +554,9 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
                   {unreadCount > 0 && <Badge variant="info">{unreadCount} new</Badge>}
                 </div>
                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50 max-h-72 overflow-y-auto">
-                  {notifications.length === 0 ? (
+                  {safeNotifs.length === 0 ? (
                     <div className="p-6 text-center text-slate-500 text-sm">No notifications</div>
-                  ) : notifications.map((n) => (
+                  ) : safeNotifs.map((n) => (
                     <div key={n.id} onClick={() => markAsRead(n.id)} className={cn("p-3 cursor-pointer transition-colors", !n.is_read ? "bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-700/40")}>
                       <p className="text-xs font-semibold text-slate-900 dark:text-white">{n.title}</p>
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
