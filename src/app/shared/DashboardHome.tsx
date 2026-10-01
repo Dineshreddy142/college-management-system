@@ -80,7 +80,7 @@ export function DashboardHome() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
               {isFacultyOrHod ? "Subject Batch Attendance" : "Subject Attendance"}
             </h3>
-            {stats.subjectAttendance && stats.subjectAttendance.length > 0 ? (
+            {Array.isArray(stats.subjectAttendance) && stats.subjectAttendance.length > 0 ? (
               <div className="space-y-2.5">
                 {stats.subjectAttendance.map((s: any) => (
                   <div key={s.sub}>
@@ -103,7 +103,7 @@ export function DashboardHome() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
               {isFacultyOrHod ? "Faculty Recent Activity" : "Recent Results"}
             </h3>
-            {stats.recentResults && stats.recentResults.length > 0 ? (
+            {Array.isArray(stats.recentResults) && stats.recentResults.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentResults.map((r: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
