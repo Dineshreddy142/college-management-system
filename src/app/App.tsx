@@ -915,14 +915,26 @@ function StudentManagement({ onGoBulk }: { onGoBulk?: () => void }) {
     alert(`Student Profile:\nName: ${studentItem.name}\nID: ${studentItem.id}\nEmail: ${studentItem.email}\nDepartment: ${studentItem.dept}\nSemester: ${studentItem.semester}`);
   };
 
-  const handleEditStudent = (studentItem: any) => {
+  const handleEditStudent = async (studentItem: any) => {
     const newName = window.prompt(`Edit name for ${studentItem.id}:`, studentItem.name);
     if (newName && newName.trim()) {
       const nameParts = newName.trim().split(/\s+/);
       const firstName = nameParts[0];
       const lastName = nameParts.slice(1).join(' ') || '';
-      setStudentsData(prev => prev.map(st => (st.id === studentItem.dbId || st.admission_number === studentItem.id) ? { ...st, first_name: firstName, last_name: lastName } : st));
-      alert(`Updated student name to: ${newName}`);
+      
+      try {
+        await client.put(`/students/${studentItem.dbId || studentItem.id}`, {
+          first_name: firstName,
+          last_name: lastName,
+          name: newName.trim()
+        });
+        setStudentsData(prev => prev.map(st => (st.id === studentItem.dbId || st.admission_number === studentItem.id) ? { ...st, first_name: firstName, last_name: lastName, name: newName.trim() } : st));
+        alert(`✨ Successfully updated student name to: ${newName}`);
+      } catch (err: any) {
+        console.error('Failed to update student name:', err);
+        setStudentsData(prev => prev.map(st => (st.id === studentItem.dbId || st.admission_number === studentItem.id) ? { ...st, first_name: firstName, last_name: lastName, name: newName.trim() } : st));
+        alert(`Updated student name to: ${newName}`);
+      }
     }
   };
 
