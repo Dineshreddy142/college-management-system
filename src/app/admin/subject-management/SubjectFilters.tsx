@@ -95,7 +95,7 @@ export const SubjectFilters: React.FC<SubjectFiltersProps> = ({
             className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Categories</option>
-            {categories.map((cat) => (
+            {(Array.isArray(categories) ? categories : []).map((cat) => (
               <option key={cat.id} value={cat.code}>
                 {cat.name}
               </option>
@@ -111,7 +111,7 @@ export const SubjectFilters: React.FC<SubjectFiltersProps> = ({
             className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Departments</option>
-            {departments.map((dept) => (
+            {(Array.isArray(departments) ? departments : []).map((dept) => (
               <option key={dept.id} value={dept.id}>
                 {dept.name} ({dept.code})
               </option>
@@ -127,7 +127,7 @@ export const SubjectFilters: React.FC<SubjectFiltersProps> = ({
             className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Programs</option>
-            {programs.map((prog) => (
+            {(Array.isArray(programs) ? programs : []).map((prog) => (
               <option key={prog.id} value={prog.id}>
                 {prog.name}
               </option>
@@ -143,7 +143,7 @@ export const SubjectFilters: React.FC<SubjectFiltersProps> = ({
             className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Semesters</option>
-            {semesters.map((sem) => (
+            {(Array.isArray(semesters) ? semesters : []).map((sem) => (
               <option key={sem.id} value={sem.id}>
                 {sem.name || `Semester ${sem.semester_number}`}
               </option>

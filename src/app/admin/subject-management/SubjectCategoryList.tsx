@@ -83,7 +83,7 @@ export const SubjectCategoryList: React.FC<SubjectCategoryListProps> = ({
         </button>
 
         {/* Categories List */}
-        {categories.map((cat) => {
+        {(Array.isArray(categories) ? categories : []).map((cat) => {
           const isSelected = selectedCategory === cat.code || selectedCategory === String(cat.id);
           const icon = CATEGORY_ICONS[cat.code] || <BookOpen className="w-4 h-4 text-slate-500" />;
           const gradientStyle = CATEGORY_GRADIENTS[cat.code] || 'from-slate-500/10 border-slate-200 text-slate-700';

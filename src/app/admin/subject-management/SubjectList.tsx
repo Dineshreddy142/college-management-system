@@ -102,7 +102,7 @@ export const SubjectList: React.FC<SubjectListProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {subjects.map((sub) => {
+            {(Array.isArray(subjects) ? subjects : []).map((sub) => {
               const categoryCode = sub.category_code || 'CORE';
               const badgeStyle = CATEGORY_BADGE_STYLES[categoryCode] || 'bg-slate-100 text-slate-700 border-slate-200';
               const isInactive = sub.status === 'Inactive';
