@@ -178,13 +178,29 @@ export const UserControlModule: React.FC = () => {
     return `${prefix}-${year}-${rand}`;
   };
 
-  const handleGeneratePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-    let rand = '';
-    for (let i = 0; i < 10; i++) {
-      rand += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setCreateForm(prev => ({ ...prev, password: rand }));
+  const getDefaultRolePassword = (roleName: string) => {
+    const r = (roleName || '').toLowerCase();
+    if (r.includes('chancellor') && !r.includes('vice')) return 'chancellor@123';
+    if (r.includes('vice chancellor')) return 'vicechancellor@123';
+    if (r.includes('registrar')) return 'registrar@123';
+    if (r.includes('controller') || r.includes('coe')) return 'coe@123';
+    if (r.includes('dean')) return 'dean@123';
+    if (r.includes('hod') || r.includes('head of department')) return 'hod@123';
+    if (r.includes('principal')) return 'principal@123';
+    if (r.includes('faculty')) return 'faculty@123';
+    if (r.includes('student')) return 'student@123';
+    if (r.includes('parent')) return 'parent@123';
+    if (r.includes('accountant')) return 'accountant@123';
+    if (r.includes('librarian')) return 'librarian@123';
+    if (r.includes('placement')) return 'placement@123';
+    if (r.includes('office staff')) return 'officestaff@123';
+    if (r.includes('admin')) return 'admin@123';
+    return `${(roleName || 'user').toLowerCase().replace(/[^a-z0-9]/g, '')}@123`;
+  };
+
+  const handleGeneratePassword = (targetRole?: string) => {
+    const defaultPwd = getDefaultRolePassword(targetRole || createForm.role);
+    setCreateForm(prev => ({ ...prev, password: defaultPwd }));
   };
 
   const handleGenerateId = (targetRole?: string) => {
@@ -201,12 +217,13 @@ export const UserControlModule: React.FC = () => {
   const openCreateModal = () => {
     const defaultRole = 'Chancellor';
     const autoId = generateAutoIdForRole(defaultRole);
+    const defaultPwd = getDefaultRolePassword(defaultRole);
     setCreateForm({
       role: defaultRole,
       username: autoId,
       full_name: '',
       email: '',
-      password: '',
+      password: defaultPwd,
       employee_id: autoId,
       roll_number: autoId,
       designation: defaultRole
@@ -597,10 +614,12 @@ export const UserControlModule: React.FC = () => {
                   onChange={e => {
                     const newRole = e.target.value;
                     const autoId = generateAutoIdForRole(newRole);
+                    const defaultPwd = getDefaultRolePassword(newRole);
                     setCreateForm({
                       ...createForm,
                       role: newRole,
                       username: autoId,
+                      password: defaultPwd,
                       employee_id: autoId,
                       roll_number: autoId
                     });
