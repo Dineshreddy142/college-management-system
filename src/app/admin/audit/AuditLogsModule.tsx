@@ -27,6 +27,8 @@ export function AuditLogsModule() {
       const res = await client.get("/activity-logs");
       if (res.data?.success && Array.isArray(res.data.data)) {
         setLogs(res.data.data);
+      } else if (Array.isArray(res.data)) {
+        setLogs(res.data);
       } else {
         setLogs([]);
       }
@@ -66,14 +68,15 @@ export function AuditLogsModule() {
     fetchLogs();
   }, []);
 
-  const filteredLogs = logs.filter((log) => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const filteredLogs = safeLogs.filter((log) => {
     const matchesSearch =
       (log.username || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.action || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.description || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesAction = actionFilter === "ALL" || log.action.toUpperCase().includes(actionFilter.toUpperCase());
+    const matchesAction = actionFilter === "ALL" || (log.action && log.action.toUpperCase().includes(actionFilter.toUpperCase()));
 
     return matchesSearch && matchesAction;
   });
