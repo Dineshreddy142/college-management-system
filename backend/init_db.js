@@ -1991,11 +1991,16 @@ export async function initializeDatabase() {
     // --- SEED ESSENTIAL ROLES ---
     const roles = [
       'Admin',
-      'Student',
+      'Chancellor',
+      'Vice Chancellor',
+      'Registrar',
+      'Controller of Examinations',
+      'Dean',
+      'HOD',
       'Faculty',
+      'Student',
       'Parent',
       'Principal',
-      'HOD',
       'Accountant',
       'Librarian',
       'Placement Officer',

@@ -24,6 +24,7 @@ import { AdminRegistrationControl } from "./admin/registration-control/AdminRegi
 import { AdminOfferingRegistrationControl } from "./admin/offering-management/AdminOfferingRegistrationControl";
 import { SubjectManagement } from "./admin/subject-management/SubjectManagement";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
+import { AuditLogsModule } from "./admin/audit/AuditLogsModule";
 import client from "../api/client";
 
 import {
@@ -33,7 +34,7 @@ import {
   TrendingUp, TrendingDown, CheckCircle, Clock, Star, Plus,
   Filter, Download, Eye, EyeOff, Edit2, Trash2, Mail, Phone,
   Award, FileText, UserCheck, ArrowRight, Activity,
-  Shield, Globe, MessageSquare, LogOut, User,
+  Shield, ShieldAlert, Globe, MessageSquare, LogOut, User,
   Home, Send, Building, AlertTriangle, Info,
   Zap, Lock, Key, Smartphone, AlertCircle,
   BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
@@ -200,17 +201,16 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SIDEBAR_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
+  { id: "dashboard", label: "Dashboard Overview", icon: LayoutDashboard, badge: null },
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
-  { id: "registration-control", label: "Registration Control", icon: UserCheck, badge: "Live" },
-  { id: "bulk-data", label: "Bulk Excel Hub", icon: FileSpreadsheet, badge: "AI Sync" },
-  { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
-  { id: "students", label: "Students", icon: GraduationCap, badge: null },
-  { id: "faculty", label: "Faculty", icon: Users, badge: null },
-  { id: "academic", label: "Academics", icon: BookOpen, badge: null },
+  { id: "registration-control", label: "Registration Windows", icon: UserCheck, badge: "Live" },
+  { id: "bulk-data", label: "Bulk Data Hub", icon: FileSpreadsheet, badge: "AI Sync" },
+  { id: "academic", label: "Academics & Curriculums", icon: BookOpen, badge: null },
+  { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
+  { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
   {
     id: "block-management",
-    label: "Block Management",
+    label: "Campus Block Twin",
     icon: Building,
     badge: null,
     children: [
@@ -220,16 +220,16 @@ const SIDEBAR_ITEMS = [
       { id: "floor-versions", label: "Floor Versions", icon: History, badge: null },
     ]
   },
-
-  { id: "attendance", label: "Attendance", icon: UserCheck, badge: null },
-  { id: "exams", label: "Examinations", icon: FileText, badge: null },
-  { id: "timetable", label: "Timetable", icon: CalendarDays, badge: null },
-  { id: "fees", label: "Fee Management", icon: DollarSign, badge: null },
-  { id: "library", label: "Library", icon: BookOpen, badge: null },
-  { id: "hostel", label: "Hostel", icon: Home, badge: null },
-  { id: "placement", label: "Placement", icon: Briefcase, badge: null },
-  { id: "reports", label: "Reports", icon: BarChart3, badge: null },
-  { id: "settings", label: "Settings", icon: Settings, badge: null },
+  { id: "timetable", label: "Master Timetable", icon: CalendarDays, badge: null },
+  { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
+  { id: "exams", label: "Examinations Governance", icon: FileText, badge: "Governance" },
+  { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
+  { id: "library", label: "Library Governance", icon: BookOpen, badge: "Library" },
+  { id: "placement", label: "Placement Drive Overview", icon: Briefcase, badge: "Placement" },
+  { id: "reports", label: "Reports & Analytics", icon: BarChart3, badge: null },
+  { id: "audit-logs", label: "Security & Audit Logs", icon: ShieldAlert, badge: "Live" },
+  { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
+  { id: "settings", label: "System Settings", icon: Settings, badge: null },
 ];
 
 function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {
@@ -243,11 +243,15 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin' || normRole === 'office') return true;
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'block-management', 'registration-control'].includes(item.id);
+    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'chancellor' || normRole === 'vicechancellor' || normRole === 'systemadmin') return true;
+    if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'academic', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
+    if (normRole === 'coe' || normRole === 'controllerofexaminations') return ['dashboard', 'exams', 'students', 'faculty', 'reports', 'settings', 'audit-logs'].includes(item.id);
+    if (normRole === 'dean') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'block-management', 'registration-control', 'audit-logs'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
-    if (normRole === 'placement') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'placement' || normRole === 'placementofficer') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'office' || normRole === 'officestaff') return ['dashboard', 'students', 'faculty', 'attendance', 'bulk-data', 'reports', 'settings'].includes(item.id);
     return true; // Default to all if unknown
   });
 
@@ -1918,6 +1922,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "floor-versions": return <FloorVersions initialFloorId={activeEditorFloorId || undefined} />;
 
       case "reports": return <ReportsAnalytics />;
+      case "audit-logs": return <AuditLogsModule />;
       case "settings": return <SettingsPage theme={theme} toggleTheme={toggleTheme} />;
       default: return <DashboardHome />;
     }
@@ -2586,6 +2591,11 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
         <Routes>
           <Route path="/" element={<Navigate to={defaultLoginRedirect} replace />} />
           <Route path="/admin/login" element={<PortalLogin role="admin" />} />
+          <Route path="/chancellor/login" element={<PortalLogin role="chancellor" />} />
+          <Route path="/vicechancellor/login" element={<PortalLogin role="vicechancellor" />} />
+          <Route path="/registrar/login" element={<PortalLogin role="registrar" />} />
+          <Route path="/coe/login" element={<PortalLogin role="coe" />} />
+          <Route path="/dean/login" element={<PortalLogin role="dean" />} />
           <Route path="/student/login" element={<PortalLogin role="student" />} />
           <Route path="/faculty/login" element={<PortalLogin role="faculty" />} />
           <Route path="/hod/login" element={<PortalLogin role="hod" />} />
@@ -2614,6 +2624,26 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/admin/dashboard/*" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           
+          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor" element={<Navigate to="/chancellor/dashboard" replace />} />
+
+          <Route path="/vicechancellor/dashboard" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/vicechancellor/dashboard/*" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/vicechancellor" element={<Navigate to="/vicechancellor/dashboard" replace />} />
+
+          <Route path="/registrar/dashboard" element={<ProtectedRoute allowedRole="Registrar"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/registrar/dashboard/*" element={<ProtectedRoute allowedRole="Registrar"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/registrar" element={<Navigate to="/registrar/dashboard" replace />} />
+
+          <Route path="/coe/dashboard" element={<ProtectedRoute allowedRole="Controller of Examinations"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/coe/dashboard/*" element={<ProtectedRoute allowedRole="Controller of Examinations"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/coe" element={<Navigate to="/coe/dashboard" replace />} />
+
+          <Route path="/dean/dashboard" element={<ProtectedRoute allowedRole="Dean"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/dean/dashboard/*" element={<ProtectedRoute allowedRole="Dean"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/dean" element={<Navigate to="/dean/dashboard" replace />} />
+
           <Route path="/hod/dashboard" element={<ProtectedRoute allowedRole="HOD"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/hod/dashboard/*" element={<ProtectedRoute allowedRole="HOD"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />

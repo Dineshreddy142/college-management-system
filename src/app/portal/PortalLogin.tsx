@@ -20,6 +20,11 @@ const roleConfig: Record<string, { title: string, field: string, placeholder: st
   faculty: { title: 'Faculty Login', field: 'Email or Employee ID', placeholder: 'Enter your email or Faculty ID', icon: '👨‍🏫', badge: 'Faculty Portal' },
   admin: { title: 'Administrator Login', field: 'Email or Username', placeholder: 'Enter administrator email', icon: '🛡️', badge: 'Admin Portal' },
   hod: { title: 'Head of Department Login', field: 'Email or Employee ID', placeholder: 'Enter your institutional email', icon: '🏛️', badge: 'HOD Portal' },
+  dean: { title: 'Dean Login', field: 'Email or Employee ID', placeholder: 'Enter Dean email', icon: '🎓', badge: 'Dean Portal' },
+  chancellor: { title: 'Chancellor Login', field: 'Email or Officer ID', placeholder: 'Enter Chancellor email', icon: '🏛️', badge: 'Chancellor Portal' },
+  vicechancellor: { title: 'Vice Chancellor Login', field: 'Email or Officer ID', placeholder: 'Enter Vice Chancellor email', icon: '🏛️', badge: 'VC Portal' },
+  registrar: { title: 'Registrar Login', field: 'Email or Officer ID', placeholder: 'Enter Registrar email', icon: '📋', badge: 'Registrar Portal' },
+  coe: { title: 'Controller of Examinations Login', field: 'Email or Officer ID', placeholder: 'Enter COE email', icon: '📝', badge: 'COE Portal' },
   parent: { title: 'Parent Login', field: 'Email or Parent ID', placeholder: 'Enter registered parent email', icon: '👨‍👩‍👧', badge: 'Parent Portal' },
   accountant: { title: 'Accountant Login', field: 'Email or Employee ID', placeholder: 'Enter accountant email', icon: '💰', badge: 'Accountant Portal' },
   librarian: { title: 'Librarian Login', field: 'Email or Employee ID', placeholder: 'Enter librarian email', icon: '📚', badge: 'Librarian Portal' },
@@ -37,7 +42,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   
   // Extract role from URL pathname (e.g. /student/login -> 'student')
   const getRoleFromPath = (pathname: string): string => {
-    const validRoles = ['admin', 'student', 'faculty', 'hod', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+    const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'chancellor', 'vicechancellor', 'registrar', 'coe', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
     const segments = pathname.toLowerCase().split('/').filter(Boolean);
     for (const segment of segments) {
       if (validRoles.includes(segment)) {
@@ -53,7 +58,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     const parts = host.split('.');
     if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
       const sub = parts[0];
-      const validRoles = ['admin', 'student', 'faculty', 'hod', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+      const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'chancellor', 'vicechancellor', 'registrar', 'coe', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
       if (validRoles.includes(sub)) {
         return sub;
       }
@@ -112,9 +117,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     const rawRole = (userRole || effectiveRole || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
     const roleMap: Record<string, string> = {
       admin: 'admin',
+      chancellor: 'chancellor',
+      vicechancellor: 'vicechancellor',
+      registrar: 'registrar',
+      coe: 'coe',
+      controllerofexaminations: 'coe',
+      dean: 'dean',
+      hod: 'hod',
       student: 'student',
       faculty: 'faculty',
-      hod: 'hod',
       parent: 'parent',
       accountant: 'accountant',
       librarian: 'librarian',
