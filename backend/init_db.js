@@ -2086,7 +2086,7 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Chancellor & Mentor tables setup warning:', mentorDbErr.message);
     }
 
-    // --- SEED ESSENTIAL ROLES ---
+    // --- SEED ESSENTIAL ROLES & ALL ROLE DEMO ACCOUNTS ---
     const roles = [
       'Admin',
       'Chancellor',
@@ -2109,30 +2109,72 @@ export async function initializeDatabase() {
       await pool.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
     }
 
-    // --- PERMANENT ADMIN ACCOUNT CHECK ---
-    const adminEmail = 'nuthanakalvadineshreddy@gmail.com';
-    const [adminRoleRows] = await pool.query('SELECT id FROM roles WHERE name = ?', ['Admin']);
-    const adminRoleId = adminRoleRows[0]?.id;
+    const defaultAccounts = [
+      { username: 'dineshreddy', name: 'Dinesh Reddy', email: 'nuthanakalvadineshreddy@gmail.com', pass: 'Dinesh@123', role: 'Admin', phone: '9876543210', dept: 'System Administration', desig: 'System Administrator', empId: 'ADM202601' },
+      { username: 'chancellor', name: 'Dr. Dinesh Reddy', email: 'chancellor@university.edu', pass: 'chancellor@123', role: 'Chancellor', phone: '9876543211', dept: 'Executive Senate & Secretariat', desig: 'University Chancellor', empId: 'CH202601' },
+      { username: 'vicechancellor', name: 'Dr. S. K. Rao', email: 'vicechancellor@university.edu', pass: 'vicechancellor@123', role: 'Vice Chancellor', phone: '9876543212', dept: 'Executive Administration', desig: 'Vice Chancellor', empId: 'VC202601' },
+      { username: 'registrar', name: 'Prof. M. V. Sharma', email: 'registrar@university.edu', pass: 'registrar@123', role: 'Registrar', phone: '9876543213', dept: 'University Registry', desig: 'University Registrar', empId: 'REG202601' },
+      { username: 'coe', name: 'Dr. A. K. Verma', email: 'coe@university.edu', pass: 'coe@123', role: 'Controller of Examinations', phone: '9876543214', dept: 'Examination Cell', desig: 'Controller of Examinations', empId: 'COE202601' },
+      { username: 'dean', name: 'Dr. Ramesh Kumar', email: 'dean@university.edu', pass: 'dean@123', role: 'Dean', phone: '9876543215', dept: 'School of Engineering', desig: 'Dean of Engineering', empId: 'DEAN202601' },
+      { username: 'principal', name: 'Dr. P. N. Murthy', email: 'principal@university.edu', pass: 'principal@123', role: 'Principal', phone: '9876543216', dept: 'Main Campus Administration', desig: 'Campus Principal', empId: 'PRIN202601' },
+      { username: 'hod', name: 'Dr. K. V. Satyanarayana', email: 'hod.cse@university.edu', pass: 'hod@123', role: 'HOD', phone: '9876543217', dept: 'Computer Science & Engineering', desig: 'Head of Department', empId: 'HOD202601' },
+      { username: 'faculty', name: 'Dr. Anand Sharma', email: 'faculty@university.edu', pass: 'faculty@123', role: 'Faculty', phone: '9876543218', dept: 'Computer Science & Engineering', desig: 'Associate Professor', empId: 'FAC202601' },
+      { username: 'student', name: 'Rahul Sharma', email: 'student@university.edu', pass: 'student@123', role: 'Student', phone: '9876543219', dept: 'Computer Science & Engineering', desig: 'Student', stuId: 'STU202601' },
+      { username: 'parent', name: 'Suresh Sharma', email: 'parent@university.edu', pass: 'parent@123', role: 'Parent', phone: '9876543220', dept: 'Parent Portal', desig: 'Parent / Guardian', stuId: 'STU202601' },
+      { username: 'admission', name: 'Admission Office Staff', email: 'admission@gmail.com', pass: 'officestaff@123', role: 'Office Staff', phone: '9876543221', dept: 'Admissions & Desk Support', desig: 'Senior Desk Officer', empId: 'STAFF202601' },
+      { username: 'officestaff', name: 'Office Staff Support', email: 'officestaff@university.edu', pass: 'officestaff@123', role: 'Office Staff', phone: '9876543222', dept: 'Admissions & Desk Support', desig: 'Desk Officer', empId: 'STAFF202602' },
+      { username: 'accountant', name: 'Finance Accountant', email: 'accountant@university.edu', pass: 'accountant@123', role: 'Accountant', phone: '9876543223', dept: 'Finance & Accounts', desig: 'Senior Accountant', empId: 'ACC202601' },
+      { username: 'librarian', name: 'Head Librarian', email: 'librarian@university.edu', pass: 'librarian@123', role: 'Librarian', phone: '9876543224', dept: 'Central Library', desig: 'Chief Librarian', empId: 'LIB202601' },
+      { username: 'placement', name: 'Placement Officer', email: 'placement@university.edu', pass: 'placement@123', role: 'Placement Officer', phone: '9876543225', dept: 'Training & Placement Cell', desig: 'Head of Placements', empId: 'TPO202601' }
+    ];
 
-    if (adminRoleId) {
-      const [existingAdmin] = await pool.query(
-        'SELECT id FROM users WHERE LOWER(email) = ?',
-        [adminEmail.toLowerCase()]
-      );
+    for (const acc of defaultAccounts) {
+      try {
+        const [rRows] = await pool.query('SELECT id FROM roles WHERE name = ?', [acc.role]);
+        const roleId = rRows[0]?.id;
+        if (!roleId) continue;
 
-      if (existingAdmin.length === 0) {
-        const hashedPassword = await bcrypt.hash('Dinesh@123', 10);
-        await pool.query(
-          `INSERT INTO users (username, full_name, email, password, role_id, status)
-           VALUES (?, ?, ?, ?, ?, 'active')`,
-          ['dineshreddy', 'Dinesh Reddy', adminEmail, hashedPassword, adminRoleId]
+        const [existing] = await pool.query(
+          'SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?',
+          [acc.email.toLowerCase(), acc.username.toLowerCase()]
         );
-        console.log(`[DATABASE INIT] Permanent Admin account initialized: ${adminEmail}`);
-      } else {
-        await pool.query(
-          `UPDATE users SET role_id = ?, full_name = COALESCE(NULLIF(full_name, ''), 'Dinesh Reddy'), status = 'active' WHERE id = ?`,
-          [adminRoleId, existingAdmin[0].id]
-        );
+
+        if (existing.length === 0) {
+          const hashedPassword = await bcrypt.hash(acc.pass, 10);
+          const [uRes] = await pool.query(
+            `INSERT INTO users (username, full_name, email, password, role_id, phone, department, designation, employee_id, student_id, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+            [acc.username, acc.name, acc.email, hashedPassword, roleId, acc.phone, acc.dept, acc.desig, acc.empId || null, acc.stuId || null]
+          );
+          const newUserId = uRes.insertId;
+
+          // Sync auxiliary tables
+          if (acc.role === 'Student') {
+            await pool.query(
+              `INSERT INTO students (user_id, admission_number, roll_number, name, email, phone, semester, status)
+               VALUES (?, ?, ?, ?, ?, ?, 6, 'Active')
+               ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)`,
+              [newUserId, acc.stuId, acc.stuId, acc.name, acc.email, acc.phone]
+            ).catch(() => {});
+          } else if (acc.role === 'Faculty' || acc.role === 'HOD') {
+            await pool.query(
+              `INSERT INTO faculty (user_id, employee_id, name, email, phone, designation)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)`,
+              [newUserId, acc.empId, acc.name, acc.email, acc.phone, acc.desig]
+            ).catch(() => {});
+          } else if (acc.role === 'Parent') {
+            await pool.query(
+              `INSERT INTO parents (user_id, name, email, phone, student_id)
+               VALUES (?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)`,
+              [newUserId, acc.name, acc.email, acc.phone, acc.stuId]
+            ).catch(() => {});
+          }
+          console.log(`[DATABASE INIT] Initialized default ${acc.role} account: ${acc.email}`);
+        }
+      } catch (accErr) {
+        console.warn(`[DATABASE INIT] Account seed note for ${acc.role}:`, accErr.message);
       }
     }
 
