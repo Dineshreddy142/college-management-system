@@ -151,6 +151,33 @@ export const UserControlModule: React.FC = () => {
     designation: 'Assistant Professor'
   });
 
+  const getRolePrefix = (roleName: string) => {
+    const r = (roleName || '').toLowerCase();
+    if (r.includes('chancellor') && !r.includes('vice')) return 'CH';
+    if (r.includes('vice chancellor')) return 'VC';
+    if (r.includes('registrar')) return 'REG';
+    if (r.includes('controller') || r.includes('coe')) return 'COE';
+    if (r.includes('dean')) return 'DEAN';
+    if (r.includes('hod') || r.includes('head of department')) return 'HOD';
+    if (r.includes('principal')) return 'PRIN';
+    if (r.includes('faculty')) return 'FAC';
+    if (r.includes('student')) return 'STU';
+    if (r.includes('parent')) return 'PAR';
+    if (r.includes('accountant')) return 'ACC';
+    if (r.includes('librarian')) return 'LIB';
+    if (r.includes('placement')) return 'PLC';
+    if (r.includes('office staff')) return 'OFF';
+    if (r.includes('admin')) return 'ADM';
+    return 'EMP';
+  };
+
+  const generateAutoIdForRole = (roleName: string) => {
+    const prefix = getRolePrefix(roleName);
+    const year = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}-${year}-${rand}`;
+  };
+
   const handleGeneratePassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
     let rand = '';
@@ -158,6 +185,12 @@ export const UserControlModule: React.FC = () => {
       rand += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setCreateForm(prev => ({ ...prev, password: rand }));
+  };
+
+  const handleGenerateId = (targetRole?: string) => {
+    const r = targetRole || createForm.role;
+    const autoId = generateAutoIdForRole(r);
+    setCreateForm(prev => ({ ...prev, employee_id: autoId, roll_number: autoId }));
   };
 
   const handleCreateUserSubmit = async (e: React.FormEvent) => {
@@ -539,7 +572,16 @@ export const UserControlModule: React.FC = () => {
                 </label>
                 <select
                   value={createForm.role}
-                  onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
+                  onChange={e => {
+                    const newRole = e.target.value;
+                    const autoId = generateAutoIdForRole(newRole);
+                    setCreateForm({
+                      ...createForm,
+                      role: newRole,
+                      employee_id: autoId,
+                      roll_number: autoId
+                    });
+                  }}
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="Chancellor">Chancellor (Chief Governance)</option>
@@ -631,53 +673,27 @@ export const UserControlModule: React.FC = () => {
                 />
               </div>
 
-              {/* Faculty Employee ID / Student Roll Number */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {createForm.role.toLowerCase().includes('faculty') || createForm.role.toLowerCase().includes('hod') ? (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Employee ID
-                      </label>
-                      <input
-                        type="text"
-                        value={createForm.employee_id}
-                        onChange={e => setCreateForm({ ...createForm, employee_id: e.target.value })}
-                        placeholder="Optional (Auto-generated if empty)"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Designation
-                      </label>
-                      <select
-                        value={createForm.designation}
-                        onChange={e => setCreateForm({ ...createForm, designation: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="Assistant Professor">Assistant Professor</option>
-                        <option value="Associate Professor">Associate Professor</option>
-                        <option value="Professor">Professor</option>
-                        <option value="Head of Department">Head of Department (HOD)</option>
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Student Roll / Admission No
-                    </label>
-                    <input
-                      type="text"
-                      value={createForm.roll_number}
-                      onChange={e => setCreateForm({ ...createForm, roll_number: e.target.value })}
-                      placeholder="Optional (Auto-generated if empty)"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                )}
+              {/* Institutional ID (Employee ID / Officer ID / Student Roll No for ALL Roles) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Institutional ID / Employee ID (All Roles) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateId()}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    ⚡ Auto-Generate ID
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={createForm.employee_id || createForm.roll_number}
+                  onChange={e => setCreateForm({ ...createForm, employee_id: e.target.value, roll_number: e.target.value })}
+                  placeholder={`e.g. ${getRolePrefix(createForm.role)}-2026-1001`}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
 
               {/* Success Credential Display Banner */}
