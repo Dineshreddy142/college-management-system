@@ -542,14 +542,21 @@ export const UserControlModule: React.FC = () => {
                   onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="Faculty">Faculty (Professor / Teacher)</option>
+                  <option value="Chancellor">Chancellor (Chief Governance)</option>
+                  <option value="Vice Chancellor">Vice Chancellor (Executive Head)</option>
+                  <option value="Registrar">Registrar (Administrative Custodian)</option>
+                  <option value="Controller of Examinations">Controller of Examinations (COE)</option>
+                  <option value="Dean">Dean (School / Faculty Head)</option>
                   <option value="HOD">Head of Department (HOD)</option>
+                  <option value="Principal">Principal (College Principal)</option>
+                  <option value="Faculty">Faculty (Professor / Teacher)</option>
                   <option value="Student">Student</option>
                   <option value="Parent">Parent</option>
-                  <option value="Office Staff">Office Staff</option>
                   <option value="Accountant">Accountant</option>
                   <option value="Librarian">Librarian</option>
                   <option value="Placement Officer">Placement Officer</option>
+                  <option value="Office Staff">Office Staff</option>
+                  <option value="Admin">Administrator (System Admin)</option>
                 </select>
               </div>
 
