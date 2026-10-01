@@ -70,6 +70,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const subdomainRole = getSubdomainRole();
   const envRole = ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
 
+  const effectiveRole = (
+    propRole ||
+    paramRole ||
+    pathRole ||
+    subdomainRole ||
+    envRole ||
+    'student'
+  ).toLowerCase();
+
   const defaultConfig = {
     title: 'University Portal Login',
     field: 'Email, Username, or Institutional ID',
