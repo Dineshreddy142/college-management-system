@@ -190,7 +190,29 @@ export const UserControlModule: React.FC = () => {
   const handleGenerateId = (targetRole?: string) => {
     const r = targetRole || createForm.role;
     const autoId = generateAutoIdForRole(r);
-    setCreateForm(prev => ({ ...prev, employee_id: autoId, roll_number: autoId }));
+    setCreateForm(prev => ({ 
+      ...prev, 
+      username: autoId, 
+      employee_id: autoId, 
+      roll_number: autoId 
+    }));
+  };
+
+  const openCreateModal = () => {
+    const defaultRole = 'Chancellor';
+    const autoId = generateAutoIdForRole(defaultRole);
+    setCreateForm({
+      role: defaultRole,
+      username: autoId,
+      full_name: '',
+      email: '',
+      password: '',
+      employee_id: autoId,
+      roll_number: autoId,
+      designation: defaultRole
+    });
+    setCreatedUserCredentials(null);
+    setShowCreateModal(true);
   };
 
   const handleCreateUserSubmit = async (e: React.FormEvent) => {
@@ -274,7 +296,7 @@ export const UserControlModule: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { setShowCreateModal(true); setCreatedUserCredentials(null); }}
+            onClick={openCreateModal}
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
           >
             <Sparkles size={16} />
@@ -578,6 +600,7 @@ export const UserControlModule: React.FC = () => {
                     setCreateForm({
                       ...createForm,
                       role: newRole,
+                      username: autoId,
                       employee_id: autoId,
                       roll_number: autoId
                     });
@@ -603,21 +626,6 @@ export const UserControlModule: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Username */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Username *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.username}
-                    onChange={e => setCreateForm({ ...createForm, username: e.target.value })}
-                    placeholder="e.g. prof_john or EMP2024"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
                 {/* Full Name */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -628,8 +636,40 @@ export const UserControlModule: React.FC = () => {
                     required
                     value={createForm.full_name}
                     onChange={e => setCreateForm({ ...createForm, full_name: e.target.value })}
-                    placeholder="e.g. Dr. John Smith"
+                    placeholder="e.g. Dr. S. Ramesh"
                     className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Username / Institutional ID (Auto-Generated) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Username / ID *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateId()}
+                      className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      ⚡ Auto-Generate
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.username}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCreateForm({
+                        ...createForm,
+                        username: val,
+                        employee_id: val,
+                        roll_number: val
+                      });
+                    }}
+                    placeholder={`e.g. ${getRolePrefix(createForm.role)}-2026-1001`}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -669,29 +709,6 @@ export const UserControlModule: React.FC = () => {
                   value={createForm.password}
                   onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
                   placeholder="Password for initial login"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Institutional ID (Employee ID / Officer ID / Student Roll No for ALL Roles) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Institutional ID / Employee ID (All Roles) *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateId()}
-                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    ⚡ Auto-Generate ID
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={createForm.employee_id || createForm.roll_number}
-                  onChange={e => setCreateForm({ ...createForm, employee_id: e.target.value, roll_number: e.target.value })}
-                  placeholder={`e.g. ${getRolePrefix(createForm.role)}-2026-1001`}
                   className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
