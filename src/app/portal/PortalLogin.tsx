@@ -140,7 +140,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
       placement: 'placement',
       placementofficer: 'placement',
       principal: 'admin',
-      office: 'admin'
+      office: 'officestaff',
+      officestaff: 'officestaff',
+      staff: 'officestaff'
     };
     const dest = roleMap[rawRole] || 'student';
     navigate(`/${dest}/dashboard`);

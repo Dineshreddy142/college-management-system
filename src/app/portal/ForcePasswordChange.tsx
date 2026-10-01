@@ -67,15 +67,22 @@ export const ForcePasswordChange: React.FC = () => {
         const userRole = (user?.role || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
         const roleMap: Record<string, string> = {
           admin: 'admin',
+          chancellor: 'chancellor',
+          vicechancellor: 'vicechancellor',
+          registrar: 'registrar',
+          coe: 'coe',
+          dean: 'dean',
+          hod: 'hod',
           student: 'student',
           faculty: 'faculty',
-          hod: 'hod',
           parent: 'parent',
           accountant: 'accountant',
           librarian: 'librarian',
           placement: 'placement',
           principal: 'admin',
-          office: 'admin'
+          office: 'officestaff',
+          officestaff: 'officestaff',
+          staff: 'officestaff'
         };
         const dest = roleMap[userRole] || 'student';
 

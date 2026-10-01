@@ -32,7 +32,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
   if (allowedRole && user?.role) {
     const userRoleNorm = user.role.toLowerCase().replace(/[^a-z0-9]/g, '');
     const allowedRoleNorm = allowedRole.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (userRoleNorm !== allowedRoleNorm && !userRoleNorm.includes(allowedRoleNorm) && !allowedRoleNorm.includes(userRoleNorm)) {
+
+    const isAdmin = userRoleNorm === 'admin';
+    const isExact = userRoleNorm === allowedRoleNorm;
+    const isSubMatch = userRoleNorm.includes(allowedRoleNorm) || allowedRoleNorm.includes(userRoleNorm);
+    const isOfficeMatch = (allowedRoleNorm.includes('office') || allowedRoleNorm.includes('staff')) &&
+                          (userRoleNorm.includes('office') || userRoleNorm.includes('staff'));
+
+    if (!isAdmin && !isExact && !isSubMatch && !isOfficeMatch) {
       return <Navigate to="/access-denied" replace />;
     }
   }
