@@ -294,7 +294,8 @@ router.post('/register', async (req, res) => {
 router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
     try {
         const [users] = await pool.execute(
-            `SELECT u.id, u.username, u.email, u.role_id, r.name as role_name, u.status,
+            `SELECT u.id, u.username, u.full_name, u.email, u.role_id, r.name as role_name, u.status,
+                    u.department, u.phone, u.designation,
                     (SELECT COUNT(*) FROM face_biometrics WHERE user_id = u.id) as face_enrolled,
                     (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
                     (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
@@ -311,7 +312,7 @@ router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (r
 
 router.post('/admin/users/create', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
     try {
-        const { username, full_name, email, password, role, employee_id, roll_number, department_id, designation } = req.body;
+        const { username, full_name, email, password, role, employee_id, roll_number, department, department_id, designation, phone } = req.body;
 
         if (!username || !email || !password || !role) {
             return errorResponse(res, 'Username, email, password, and role are required', [], 400);
@@ -319,6 +320,9 @@ router.post('/admin/users/create', authenticateToken, authorizeRole(['Admin']), 
 
         const cleanUsername = username.trim();
         const cleanEmail = email.trim().toLowerCase();
+        const userDepartment = (department || 'General Administration').trim();
+        const userDesignation = (designation || role).trim();
+        const userPhone = (phone || '').trim();
 
         // Check duplicate
         const [existing] = await pool.execute(
@@ -350,9 +354,9 @@ router.post('/admin/users/create', authenticateToken, authorizeRole(['Admin']), 
         const displayName = (full_name || cleanUsername).trim();
 
         const [userRes] = await pool.execute(
-            `INSERT INTO users (username, full_name, email, password, role_id, status, must_change_password)
-             VALUES (?, ?, ?, ?, ?, 'active', 1)`,
-            [cleanUsername, displayName, cleanEmail, passwordHash, roleId]
+            `INSERT INTO users (username, full_name, email, password, role_id, status, must_change_password, department, phone, designation)
+             VALUES (?, ?, ?, ?, ?, 'active', 1, ?, ?, ?)`,
+            [cleanUsername, displayName, cleanEmail, passwordHash, roleId, userDepartment, userPhone, userDesignation]
         );
 
         const newUserId = userRes.insertId;

@@ -10,9 +10,13 @@ import { Badge } from '../../App';
 export interface UserRecord {
   id: number;
   username: string;
+  full_name?: string;
   email: string;
   role_id: number;
   role_name: string;
+  department?: string;
+  phone?: string;
+  designation?: string;
   status: 'active' | 'blocked' | 'inactive';
   last_login?: string;
   failed_attempts?: number;
@@ -26,6 +30,7 @@ export const UserControlModule: React.FC = () => {
   const [actionType, setActionType] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -148,6 +153,8 @@ export const UserControlModule: React.FC = () => {
     password: '',
     employee_id: '',
     roll_number: '',
+    department: 'Computer Science & Engineering',
+    phone: '',
     designation: 'Assistant Professor'
   });
 
@@ -222,6 +229,17 @@ export const UserControlModule: React.FC = () => {
     }));
   };
 
+  const getDefaultDepartmentForRole = (roleName: string) => {
+    const r = (roleName || '').toLowerCase();
+    if (r.includes('chancellor') || r.includes('vice chancellor') || r.includes('registrar') || r.includes('principal')) return 'Executive Secretariat';
+    if (r.includes('controller') || r.includes('coe')) return 'Examination Board';
+    if (r.includes('accountant')) return 'Finance & Accounts';
+    if (r.includes('librarian')) return 'Library Administration';
+    if (r.includes('placement')) return 'Placement Cell & Career Services';
+    if (r.includes('office staff')) return 'General Administration';
+    return 'Computer Science & Engineering';
+  };
+
   const openCreateModal = () => {
     const defaultRole = 'Chancellor';
     const autoId = generateAutoIdForRole(defaultRole);
@@ -234,6 +252,8 @@ export const UserControlModule: React.FC = () => {
       password: defaultPwd,
       employee_id: autoId,
       roll_number: autoId,
+      department: 'Executive Secretariat',
+      phone: '',
       designation: defaultRole
     });
     setCreatedUserCredentials(null);
@@ -290,14 +310,17 @@ export const UserControlModule: React.FC = () => {
   const filteredUsers = safeUsers.filter(u => {
     const matchesSearch = 
       (u.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (u.role_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.department || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(u.id).includes(searchTerm);
 
     const matchesRole = roleFilter === 'all' || (u.role_name || '').toLowerCase().includes(roleFilter.toLowerCase());
+    const matchesDepartment = departmentFilter === 'all' || (u.department || '').toLowerCase() === departmentFilter.toLowerCase();
     const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
   });
 
   const totalUsers = safeUsers.length;
@@ -419,6 +442,24 @@ export const UserControlModule: React.FC = () => {
             <option value="accountant">Accountants</option>
           </select>
 
+          {/* Department Filter */}
+          <select
+            value={departmentFilter}
+            onChange={e => setDepartmentFilter(e.target.value)}
+            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">All Departments</option>
+            <option value="Executive Secretariat">Executive Secretariat</option>
+            <option value="Computer Science & Engineering">Computer Science</option>
+            <option value="Electrical & Electronics Engineering">Electrical & Electronics</option>
+            <option value="Mechanical Engineering">Mechanical Engineering</option>
+            <option value="Civil Engineering">Civil Engineering</option>
+            <option value="School of Medicine & Health Sciences">School of Medicine</option>
+            <option value="School of Business Administration">School of Business</option>
+            <option value="Finance & Accounts">Finance & Accounts</option>
+            <option value="General Administration">General Admin</option>
+          </select>
+
           {/* Status Filter */}
           <select
             value={statusFilter}
@@ -434,13 +475,14 @@ export const UserControlModule: React.FC = () => {
 
       {/* User Records Table Container */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto min-w-[700px]">
+        <div className="overflow-x-auto min-w-[750px]">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">
                 <th className="py-3.5 px-5">ID</th>
                 <th className="py-3.5 px-5">User / Account</th>
                 <th className="py-3.5 px-5">Role</th>
+                <th className="py-3.5 px-5">Department / School</th>
                 <th className="py-3.5 px-5">Face Biometrics</th>
                 <th className="py-3.5 px-5">Login Access Status</th>
                 <th className="py-3.5 px-5 text-right">Admin Actions</th>
@@ -480,6 +522,13 @@ export const UserControlModule: React.FC = () => {
                       <td className="py-4 px-5">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize">
                           {u.role_name || 'User'}
+                        </span>
+                      </td>
+
+                      {/* Department */}
+                      <td className="py-4 px-5">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                          {u.department || 'General Administration'}
                         </span>
                       </td>
 
@@ -623,13 +672,16 @@ export const UserControlModule: React.FC = () => {
                     const newRole = e.target.value;
                     const autoId = generateAutoIdForRole(newRole);
                     const defaultPwd = getDefaultRolePassword(newRole);
+                    const defaultDept = getDefaultDepartmentForRole(newRole);
                     setCreateForm({
                       ...createForm,
                       role: newRole,
                       username: autoId,
                       password: defaultPwd,
                       employee_id: autoId,
-                      roll_number: autoId
+                      roll_number: autoId,
+                      department: defaultDept,
+                      designation: newRole
                     });
                   }}
                   className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -714,6 +766,60 @@ export const UserControlModule: React.FC = () => {
                   placeholder="e.g. johnsmith@college.edu"
                   className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              {/* Department / School Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Department / School *
+                </label>
+                <select
+                  value={createForm.department}
+                  onChange={e => setCreateForm({ ...createForm, department: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="Executive Secretariat">Executive Secretariat & Senate</option>
+                  <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                  <option value="Electrical & Electronics Engineering">Electrical & Electronics Engineering</option>
+                  <option value="Mechanical Engineering">Mechanical Engineering</option>
+                  <option value="Civil Engineering">Civil Engineering</option>
+                  <option value="School of Medicine & Health Sciences">School of Medicine & Health Sciences</option>
+                  <option value="School of Business Administration">School of Business Administration</option>
+                  <option value="Finance & Accounts">Finance & Accounts</option>
+                  <option value="Library Administration">Library Administration</option>
+                  <option value="Placement Cell & Career Services">Placement Cell & Career Services</option>
+                  <option value="General Administration">General Administration</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Designation */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Designation / Title
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.designation}
+                    onChange={e => setCreateForm({ ...createForm, designation: e.target.value })}
+                    placeholder="e.g. Professor & HOD / Officer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Contact Phone */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.phone}
+                    onChange={e => setCreateForm({ ...createForm, phone: e.target.value })}
+                    placeholder="e.g. +91 98765 43210"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
 
               {/* Password with Generator */}

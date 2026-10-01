@@ -26,6 +26,9 @@ export async function initializeDatabase() {
         password VARCHAR(255) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
         role_id INT,
+        department VARCHAR(150) NULL,
+        phone VARCHAR(25) NULL,
+        designation VARCHAR(100) NULL,
         status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
         must_change_password TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -34,12 +37,21 @@ export async function initializeDatabase() {
       )
     `);
 
-    // Ensure full_name and must_change_password columns exist for pre-existing tables
+    // Ensure full_name, department, phone, designation, and must_change_password columns exist for pre-existing tables
     try {
       const [uCols] = await pool.query('DESCRIBE users');
       const uColNames = uCols.map(c => c.Field);
       if (!uColNames.includes('full_name')) {
         await pool.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER username');
+      }
+      if (!uColNames.includes('department')) {
+        await pool.query('ALTER TABLE users ADD COLUMN department VARCHAR(150) NULL AFTER role_id');
+      }
+      if (!uColNames.includes('phone')) {
+        await pool.query('ALTER TABLE users ADD COLUMN phone VARCHAR(25) NULL AFTER department');
+      }
+      if (!uColNames.includes('designation')) {
+        await pool.query('ALTER TABLE users ADD COLUMN designation VARCHAR(100) NULL AFTER phone');
       }
       if (!uColNames.includes('must_change_password')) {
         await pool.query('ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) DEFAULT 1 AFTER status');
