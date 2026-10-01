@@ -25,6 +25,7 @@ import { AdminOfferingRegistrationControl } from "./admin/offering-management/Ad
 import { SubjectManagement } from "./admin/subject-management/SubjectManagement";
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import { AuditLogsModule } from "./admin/audit/AuditLogsModule";
+import { HostelManagement } from "./admin/hostel/HostelManagement";
 import client from "../api/client";
 
 import {
@@ -225,6 +226,7 @@ const SIDEBAR_ITEMS = [
   { id: "exams", label: "Examinations Governance", icon: FileText, badge: "Governance" },
   { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
   { id: "library", label: "Library Governance", icon: BookOpen, badge: "Library" },
+  { id: "hostel", label: "Hostel Governance", icon: Home, badge: "Hostel" },
   { id: "placement", label: "Placement Drive Overview", icon: Briefcase, badge: "Placement" },
   { id: "reports", label: "Reports & Analytics", icon: BarChart3, badge: null },
   { id: "audit-logs", label: "Security & Audit Logs", icon: ShieldAlert, badge: "Live" },
@@ -1930,6 +1932,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "timetable": return <TimetableManager />;
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
+      case "hostel": return <HostelManagement />;
       case "placement": return <PlacementModule />;
       case "building-management": return <BuildingManagement onNavigateToFloors={() => setMod("floor-management")} />;
       case "floor-management": return <FloorManagement onNavigateToVersions={() => setMod("floor-versions")} />;
