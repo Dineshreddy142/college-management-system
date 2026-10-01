@@ -372,37 +372,77 @@ export function ProfileModule() {
 
           {/* TAB 1: OVERVIEW DASHBOARD */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-cyan-400" /> Academic & Performance Summary
-                </h2>
-                <span className="text-xs text-slate-400 font-medium">{currentSemester ? `Semester ${currentSemester}` : 'Current Session'}</span>
+            isExecutive ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-cyan-400" /> Executive & Governance Overview
+                  </h2>
+                  <span className="text-xs text-amber-400 font-mono font-bold">🏛️ Supreme Officer Seal Active</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-indigo-500/30 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Executive Designation</span>
+                    <p className="text-xl font-black text-cyan-400">{isChancellor ? 'University Chancellor' : (user?.role || 'Executive Officer')}</p>
+                    <span className="text-xs text-slate-400 block pt-1">Chief Institutional Head</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-emerald-500/30 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Executive Officer ID</span>
+                    <p className="text-xl font-black text-emerald-400 font-mono">{officerId}</p>
+                    <span className="text-xs text-emerald-400 font-semibold block pt-1">✨ Verified Executive ID</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-amber-500/30 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Convocation Seal Status</span>
+                    <p className="text-xl font-black text-amber-400">Active & Digitalized</p>
+                    <span className="text-xs text-slate-400 block pt-1">Degree Convocation Approval Ready</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <Building className="w-4 h-4 text-indigo-400" /> Office & Governance Scope
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    The Office of the Chancellor holds supreme governance authority over all constituent schools, faculties, budget authorizations, executive appointments, and degree convocation sign-offs. All operational data is maintained under strict read-only compliance to guarantee security and governance integrity.
+                  </p>
+                </div>
               </div>
-
-              {/* Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current CGPA</span>
-                  <p className="text-3xl font-black text-cyan-400">{profile?.cgpa !== undefined && profile?.cgpa !== null ? profile.cgpa : 'N/A'}</p>
-                  <span className="text-xs text-slate-400 block pt-1">{profile?.cgpa ? '★ Registered Academic Score' : 'No CGPA Recorded'}</span>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-cyan-400" /> Academic & Performance Summary
+                  </h2>
+                  <span className="text-xs text-slate-400 font-medium">{currentSemester ? `Semester ${currentSemester}` : 'Current Session'}</span>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Latest SGPA</span>
-                  <p className="text-3xl font-black text-emerald-400">{profile?.sgpa !== undefined && profile?.sgpa !== null ? profile.sgpa : 'N/A'}</p>
-                  <span className="text-xs text-slate-400 block pt-1">{profile?.sgpa ? 'Semester Performance Score' : 'No SGPA Recorded'}</span>
-                </div>
+                {/* Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current CGPA</span>
+                    <p className="text-3xl font-black text-cyan-400">{profile?.cgpa !== undefined && profile?.cgpa !== null ? profile.cgpa : 'N/A'}</p>
+                    <span className="text-xs text-slate-400 block pt-1">{profile?.cgpa ? '★ Registered Academic Score' : 'No CGPA Recorded'}</span>
+                  </div>
 
-                <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Backlogs</span>
-                  <p className="text-3xl font-black text-emerald-400">{profile?.backlogs !== undefined && profile?.backlogs !== null ? profile.backlogs : 0}</p>
-                  <span className="text-xs text-emerald-400 font-semibold block pt-1">
-                    {(profile?.backlogs || 0) === 0 ? '✨ Clean Academic Record' : `${profile.backlogs} Pending Subject Arrears`}
-                  </span>
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Latest SGPA</span>
+                    <p className="text-3xl font-black text-emerald-400">{profile?.sgpa !== undefined && profile?.sgpa !== null ? profile.sgpa : 'N/A'}</p>
+                    <span className="text-xs text-slate-400 block pt-1">{profile?.sgpa ? 'Semester Performance Score' : 'No SGPA Recorded'}</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/80 shadow-xl space-y-1">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Backlogs</span>
+                    <p className="text-3xl font-black text-emerald-400">{profile?.backlogs !== undefined && profile?.backlogs !== null ? profile.backlogs : 0}</p>
+                    <span className="text-xs text-emerald-400 font-semibold block pt-1">
+                      {(profile?.backlogs || 0) === 0 ? '✨ Clean Academic Record' : `${profile.backlogs} Pending Subject Arrears`}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           )}
 
           {/* TAB 2: PERSONAL INFORMATION */}
@@ -456,8 +496,8 @@ export function ProfileModule() {
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
-                  <span className="text-slate-400 block mb-1">Official Student ID</span>
-                  <span className="font-bold text-cyan-400 font-mono text-sm">{studentId}</span>
+                  <span className="text-slate-400 block mb-1">{isExecutive ? 'Official Officer ID' : 'Official Student ID'}</span>
+                  <span className="font-bold text-cyan-400 font-mono text-sm">{isExecutive ? officerId : studentId}</span>
                 </div>
               </div>
             </div>
