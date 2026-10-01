@@ -384,7 +384,7 @@ export function ProfileModule() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div className="p-5 rounded-2xl bg-slate-800/70 border border-indigo-500/30 shadow-xl space-y-1">
                     <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Executive Designation</span>
-                    <p className="text-xl font-black text-cyan-400">{isChancellor ? 'University Chancellor' : (user?.role || 'Executive Officer')}</p>
+                    <p className="text-xl font-black text-cyan-400">{isChancellor ? 'University Chancellor' : (profile?.role || savedUser?.role || 'Executive Officer')}</p>
                     <span className="text-xs text-slate-400 block pt-1">Chief Institutional Head</span>
                   </div>
 
