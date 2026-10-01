@@ -85,6 +85,21 @@ export function ProfileModule() {
     emergencyContactPhone: ''
   });
 
+  // Editable Personal State
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [personalData, setPersonalData] = useState({
+    name: '',
+    firstName: '',
+    lastName: '',
+    dob: '',
+    gender: '',
+    bloodGroup: '',
+    nationality: '',
+    maritalStatus: '',
+    department: '',
+    designation: ''
+  });
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -98,16 +113,45 @@ export function ProfileModule() {
     client.get('/profile').then(res => {
       const data = res.data?.data || res.data || {};
       setProfile(data);
+
+      const full = data.full_name || data.name || savedUser?.full_name || savedUser?.name || '';
+      const parts = full.trim().split(/\s+/);
+      const fName = data.first_name || parts[0] || '';
+      const lName = data.last_name || (parts.length > 1 ? parts.slice(1).join(' ') : '');
+
+      setPersonalData({
+        name: full,
+        firstName: fName,
+        lastName: lName,
+        dob: data.dob || '',
+        gender: data.gender || '',
+        bloodGroup: data.blood_group || '',
+        nationality: data.nationality || 'Indian',
+        maritalStatus: data.marital_status || 'Single',
+        department: data.department || '',
+        designation: data.designation || ''
+      });
+
       setContactData({
         phone: data.phone || '',
         altPhone: data.alt_phone || '',
         email: data.email || savedUser?.email || '',
         address: data.address || '',
         permanentAddress: data.permanent_address || '',
-        emergencyContactName: data.emergency_contact_name || data.parent_name || '',
+        emergencyContactName: data.emergency_contact_name || data.father_name || data.parent_name || '',
         emergencyContactRelation: data.emergency_contact_relation || 'Parent/Guardian',
-        emergencyContactPhone: data.emergency_contact_phone || data.parent_phone || ''
+        emergencyContactPhone: data.emergency_contact_phone || data.father_phone || data.parent_phone || ''
       });
+
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const updatedLocal = { ...parsed, ...data, full_name: full || parsed.full_name, name: full || parsed.name };
+          localStorage.setItem('user', JSON.stringify(updatedLocal));
+        }
+      } catch (e) {}
+
       setLoading(false);
     }).catch(error => {
       console.error('Failed to fetch profile:', error);
@@ -125,19 +169,56 @@ export function ProfileModule() {
     });
   };
 
+  const handleSavePersonal = async () => {
+    setSaving(true);
+    try {
+      const constructedName = `${personalData.firstName} ${personalData.lastName}`.trim() || personalData.name;
+      await client.put('/profile', {
+        name: constructedName,
+        full_name: constructedName,
+        first_name: personalData.firstName,
+        last_name: personalData.lastName,
+        dob: personalData.dob,
+        gender: personalData.gender,
+        blood_group: personalData.bloodGroup,
+        nationality: personalData.nationality,
+        marital_status: personalData.maritalStatus,
+        department: personalData.department,
+        designation: personalData.designation
+      });
+
+      setIsEditingPersonal(false);
+      triggerToast('✨ Personal identity records updated successfully!');
+      fetchProfile();
+    } catch (err: any) {
+      triggerToast(`⚠️ ${err.response?.data?.message || 'Failed to save personal identity.'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveContact = async () => {
     setSaving(true);
     try {
       await client.put('/profile', {
         phone: contactData.phone,
-        address: contactData.address
+        alt_phone: contactData.altPhone,
+        email: contactData.email,
+        address: contactData.address,
+        permanent_address: contactData.permanentAddress,
+        emergency_contact_name: contactData.emergencyContactName,
+        emergency_contact_relation: contactData.emergencyContactRelation,
+        emergency_contact_phone: contactData.emergencyContactPhone
       });
+
       setIsEditingContact(false);
-      triggerToast('✨ Personal contact information updated successfully!');
-    } catch (err) {
-      triggerToast('⚠️ Failed to save profile edits.');
+      triggerToast('✨ Contact and communication details updated successfully!');
+      fetchProfile();
+    } catch (err: any) {
+      triggerToast(`⚠️ ${err.response?.data?.message || 'Failed to save contact details.'}`);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,7 +391,7 @@ export function ProfileModule() {
                 ) : (
                   <>
                     <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
-                      <GraduationCap className="w-4 h-4 text-cyan-400" /> 4th Year • {currentSemester}th Semester (Sec A)
+                      <GraduationCap className="w-4 h-4 text-cyan-400" /> 4th Year • {currentSemester || '8'}th Semester (Sec A)
                     </span>
                     <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
                       <Calendar className="w-4 h-4 text-emerald-400" /> Batch: 2023–2027
@@ -345,7 +426,7 @@ export function ProfileModule() {
         </div>
 
         {/* ----------------------------------------------------------------------- */}
-        {/* INTEGRATED TAB NAVIGATION (Scrollbar Hidden cleanly) */}
+        {/* INTEGRATED TAB NAVIGATION */}
         {/* ----------------------------------------------------------------------- */}
         <div className="relative z-10 bg-slate-950/90 border-b border-slate-800/80 px-3 py-2">
           <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 px-1">
@@ -384,7 +465,7 @@ export function ProfileModule() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div className="p-5 rounded-2xl bg-slate-800/70 border border-indigo-500/30 shadow-xl space-y-1">
                     <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Executive Designation</span>
-                    <p className="text-xl font-black text-cyan-400">{isChancellor ? 'University Chancellor' : (profile?.role || savedUser?.role || 'Executive Officer')}</p>
+                    <p className="text-xl font-black text-cyan-400">{isChancellor ? 'University Chancellor' : (profile?.designation || profile?.role || savedUser?.role || 'Executive Officer')}</p>
                     <span className="text-xs text-slate-400 block pt-1">Chief Institutional Head</span>
                   </div>
 
@@ -448,51 +529,164 @@ export function ProfileModule() {
           {/* TAB 2: PERSONAL INFORMATION */}
           {activeTab === 'personal' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <User className="w-5 h-5 text-cyan-400" /> Personal Identity Records
                 </h2>
+                {!isEditingPersonal ? (
+                  <button
+                    onClick={() => setIsEditingPersonal(true)}
+                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" /> Edit Personal Identity
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsEditingPersonal(false)}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSavePersonal}
+                      disabled={saving}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
-                  <span className="text-slate-400 block mb-1">Full Legal Name</span>
-                  <span className="font-bold text-white text-sm">{displayName}</span>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">First Name</span>
-                  <span className="font-bold text-white text-sm">{firstName}</span>
+                  {isEditingPersonal ? (
+                    <input
+                      type="text"
+                      value={personalData.firstName}
+                      onChange={e => setPersonalData({ ...personalData, firstName: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-bold text-white text-sm">{firstName}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Last Name</span>
-                  <span className="font-bold text-white text-sm">{lastName || 'N/A'}</span>
+                  {isEditingPersonal ? (
+                    <input
+                      type="text"
+                      value={personalData.lastName}
+                      onChange={e => setPersonalData({ ...personalData, lastName: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-bold text-white text-sm">{lastName || 'N/A'}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Date of Birth</span>
-                  <span className="font-bold text-white text-sm">{profile?.dob || 'Not Recorded'}</span>
+                  {isEditingPersonal ? (
+                    <input
+                      type="date"
+                      value={personalData.dob}
+                      onChange={e => setPersonalData({ ...personalData, dob: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-bold text-white text-sm">{profile?.dob || personalData.dob || 'Not Recorded'}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Gender</span>
-                  <span className="font-bold text-white text-sm">{profile?.gender || 'Not Recorded'}</span>
+                  {isEditingPersonal ? (
+                    <select
+                      value={personalData.gender}
+                      onChange={e => setPersonalData({ ...personalData, gender: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer Not to Say">Prefer Not to Say</option>
+                    </select>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{profile?.gender || personalData.gender || 'Not Recorded'}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Blood Group</span>
-                  <span className="font-bold text-rose-400 text-sm">{profile?.blood_group || 'Not Recorded'}</span>
+                  {isEditingPersonal ? (
+                    <select
+                      value={personalData.bloodGroup}
+                      onChange={e => setPersonalData({ ...personalData, bloodGroup: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  ) : (
+                    <span className="font-bold text-rose-400 text-sm">{profile?.blood_group || personalData.bloodGroup || 'Not Recorded'}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Nationality</span>
-                  <span className="font-bold text-white text-sm">{profile?.nationality || 'Not Recorded'}</span>
+                  {isEditingPersonal ? (
+                    <input
+                      type="text"
+                      value={personalData.nationality}
+                      onChange={e => setPersonalData({ ...personalData, nationality: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-bold text-white text-sm">{profile?.nationality || personalData.nationality || 'Indian'}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
                   <span className="text-slate-400 block mb-1">Marital Status</span>
-                  <span className="font-bold text-white text-sm">{profile?.marital_status || 'Single'}</span>
+                  {isEditingPersonal ? (
+                    <select
+                      value={personalData.maritalStatus}
+                      onChange={e => setPersonalData({ ...personalData, maritalStatus: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="Single">Single</option>
+                      <option value="Married">Married</option>
+                    </select>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{profile?.marital_status || personalData.maritalStatus || 'Single'}</span>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
+                  <span className="text-slate-400 block mb-1">Department</span>
+                  {isEditingPersonal ? (
+                    <input
+                      type="text"
+                      value={personalData.department}
+                      onChange={e => setPersonalData({ ...personalData, department: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                      placeholder="e.g. Computer Science"
+                    />
+                  ) : (
+                    <span className="font-bold text-cyan-300 text-sm">{department}</span>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80">
@@ -513,7 +707,7 @@ export function ProfileModule() {
                 {!isEditingContact ? (
                   <button
                     onClick={() => setIsEditingContact(true)}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <Edit2 className="w-4 h-4" /> Edit Contact Info
                   </button>
@@ -521,16 +715,16 @@ export function ProfileModule() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsEditingContact(false)}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-700 text-slate-300 text-xs font-semibold"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveContact}
                       disabled={saving}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                     >
-                      <Save className="w-4 h-4" /> Save Changes
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes
                     </button>
                   </div>
                 )}
@@ -538,25 +732,51 @@ export function ProfileModule() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <span className="text-slate-400 block font-semibold">Institutional College Email</span>
-                  <span className="font-mono text-cyan-400 text-sm block">{contactData.email || 'Not Provided'}</span>
-                  <span className="text-[10px] text-slate-400">Official university communication handle (Primary)</span>
+                  <span className="text-slate-400 block font-semibold">Institutional Email</span>
+                  {isEditingContact ? (
+                    <input
+                      type="email"
+                      value={contactData.email}
+                      onChange={e => setContactData({ ...contactData, email: e.target.value })}
+                      placeholder="e.g. user@university.edu"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-mono text-cyan-400 text-sm block">{contactData.email || 'Not Provided'}</span>
+                  )}
+                  <span className="text-[10px] text-slate-400">Official university communication handle</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-                  <span className="text-slate-400 block font-semibold">Student Mobile Phone</span>
+                  <span className="text-slate-400 block font-semibold">Mobile Phone</span>
                   {isEditingContact ? (
                     <input
                       type="text"
                       value={contactData.phone}
                       onChange={e => setContactData({ ...contactData, phone: e.target.value })}
                       placeholder="Enter mobile phone"
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-cyan-400"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
                     />
                   ) : (
                     <span className="font-bold text-white text-sm block">{contactData.phone || 'Not Provided'}</span>
                   )}
-                  <span className="text-[10px] text-slate-400">SMS notification recipient</span>
+                  <span className="text-[10px] text-slate-400">Primary phone number</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
+                  <span className="text-slate-400 block font-semibold">Alternate Phone</span>
+                  {isEditingContact ? (
+                    <input
+                      type="text"
+                      value={contactData.altPhone}
+                      onChange={e => setContactData({ ...contactData, altPhone: e.target.value })}
+                      placeholder="Enter secondary phone"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                  ) : (
+                    <span className="font-bold text-white text-sm block">{contactData.altPhone || 'Not Provided'}</span>
+                  )}
+                  <span className="text-[10px] text-slate-400">Secondary contact number</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2">
@@ -574,7 +794,7 @@ export function ProfileModule() {
                   )}
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2 col-span-1 md:col-span-2">
                   <span className="text-emerald-400 font-bold block uppercase tracking-wider text-[11px]">Permanent Home Address</span>
                   {isEditingContact ? (
                     <textarea
@@ -597,16 +817,46 @@ export function ProfileModule() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div>
-                    <span className="text-slate-400 block">Contact Name</span>
-                    <span className="font-bold text-white text-sm">{contactData.emergencyContactName || 'Not Recorded'}</span>
+                    <span className="text-slate-400 block mb-1">Contact Name</span>
+                    {isEditingContact ? (
+                      <input
+                        type="text"
+                        value={contactData.emergencyContactName}
+                        onChange={e => setContactData({ ...contactData, emergencyContactName: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 text-slate-100 focus:outline-none focus:border-rose-400"
+                        placeholder="Name"
+                      />
+                    ) : (
+                      <span className="font-bold text-white text-sm">{contactData.emergencyContactName || 'Not Recorded'}</span>
+                    )}
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Relationship</span>
-                    <span className="font-bold text-white text-sm">{contactData.emergencyContactRelation || 'Not Recorded'}</span>
+                    <span className="text-slate-400 block mb-1">Relationship</span>
+                    {isEditingContact ? (
+                      <input
+                        type="text"
+                        value={contactData.emergencyContactRelation}
+                        onChange={e => setContactData({ ...contactData, emergencyContactRelation: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 text-slate-100 focus:outline-none focus:border-rose-400"
+                        placeholder="Relationship"
+                      />
+                    ) : (
+                      <span className="font-bold text-white text-sm">{contactData.emergencyContactRelation || 'Not Recorded'}</span>
+                    )}
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Emergency Phone</span>
-                    <span className="font-bold text-rose-400 text-sm font-mono">{contactData.emergencyContactPhone || 'Not Recorded'}</span>
+                    <span className="text-slate-400 block mb-1">Emergency Phone</span>
+                    {isEditingContact ? (
+                      <input
+                        type="text"
+                        value={contactData.emergencyContactPhone}
+                        onChange={e => setContactData({ ...contactData, emergencyContactPhone: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 text-rose-300 font-mono focus:outline-none focus:border-rose-400"
+                        placeholder="Emergency Phone"
+                      />
+                    ) : (
+                      <span className="font-bold text-rose-400 text-sm font-mono">{contactData.emergencyContactPhone || 'Not Recorded'}</span>
+                    )}
                   </div>
                 </div>
               </div>
