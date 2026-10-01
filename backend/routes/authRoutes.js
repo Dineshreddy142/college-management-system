@@ -291,22 +291,38 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.get('/admin/users', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+router.get('/admin/users', authenticateToken, authorizeRole(['Admin', 'Chancellor', 'Vice Chancellor', 'Registrar', 'Principal', 'Dean', 'HOD']), async (req, res) => {
     try {
-        const [users] = await pool.execute(
-            `SELECT u.id, u.username, u.full_name, u.email, u.role_id, r.name as role_name, u.status,
-                    u.department, u.phone, u.designation,
-                    (SELECT COUNT(*) FROM face_biometrics WHERE user_id = u.id) as face_enrolled,
-                    (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
-                    (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
-                    (SELECT created_at FROM activity_logs WHERE user_id = u.id AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1) as last_login
-             FROM users u
-             JOIN roles r ON u.role_id = r.id
-             ORDER BY u.id ASC`
-        );
+        let users;
+        try {
+            [users] = await pool.execute(
+                `SELECT u.id, u.username, u.full_name, u.email, u.role_id, r.name as role_name, u.status,
+                        u.department, u.phone, u.designation,
+                        (SELECT COUNT(*) FROM face_biometrics WHERE user_id = u.id) as face_enrolled,
+                        (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
+                        (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
+                        (SELECT created_at FROM activity_logs WHERE user_id = u.id AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1) as last_login
+                 FROM users u
+                 JOIN roles r ON u.role_id = r.id
+                 ORDER BY u.id ASC`
+            );
+        } catch (sqlErr) {
+            console.warn('[ADMIN USERS SQL NOTICE]: Falling back to legacy columns query:', sqlErr.message);
+            [users] = await pool.execute(
+                `SELECT u.id, u.username, u.full_name, u.email, u.role_id, r.name as role_name, u.status,
+                        (SELECT COUNT(*) FROM face_biometrics WHERE user_id = u.id) as face_enrolled,
+                        (SELECT attempt_time FROM failed_login_attempts WHERE user_id = u.id ORDER BY attempt_time DESC LIMIT 1) as last_failed,
+                        (SELECT COUNT(*) FROM failed_login_attempts WHERE user_id = u.id) as failed_attempts,
+                        (SELECT created_at FROM activity_logs WHERE user_id = u.id AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1) as last_login
+                 FROM users u
+                 JOIN roles r ON u.role_id = r.id
+                 ORDER BY u.id ASC`
+            );
+        }
         return successResponse(res, 'Users retrieved successfully', users);
     } catch (error) {
-        return errorResponse(res, 'Failed to fetch users', [error.message], 500);
+        console.error('Error fetching admin users:', error);
+        return errorResponse(res, 'Failed to fetch users: ' + error.message, [error.message], 500);
     }
 });
 
