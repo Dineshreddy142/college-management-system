@@ -206,8 +206,8 @@ router.post('/register', async (req, res) => {
             if (token) {
                 try {
                     const decoded = jwt.verify(token, JWT_SECRET);
-                    const decodedRoleNorm = (decoded.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                    if (decodedRoleNorm === 'admin' || decodedRoleNorm === 'administrator' || decodedRoleNorm === 'principal') {
+                    const executiveRoles = ['admin', 'administrator', 'systemadmin', 'principal', 'chancellor', 'vicechancellor', 'registrar', 'coe', 'controllerofexaminations', 'dean', 'hod'];
+                    if (executiveRoles.includes(decodedRoleNorm)) {
                         isAuthorizedAdmin = true;
                     }
                 } catch (e) {}

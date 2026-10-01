@@ -39,8 +39,14 @@ export const authorizeRole = (allowedRoles) => {
         const isAllowed = allowedRoles.some(role => {
             const roleNorm = role.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
             if (roleNorm === userRoleNorm) return true;
-            if ((userRoleNorm === 'admin' || userRoleNorm === 'administrator' || userRoleNorm === 'principal' || userRoleNorm === 'systemadmin') && 
-                (roleNorm === 'admin' || roleNorm === 'administrator' || roleNorm === 'principal')) {
+            
+            const executiveRoles = [
+                'admin', 'administrator', 'systemadmin', 'principal', 
+                'chancellor', 'vicechancellor', 'registrar', 'coe', 
+                'controllerofexaminations', 'dean', 'hod'
+            ];
+            
+            if (executiveRoles.includes(userRoleNorm) && (roleNorm === 'admin' || roleNorm === 'administrator' || executiveRoles.includes(roleNorm))) {
                 return true;
             }
             return false;
