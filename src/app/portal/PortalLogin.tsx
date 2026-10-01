@@ -70,17 +70,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   const subdomainRole = getSubdomainRole();
   const envRole = ((import.meta as any).env?.VITE_PORTAL_NAME || '').toLowerCase();
 
-  // Priority order: 1. explicit prop -> 2. Route param -> 3. Pathname segments -> 4. Subdomain -> 5. Env var -> 6. Default
-  const effectiveRole = (
-    propRole ||
-    paramRole ||
-    pathRole ||
-    subdomainRole ||
-    envRole ||
-    'student'
-  ).toLowerCase();
+  const defaultConfig = {
+    title: 'University Portal Login',
+    field: 'Email, Username, or Institutional ID',
+    placeholder: 'Enter your Email or ID (e.g. STU202601, CH202601)',
+    icon: '🏛️',
+    badge: 'Institutional Portal Login'
+  };
 
-  const config = roleConfig[effectiveRole] || roleConfig.student;
+  const isGenericLogin = location.pathname === '/login' || (!propRole && !paramRole && !pathRole);
+  const config = isGenericLogin ? defaultConfig : (roleConfig[effectiveRole] || defaultConfig);
 
   // Standard Password Login State
   const [identifier, setIdentifier] = useState('');
