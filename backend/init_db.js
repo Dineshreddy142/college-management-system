@@ -1988,6 +1988,38 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Face biometrics tables setup warning:', faceDbErr.message);
     }
 
+    // --- MENTORS & FACULTY ADVISORY TABLES ---
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS student_mentor_assignments (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          faculty_id INT NOT NULL,
+          student_id INT NOT NULL,
+          academic_year VARCHAR(20) DEFAULT '2025-2026',
+          status ENUM('active', 'inactive') DEFAULT 'active',
+          assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS counseling_sessions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          faculty_id INT NOT NULL,
+          student_id INT NOT NULL,
+          session_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+          discussion TEXT NOT NULL,
+          action_plan TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+    } catch (mentorDbErr) {
+      console.warn('[DATABASE INIT] Mentor tables setup warning:', mentorDbErr.message);
+    }
+
     // --- SEED ESSENTIAL ROLES ---
     const roles = [
       'Admin',

@@ -209,6 +209,7 @@ const SIDEBAR_ITEMS = [
   { id: "academic", label: "Academics & Curriculums", icon: BookOpen, badge: null },
   { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
+  { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
   {
     id: "block-management",
     label: "Campus Block Twin",
