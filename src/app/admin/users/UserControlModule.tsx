@@ -171,11 +171,19 @@ export const UserControlModule: React.FC = () => {
     return 'EMP';
   };
 
-  const generateAutoIdForRole = (roleName: string) => {
+  const generateAutoIdForRole = (roleName: string, userList: any[] = users) => {
     const prefix = getRolePrefix(roleName);
     const year = new Date().getFullYear();
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}-${year}-${rand}`;
+    const safeUsers = Array.isArray(userList) ? userList : [];
+
+    const existingCount = safeUsers.filter(u => {
+      const r = (u.role_name || '').toLowerCase();
+      const targetR = (roleName || '').toLowerCase();
+      return r === targetR || r.includes(targetR) || targetR.includes(r);
+    }).length;
+
+    const seqNumber = String(existingCount + 1).padStart(2, '0');
+    return `${prefix}${year}${seqNumber}`;
   };
 
   const getDefaultRolePassword = (roleName: string) => {
