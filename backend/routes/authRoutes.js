@@ -459,7 +459,7 @@ router.post('/admin/users/toggle-status', authenticateToken, authorizeRole(['Adm
     }
 });
 
-router.post('/admin/users/update-department', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+router.post('/admin/users/update-department', authenticateToken, authorizeRole(['Admin', 'Chancellor', 'Vice Chancellor', 'Registrar', 'Principal']), async (req, res) => {
     try {
         const { userId, department, designation } = req.body;
         if (!userId || !department) {
@@ -469,10 +469,26 @@ router.post('/admin/users/update-department', authenticateToken, authorizeRole([
         const cleanDept = department.trim();
         const cleanDesig = designation ? designation.trim() : null;
 
-        if (cleanDesig) {
-            await pool.execute('UPDATE users SET department = ?, designation = ? WHERE id = ?', [cleanDept, cleanDesig, userId]);
-        } else {
-            await pool.execute('UPDATE users SET department = ? WHERE id = ?', [cleanDept, userId]);
+        // Ensure department, designation, and phone columns exist on the fly in MySQL
+        try {
+            await pool.query('ALTER TABLE users ADD COLUMN department VARCHAR(150) NULL');
+        } catch (colErr) {}
+        try {
+            await pool.query('ALTER TABLE users ADD COLUMN designation VARCHAR(100) NULL');
+        } catch (colErr) {}
+        try {
+            await pool.query('ALTER TABLE users ADD COLUMN phone VARCHAR(25) NULL');
+        } catch (colErr) {}
+
+        // Update users table
+        try {
+            if (cleanDesig) {
+                await pool.execute('UPDATE users SET department = ?, designation = ? WHERE id = ?', [cleanDept, cleanDesig, userId]);
+            } else {
+                await pool.execute('UPDATE users SET department = ? WHERE id = ?', [cleanDept, userId]);
+            }
+        } catch (updateErr) {
+            console.warn('[UPDATE DEPT NOTICE]:', updateErr.message);
         }
 
         // Try mapping department to departments table ID if exists
