@@ -141,6 +141,33 @@ export const UserControlModule: React.FC = () => {
     }
   };
 
+  const handleUpdateUserDepartment = async (user: UserRecord, newDepartment: string) => {
+    setActionUserId(user.id);
+    setActionType('update_dept');
+    setFeedbackMsg(null);
+
+    try {
+      const res = await client.post('/admin/users/update-department', {
+        userId: user.id,
+        department: newDepartment
+      });
+
+      if (res.data?.success) {
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, department: newDepartment } : u));
+        setFeedbackMsg({
+          type: 'success',
+          text: `✨ Department updated to "${newDepartment}" for ${user.username}.`
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to update department:', err);
+      setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Failed to update user department.' });
+    } finally {
+      setActionUserId(null);
+      setActionType('');
+    }
+  };
+
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [creatingUser, setCreatingUser] = useState<boolean>(false);
   const [createdUserCredentials, setCreatedUserCredentials] = useState<any>(null);
@@ -527,11 +554,26 @@ export const UserControlModule: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Department */}
+                      {/* Department Editor */}
                       <td className="py-4 px-5">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
-                          {u.department || 'General Administration'}
-                        </span>
+                        <select
+                          value={u.department || 'General Administration'}
+                          onChange={e => handleUpdateUserDepartment(u, e.target.value)}
+                          disabled={isProcessingThis}
+                          className="px-2.5 py-1 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                        >
+                          <option value="Executive Secretariat">Executive Secretariat</option>
+                          <option value="Computer Science & Engineering">Computer Science</option>
+                          <option value="Electrical & Electronics Engineering">Electrical & Electronics</option>
+                          <option value="Mechanical Engineering">Mechanical Engineering</option>
+                          <option value="Civil Engineering">Civil Engineering</option>
+                          <option value="School of Medicine & Health Sciences">School of Medicine</option>
+                          <option value="School of Business Administration">School of Business</option>
+                          <option value="Finance & Accounts">Finance & Accounts</option>
+                          <option value="Library Administration">Library Administration</option>
+                          <option value="Placement Cell & Career Services">Placement Cell</option>
+                          <option value="General Administration">General Admin</option>
+                        </select>
                       </td>
 
                       {/* Face Biometrics Status */}

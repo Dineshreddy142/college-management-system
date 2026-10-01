@@ -459,6 +459,42 @@ router.post('/admin/users/toggle-status', authenticateToken, authorizeRole(['Adm
     }
 });
 
+router.post('/admin/users/update-department', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
+    try {
+        const { userId, department, designation } = req.body;
+        if (!userId || !department) {
+            return errorResponse(res, 'userId and department are required', [], 400);
+        }
+
+        const cleanDept = department.trim();
+        const cleanDesig = designation ? designation.trim() : null;
+
+        if (cleanDesig) {
+            await pool.execute('UPDATE users SET department = ?, designation = ? WHERE id = ?', [cleanDept, cleanDesig, userId]);
+        } else {
+            await pool.execute('UPDATE users SET department = ? WHERE id = ?', [cleanDept, userId]);
+        }
+
+        // Try mapping department to departments table ID if exists
+        const [deptRows] = await pool.execute(
+            'SELECT id FROM departments WHERE LOWER(name) LIKE ? OR LOWER(code) LIKE ?',
+            [`%${cleanDept.toLowerCase()}%`, `%${cleanDept.toLowerCase()}%`]
+        );
+        const deptId = deptRows.length > 0 ? deptRows[0].id : null;
+
+        if (deptId) {
+            await pool.execute('UPDATE students SET department_id = ? WHERE user_id = ?', [deptId, userId]).catch(() => {});
+            await pool.execute('UPDATE faculty SET department_id = ? WHERE user_id = ?', [deptId, userId]).catch(() => {});
+        }
+
+        await logActivity(req.user.id, 'USER_DEPARTMENT_UPDATE', `Admin updated department to "${cleanDept}" for user #${userId}`);
+        return successResponse(res, `Department updated to "${cleanDept}" successfully`, { userId, department: cleanDept });
+    } catch (error) {
+        console.error('Update department error:', error);
+        return errorResponse(res, 'Failed to update user department: ' + error.message, [error.message], 500);
+    }
+});
+
 router.delete('/admin/users/face/:id', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
     try {
         const userId = req.params.id;
