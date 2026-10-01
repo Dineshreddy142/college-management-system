@@ -10,6 +10,7 @@ import { AccessDenied, NotFound } from './portal/ErrorPages';
 import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
+import { ChancellorDashboard } from "./chancellor/ChancellorDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { BuildingManagement } from "./admin/block-management/BuildingManagement";
 import { FloorManagement } from "./admin/block-management/FloorManagement";
@@ -2697,8 +2698,8 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/admin/dashboard/*" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           
-          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><ChancellorDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><ChancellorDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/chancellor" element={<Navigate to="/chancellor/dashboard" replace />} />
 
           <Route path="/vicechancellor/dashboard" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />

@@ -30,6 +30,7 @@ import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import curriculumRoutes from './routes/curriculumRoutes.js';
 import facultyAssignmentRoutes from './routes/facultyAssignmentRoutes.js';
+import chancellorRoutes from './routes/chancellorRoutes.js';
 
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import examRoutes from './routes/examRoutes.js';
@@ -121,6 +122,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/bulk', bulkUploadRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/chancellor', chancellorRoutes);
 
 // --- DASHBOARD ANALYTICS & AUDIT LOGS ---
 app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), getAnalyticsSummary);

@@ -2016,8 +2016,62 @@ export async function initializeDatabase() {
           FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `);
+
+      // --- CHANCELLOR GOVERNANCE TABLES ---
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS chancellor_approvals (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          requester_name VARCHAR(150) NOT NULL,
+          requester_role VARCHAR(100) NOT NULL,
+          department_name VARCHAR(150) NULL,
+          request_type ENUM('Academic Policy', 'Curriculum Reform', 'Budget Proposal', 'Convocation Clearance', 'Major Event') NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          priority ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT') DEFAULT 'NORMAL',
+          status ENUM('Draft', 'Submitted', 'Under Review', 'Approved', 'Rejected') DEFAULT 'Submitted',
+          chancellor_comments TEXT NULL,
+          decided_at TIMESTAMP NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS chancellor_communications (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          sender_name VARCHAR(150) NOT NULL,
+          sender_role VARCHAR(100) NOT NULL,
+          department_name VARCHAR(150) NULL,
+          subject VARCHAR(255) NOT NULL,
+          message TEXT NOT NULL,
+          priority ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT') DEFAULT 'NORMAL',
+          status ENUM('Open', 'Acknowledged', 'Resolved') DEFAULT 'Open',
+          response_history JSON NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Seed Initial Approvals if empty
+      const [apprCount] = await pool.query('SELECT COUNT(*) as cnt FROM chancellor_approvals');
+      if (apprCount[0]?.cnt === 0) {
+        await pool.query(`
+          INSERT INTO chancellor_approvals (requester_name, requester_role, department_name, request_type, title, description, priority, status) VALUES
+          ('Dr. A. K. Sharma', 'Dean', 'School of Engineering', 'Academic Policy', 'Approval for AI & Data Science Curriculum Expansion 2026-27', 'Proposal to introduce 4 specialized electives in Generative AI and Quantum Computing for 3rd year B.Tech students.', 'HIGH', 'Submitted'),
+          ('Prof. M. Venkatesh', 'Controller of Examinations', 'Central Examination Cell', 'Convocation Clearance', 'Final Graduation Cohort Clearance for 2026 Convocation', 'Verified 1,240 candidate degree transcripts for digital Chancellor seal and convocation diploma distribution.', 'URGENT', 'Submitted'),
+          ('Dr. S. Ramesh', 'HOD', 'Department of Computer Science', 'Budget Proposal', 'Smart Robotics & IoT Research Lab Infrastructure Upgrade', 'Requisition for ₹45 Lakhs hardware budget for setting up advanced GPU workstation clusters.', 'NORMAL', 'Under Review')
+        `);
+      }
+
+      // Seed Initial Communications if empty
+      const [commCount] = await pool.query('SELECT COUNT(*) as cnt FROM chancellor_communications');
+      if (commCount[0]?.cnt === 0) {
+        await pool.query(`
+          INSERT INTO chancellor_communications (sender_name, sender_role, department_name, subject, message, priority, status) VALUES
+          ('Dr. P. Nair', 'Dean', 'School of Medicine', 'Interdisciplinary Bio-Tech Research Grant Proposal', 'Respectfully escalating the National Research Council Grant application for Chancellor endorsement.', 'HIGH', 'Open'),
+          ('Prof. R. Menon', 'HOD', 'Electrical Engineering', 'Annual NAAC Accreditation Self-Study Report Readiness', 'The departmental self-audit for NAAC Cycle 4 is complete and ready for executive Chancellor review.', 'NORMAL', 'Acknowledged')
+        `);
+      }
     } catch (mentorDbErr) {
-      console.warn('[DATABASE INIT] Mentor tables setup warning:', mentorDbErr.message);
+      console.warn('[DATABASE INIT] Chancellor & Mentor tables setup warning:', mentorDbErr.message);
     }
 
     // --- SEED ESSENTIAL ROLES ---
