@@ -4,7 +4,7 @@ import {
   BarChart3, CheckCircle2, XCircle, Clock, AlertTriangle, Filter,
   Download, RefreshCw, Send, CheckCircle, Search, ChevronRight,
   TrendingUp, Sparkles, Building, Layers, FileText, Bell, Lock,
-  ChevronDown, HelpCircle, Eye, ArrowUpRight
+  ChevronDown, HelpCircle, Eye, ArrowUpRight, ShieldAlert
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -177,7 +177,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 pb-8 animate-in fade-in duration-300">
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* TOP EXECUTIVE HEADER & SELECTORS */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
@@ -205,14 +205,35 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => onNav('users')}
+              className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-indigo-200 dark:border-indigo-800/50 cursor-pointer"
+            >
+              <Shield size={14} />
+              <span>User Control</span>
+            </button>
+            <button
+              onClick={() => onNav('fees')}
+              className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-200 dark:border-amber-800/50 cursor-pointer"
+            >
+              <DollarSign size={14} />
+              <span>Fee Governance</span>
+            </button>
+            <button
+              onClick={() => onNav('audit-logs')}
+              className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-purple-200 dark:border-purple-800/50 cursor-pointer"
+            >
+              <ShieldAlert size={14} />
+              <span>Audit Logs</span>
+            </button>
             <button
               onClick={fetchDashboardData}
               disabled={refreshing}
               className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              <span>Refresh Data</span>
+              <span>Refresh</span>
             </button>
           </div>
         </div>

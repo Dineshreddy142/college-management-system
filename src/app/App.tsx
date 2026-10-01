@@ -1965,14 +1965,22 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
+  const { user } = useAuth();
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeEditorFloorId, setActiveEditorFloorId] = useState<number>(1);
 
+  const roleName = (user?.role || '').toLowerCase();
+  const isChancellor = roleName.includes('chancellor');
+
   const render = () => {
     switch (mod) {
-      case "dashboard": return <DashboardHome onNavigate={(m) => setMod(m)} />;
+      case "dashboard": 
+        if (isChancellor) {
+          return <ChancellorDashboard onNav={(m) => setMod(m)} theme={theme} toggleTheme={toggleTheme} />;
+        }
+        return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
       case "registration-control": return <AdminOfferingRegistrationControl />;
       case "subject-offerings": return <AdminOfferingRegistrationControl />;
@@ -2698,8 +2706,8 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/admin/dashboard/*" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           
-          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><ChancellorDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><ChancellorDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/chancellor" element={<Navigate to="/chancellor/dashboard" replace />} />
 
           <Route path="/vicechancellor/dashboard" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
