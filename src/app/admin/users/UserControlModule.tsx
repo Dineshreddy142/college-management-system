@@ -716,7 +716,7 @@ export const UserControlModule: React.FC = () => {
                   </label>
                   <button
                     type="button"
-                    onClick={handleGeneratePassword}
+                    onClick={() => handleGeneratePassword()}
                     className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
                   >
                     ⚡ Generate Password
