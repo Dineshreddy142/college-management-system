@@ -37,9 +37,10 @@ export const getProfile = async (req, res) => {
         let userRow = null;
         try {
             const [users] = await pool.execute(
-                `SELECT u.*, r.name as role 
+                `SELECT u.*, r.name as role, d.name as dept_from_table 
                  FROM users u 
                  LEFT JOIN roles r ON u.role_id = r.id 
+                 LEFT JOIN departments d ON u.department_id = d.id 
                  WHERE u.id = ?`,
                 [req.user.id]
             );
@@ -47,7 +48,7 @@ export const getProfile = async (req, res) => {
         } catch (colErr) {
             console.warn('Profile fetch query warning:', colErr.message);
             const [users] = await pool.execute(
-                `SELECT u.id, u.username, u.full_name, u.email, u.avatar, r.name as role, u.created_at 
+                `SELECT u.*, r.name as role 
                  FROM users u 
                  LEFT JOIN roles r ON u.role_id = r.id 
                  WHERE u.id = ?`,
@@ -74,6 +75,7 @@ export const getProfile = async (req, res) => {
         }
         
         let profile = { ...userRow };
+        profile.department = userRow.department || userRow.dept_from_table || userRow.department_name || null;
         let resolvedName = userRow.full_name || userRow.username || '';
 
         const roleLower = (profile.role || '').toLowerCase();
@@ -127,7 +129,7 @@ export const getProfile = async (req, res) => {
                     profile.cgpa = s.cgpa !== undefined ? s.cgpa : null;
                     profile.sgpa = s.sgpa !== undefined ? s.sgpa : null;
                     profile.backlogs = s.backlogs !== undefined ? s.backlogs : 0;
-                    profile.department = s.department_name || s.department || userRow.department || null;
+                    profile.department = s.department_name || s.department || profile.department || userRow.department || null;
                     profile.program = s.program_name || s.course_name || s.program || null;
                     profile.specialization = s.specialization || null;
                     profile.admission_type = s.admission_type || 'Regular';
@@ -205,6 +207,18 @@ export const getProfile = async (req, res) => {
             }
         } catch (dbErr) {
             console.warn('Role specific profile lookup notice:', dbErr.message);
+        }
+
+        // Final resolution for department if department_id is present but department string is missing
+        if (!profile.department && profile.department_id) {
+            try {
+                const [deptRows] = await pool.execute('SELECT name FROM departments WHERE id = ?', [profile.department_id]);
+                if (deptRows.length > 0) profile.department = deptRows[0].name;
+            } catch (e) {}
+        }
+
+        if (!profile.department) {
+            profile.department = userRow.department || 'Computer Science & Engineering';
         }
 
         if (!resolvedName) {

@@ -372,7 +372,12 @@ export function ProfileModule() {
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">{displayName}</h1>
-              <p className="text-slate-300 font-medium text-sm sm:text-base">{program}</p>
+              <p className="text-slate-300 font-medium text-sm sm:text-base flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                <span>{program}</span>
+                <span className="text-cyan-400 font-bold bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
+                  Dept: {department}
+                </span>
+              </p>
 
               {/* Quick Info Chips */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2 text-xs text-slate-300 font-medium">
@@ -390,6 +395,9 @@ export function ProfileModule() {
                   </>
                 ) : (
                   <>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700 text-cyan-300">
+                      <Building className="w-4 h-4 text-cyan-400" /> {department}
+                    </span>
                     <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
                       <GraduationCap className="w-4 h-4 text-cyan-400" /> 4th Year • {currentSemester || '8'}th Semester (Sec A)
                     </span>
