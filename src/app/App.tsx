@@ -247,7 +247,10 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   // Filter sidebar items based on role
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'chancellor' || normRole === 'vicechancellor' || normRole === 'systemadmin') return true;
+    if (normRole === 'chancellor' || normRole === 'vicechancellor') {
+      return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'profile', 'settings'].includes(item.id);
+    }
+    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin') return true;
     if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'academic', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'coe' || normRole === 'controllerofexaminations') return ['dashboard', 'exams', 'students', 'faculty', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'dean') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
