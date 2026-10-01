@@ -583,47 +583,74 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }) {
+  const { user } = useAuth();
   const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, activeCourses: 0, pendingFees: '₹0', avgAttendance: '0%' });
-  
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [degreeCleared, setDegreeCleared] = useState(false);
+
+  const roleName = (user?.role || '').toLowerCase();
+  const isChancellor = roleName.includes('chancellor');
+
   useEffect(() => {
     client.get('/dashboard/admin').then(res => {
       setStats(res.data);
     }).catch(console.error);
-  }, []);
+
+    if (isChancellor) {
+      client.get('/api/activity-logs').then(res => {
+        if (res.data?.success && Array.isArray(res.data?.data)) {
+          setAuditLogs(res.data.data.slice(0, 5));
+        }
+      }).catch(console.error);
+    }
+  }, [isChancellor]);
 
   return (
     <div className="space-y-5">
-      {/* Quick Access Security Banner */}
-      <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/50">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 flex-shrink-0">
-            <Shield size={24} />
+      {/* Quick Access Security & Governance Banner */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/50">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 flex-shrink-0 text-2xl">
+            {isChancellor ? '🏛️' : <Shield size={26} />}
           </div>
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <span>Admin Control & Security Hub</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">Active</span>
+            <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+              <span>{isChancellor ? 'Chancellor Executive Governance & Convocation Hub' : 'Admin Control & Security Hub'}</span>
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 uppercase tracking-wider">
+                {isChancellor ? 'Chief Governance' : 'Active'}
+              </span>
             </h2>
-            <p className="text-xs text-indigo-200/80 mt-0.5">
-              Manage account login status, block/unblock users, and control institutional user access.
+            <p className="text-xs text-indigo-200/80 mt-1 max-w-xl">
+              {isChancellor
+                ? 'Supreme institutional oversight, convocation degree authorizations, financial governance, and full user credential control across all 14 roles.'
+                : 'Manage account login status, block/unblock users, and control institutional user access.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           {onNavigate && (
             <button
               onClick={() => onNavigate("users")}
-              className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Shield size={15} />
               <span>User Access Control</span>
             </button>
           )}
+          {onNavigate && isChancellor && (
+            <button
+              onClick={() => onNavigate("fees")}
+              className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs transition-all border border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <DollarSign size={15} />
+              <span>Fee Governance</span>
+            </button>
+          )}
           {onNavigate && (
             <button
               onClick={() => onNavigate("bulk-data")}
-              className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
             >
               <FileSpreadsheet size={15} />
               <span>Bulk Data Hub</span>
@@ -631,6 +658,33 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
           )}
         </div>
       </div>
+
+      {/* Convocation & Degree Approval Highlight for Chancellor */}
+      {isChancellor && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-900/40 via-slate-900 to-indigo-950 border border-emerald-500/30 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+              <Award size={22} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white">Degree Convocation Approval Portal</h3>
+              <p className="text-xs text-slate-300 mt-0.5">1,240 Verified graduating candidates pending Chancellor digital convocation signature.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setDegreeCleared(true)}
+            disabled={degreeCleared}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+              degreeCleared
+                ? 'bg-emerald-600 text-white border border-emerald-400/50'
+                : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+            }`}
+          >
+            <CheckCircle size={15} />
+            <span>{degreeCleared ? '✓ Convocation Degrees Approved & Locked' : 'Authorize & Sign Convocation Degrees'}</span>
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Students" value={stats.totalStudents ?? 0} subtitle="Total enrolled" icon={<GraduationCap size={19} />} color="blue" />
