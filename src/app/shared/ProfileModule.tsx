@@ -178,17 +178,47 @@ export function ProfileModule() {
     reader.readAsDataURL(file);
   };
 
-  const displayName = profile?.name || profile?.full_name || savedUser?.full_name || savedUser?.name || 'User Profile';
+  const roleStr = (profile?.role || savedUser?.role || '').toString().toLowerCase();
+  const isChancellor = roleStr.includes('chancellor');
+  const isExecutive = isChancellor || roleStr.includes('admin') || roleStr.includes('vice') || roleStr.includes('registrar') || roleStr.includes('principal') || roleStr.includes('dean') || roleStr.includes('coe');
+
+  const displayName = profile?.name || profile?.full_name || savedUser?.full_name || savedUser?.name || (isChancellor ? 'Dr. Dinesh Reddy' : 'User Profile');
   const nameParts = displayName.trim().split(/\s+/);
   const firstName = profile?.first_name || nameParts[0] || 'User';
   const lastName = profile?.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
 
+  const officerId = profile?.employee_id || profile?.officer_id || savedUser?.employee_id || (isChancellor ? 'CH202601' : 'N/A');
   const studentId = profile?.student_id || profile?.admission_number || profile?.roll_number || 'N/A';
   const rollNumber = profile?.roll_number || profile?.admission_number || 'N/A';
   const regNumber = profile?.registration_number || profile?.roll_number || 'N/A';
-  const program = profile?.program || profile?.course_name || 'Academic Program';
-  const department = profile?.department || profile?.department_name || 'Department';
+  const program = isChancellor 
+    ? 'Office of the Chancellor • Supreme Institutional Governance' 
+    : (profile?.program || profile?.course_name || 'Academic Program');
+  const department = isChancellor 
+    ? 'Executive Senate & Secretariat' 
+    : (profile?.department || profile?.department_name || 'Department');
   const currentSemester = profile?.current_semester || profile?.semester || null;
+
+  const profileTabs = isExecutive
+    ? [
+        { id: 'overview', label: '📊 Overview' },
+        { id: 'personal', label: '👤 Personal Identity' },
+        { id: 'contact', label: '📞 Secretariat Contact' },
+        { id: 'security', label: '🔒 Security & Biometrics' },
+      ]
+    : [
+        { id: 'overview', label: '📊 Overview' },
+        { id: 'personal', label: '👤 Personal' },
+        { id: 'security', label: '🔒 Security & Biometrics' },
+        { id: 'contact', label: '📞 Contact & Address' },
+        { id: 'parent', label: '👨‍👩‍👦 Parent & Guardian' },
+        { id: 'academic', label: '🎓 Academic Details' },
+        { id: 'university_ids', label: '🆔 University IDs' },
+        { id: 'prev_education', label: '🏫 Previous Education' },
+        { id: 'performance', label: '📈 Academic Performance' },
+        { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
+        { id: 'mentor', label: '👨‍🏫 Class Advisor & HOD' },
+      ];
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100 min-h-screen">
@@ -201,7 +231,7 @@ export function ProfileModule() {
       )}
 
       {/* ========================================================================= */}
-      {/* UNIFIED SINGLE STUDENT CARD CONTAINER */}
+      {/* UNIFIED SINGLE PROFILE CARD CONTAINER */}
       {/* ========================================================================= */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 border border-indigo-500/20 shadow-2xl backdrop-blur-xl">
         
@@ -243,10 +273,10 @@ export function ProfileModule() {
             <div className="flex-1 text-center md:text-left space-y-2">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-bold uppercase tracking-wider">
-                  Official Record
+                  {isChancellor ? 'CHANCELLOR EXECUTIVE RECORD' : 'Official Record'}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-xs font-semibold">
-                  ID: {studentId}
+                  {isExecutive ? `Officer ID: ${officerId}` : `ID: ${studentId}`}
                 </span>
                 {isFaceEnrolled === true && (
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
@@ -265,23 +295,39 @@ export function ProfileModule() {
 
               {/* Quick Info Chips */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2 text-xs text-slate-300 font-medium">
-                <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
-                  <GraduationCap className="w-4 h-4 text-cyan-400" /> 4th Year • {currentSemester}th Semester (Sec A)
-                </span>
-                <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
-                  <Calendar className="w-4 h-4 text-emerald-400" /> Batch: 2023–2027
-                </span>
-                <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
-                  <Award className="w-4 h-4 text-amber-400" /> Reg No: {regNumber}
-                </span>
+                {isChancellor ? (
+                  <>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <Shield className="w-4 h-4 text-cyan-400" /> Supreme Governance Officer
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <Calendar className="w-4 h-4 text-emerald-400" /> Executive Tenure: 2026–2031
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <Award className="w-4 h-4 text-amber-400" /> Convocation Authorization Seal
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <GraduationCap className="w-4 h-4 text-cyan-400" /> 4th Year • {currentSemester}th Semester (Sec A)
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <Calendar className="w-4 h-4 text-emerald-400" /> Batch: 2023–2027
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                      <Award className="w-4 h-4 text-amber-400" /> Reg No: {regNumber}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
               <button
-                onClick={() => triggerToast('📄 Downloading Official Student Information Dossier (PDF)...')}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95"
+                onClick={() => triggerToast(`📄 Downloading Official ${isExecutive ? 'Executive' : 'Student'} Profile Dossier (PDF)...`)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer"
               >
                 <Download className="w-4 h-4" /> Download Profile PDF
               </button>
@@ -290,7 +336,7 @@ export function ProfileModule() {
                   setActiveTab('contact');
                   setIsEditingContact(true);
                 }}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Edit2 className="w-4 h-4" /> Edit Contact Info
               </button>
@@ -303,23 +349,11 @@ export function ProfileModule() {
         {/* ----------------------------------------------------------------------- */}
         <div className="relative z-10 bg-slate-950/90 border-b border-slate-800/80 px-3 py-2">
           <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 px-1">
-            {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'personal', label: '👤 Personal' },
-              { id: 'security', label: '🔒 Security & Biometrics' },
-              { id: 'contact', label: '📞 Contact & Address' },
-              { id: 'parent', label: '👨‍👩‍👦 Parent & Guardian' },
-              { id: 'academic', label: '🎓 Academic Details' },
-              { id: 'university_ids', label: '🆔 University IDs' },
-              { id: 'prev_education', label: '🏫 Previous Education' },
-              { id: 'performance', label: '📈 Academic Performance' },
-              { id: 'backlogs', label: '⚠️ Backlogs & Arrears' },
-              { id: 'mentor', label: '👨‍🏫 Class Advisor & HOD' },
-            ].map(t => (
+            {profileTabs.map(t => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id as any)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 ${
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 cursor-pointer ${
                   activeTab === t.id
                     ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-indigo-950 border border-cyan-400/30'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
