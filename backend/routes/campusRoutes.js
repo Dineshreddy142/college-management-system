@@ -7,7 +7,9 @@ import {
   getLiveFloorOccupancy,
   addOrUpdateFloorRoom,
   addOrUpdateFloorCorridor,
-  updateFloorDimensions
+  updateFloorDimensions,
+  deleteFloorRoom,
+  deleteFloorCorridor
 } from '../controllers/campusController.js';
 import { authenticateToken, authorizeRole } from '../middleware.js';
 
@@ -24,5 +26,7 @@ router.get('/floors/:floorId/live-occupancy', authenticateToken, getLiveFloorOcc
 router.put('/floors/:floorId/dimensions', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), updateFloorDimensions);
 router.post('/floors/:floorId/rooms', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), addOrUpdateFloorRoom);
 router.post('/floors/:floorId/corridors', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), addOrUpdateFloorCorridor);
+router.delete('/rooms/:roomId', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), deleteFloorRoom);
+router.delete('/corridors/:corridorId', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), deleteFloorCorridor);
 
 export default router;

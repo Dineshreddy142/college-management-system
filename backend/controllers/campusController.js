@@ -330,3 +330,33 @@ export const updateFloorDimensions = async (req, res) => {
   }
 };
 
+/**
+ * DELETE /api/campus/rooms/:roomId
+ * Admin deletes a room from a floor layout
+ */
+export const deleteFloorRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    await pool.execute(`DELETE FROM floor_rooms WHERE id = ?`, [roomId]);
+    return successResponse(res, 'Room deleted from floor plan successfully', { roomId });
+  } catch (err) {
+    console.error('[DELETE ROOM ERROR]:', err);
+    return errorResponse(res, err.message || 'Failed to delete room', [], 500);
+  }
+};
+
+/**
+ * DELETE /api/campus/corridors/:corridorId
+ * Admin deletes a corridor hallway from a floor layout
+ */
+export const deleteFloorCorridor = async (req, res) => {
+  try {
+    const { corridorId } = req.params;
+    await pool.execute(`DELETE FROM floor_corridors WHERE id = ?`, [corridorId]);
+    return successResponse(res, 'Corridor deleted from floor plan successfully', { corridorId });
+  } catch (err) {
+    console.error('[DELETE CORRIDOR ERROR]:', err);
+    return errorResponse(res, err.message || 'Failed to delete corridor', [], 500);
+  }
+};
+
