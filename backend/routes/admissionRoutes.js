@@ -5,6 +5,7 @@ import {
   getApplicationById,
   createApplication,
   updateApplicationStatus,
+  deleteApplication,
   verifyDocument,
   uploadDocumentFile,
   verifyEligibility,
@@ -26,6 +27,7 @@ router.get('/applications', authenticateToken, authorizeRole(allowedRoles), getA
 router.post('/applications', authenticateToken, authorizeRole(allowedRoles), createApplication);
 router.get('/applications/:id', authenticateToken, authorizeRole(allowedRoles), getApplicationById);
 router.put('/applications/:id/status', authenticateToken, authorizeRole(allowedRoles), updateApplicationStatus);
+router.delete('/applications/:id', authenticateToken, authorizeRole(allowedRoles), deleteApplication);
 
 router.post('/documents/:docId/verify', authenticateToken, authorizeRole(allowedRoles), verifyDocument);
 router.post('/documents/:docId/upload', authenticateToken, authorizeRole(allowedRoles), uploadDocumentFile);

@@ -7,7 +7,7 @@ import {
   Calendar, Layers, ShieldCheck, Mail, Phone, ExternalLink, Bookmark,
   BarChart3, PieChart, TrendingUp, ChevronDown, Menu, LogOut, Eye,
   Lock, AlertTriangle, CheckSquare, XCircle, FileSpreadsheet, ArrowLeft,
-  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput, Upload,
+  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput, Upload, Trash2,
   Sun, Moon
 } from 'lucide-react';
 import client from '../../api/client';
@@ -383,6 +383,32 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  // Delete Application Handler
+  const handleDeleteApplication = async (appId: number | string, appNum?: string, appName?: string) => {
+    const nameStr = appName || 'this candidate application';
+    const numStr = appNum ? ` (${appNum})` : '';
+    if (!window.confirm(`⚠️ Permanently Delete Application?\n\nAre you sure you want to delete ${nameStr}${numStr}?\nThis will remove all associated documents, fees, and allocation records. This action cannot be undone.`)) {
+      return;
+    }
+
+    setFormError(null);
+    try {
+      const res = await client.delete(`/admission/applications/${appId}`);
+      if (res.data?.success) {
+        triggerToast(`🗑️ ${res.data.message || 'Application deleted successfully!'}`);
+        if (selectedApp && (selectedApp.id === appId || selectedApp.application_number === appId)) {
+          setSelectedApp(null);
+          setActiveNav("applications");
+        }
+        fetchDashboardData();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Failed to delete application.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
+    }
   };
 
   // Verify Eligibility Handler
@@ -1062,12 +1088,21 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                             </span>
                           </td>
                           <td className="p-4">
-                            <button
-                              onClick={() => handleOpenAppDetails(app.id)}
-                              className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold text-[11px] hover:bg-blue-100 transition"
-                            >
-                              Review Details
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenAppDetails(app.id)}
+                                className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold text-[11px] hover:bg-blue-100 transition cursor-pointer"
+                              >
+                                Review Details
+                              </button>
+                              <button
+                                onClick={() => handleDeleteApplication(app.id, app.application_number, app.applicant_name)}
+                                title="Delete Application Record"
+                                className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-600 hover:text-white transition cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1184,12 +1219,21 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                             </span>
                           </td>
                           <td className="p-4">
-                            <button
-                              onClick={() => handleOpenAppDetails(app.id)}
-                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] cursor-pointer"
-                            >
-                              Open Details
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenAppDetails(app.id)}
+                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] cursor-pointer"
+                              >
+                                Open Details
+                              </button>
+                              <button
+                                onClick={() => handleDeleteApplication(app.id, app.application_number, app.applicant_name)}
+                                title="Delete Application Record"
+                                className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-600 hover:text-white transition cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1219,13 +1263,13 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                     <>
                       <button
                         onClick={() => handleUpdateStatus(selectedApp.id, 'Under Review', 'Officer review in progress')}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer"
                       >
                         Put Under Review
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(selectedApp.id, 'Rejected', 'Application rejected by officer')}
-                        className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs"
+                        className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer"
                       >
                         Reject Application
                       </button>
@@ -1234,11 +1278,17 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                   {selectedApp.application_status === 'Fee Paid' && (
                     <button
                       onClick={() => handleConfirmAdmission(selectedApp.id)}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" /> Confirm Admission & Enroll
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDeleteApplication(selectedApp.id, selectedApp.application_number, selectedApp.applicant_name)}
+                    className="px-3.5 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Application
+                  </button>
                 </div>
               </div>
 

@@ -523,6 +523,46 @@ export async function updateApplicationStatus(req, res) {
 }
 
 /**
+ * DELETE /api/admission/applications/:id
+ * Permanently delete application record and associated data
+ */
+export async function deleteApplication(req, res) {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.execute(
+      `SELECT id, application_number, applicant_name FROM applications WHERE id = ? OR application_number = ?`,
+      [id, id]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Application record not found' });
+    }
+
+    const app = rows[0];
+
+    try {
+      await pool.execute(`DELETE FROM applicant_documents WHERE application_id = ?`, [app.id]);
+      await pool.execute(`DELETE FROM seat_allocations WHERE application_id = ?`, [app.id]);
+      await pool.execute(`DELETE FROM admission_fee_payments WHERE application_id = ?`, [app.id]);
+      await pool.execute(`DELETE FROM admission_history WHERE application_id = ?`, [app.id]);
+    } catch (subErr) {
+      console.warn('[CASCADE DELETE SUB-RECORDS NOTICE]', subErr.message);
+    }
+
+    await pool.execute(`DELETE FROM applications WHERE id = ?`, [app.id]);
+
+    return res.json({
+      success: true,
+      message: `Application ${app.application_number} for "${app.applicant_name}" permanently deleted.`
+    });
+  } catch (error) {
+    console.error('[DELETE APPLICATION ERROR]', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to delete application' });
+  }
+}
+
+/**
  * POST /api/admission/documents/:docId/verify
  */
 export async function verifyDocument(req, res) {
