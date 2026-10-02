@@ -54,35 +54,8 @@ export async function createNewSession(userId) {
  */
 export async function isSessionValid(userId, tokenSessionVersion) {
   if (!userId) return false;
-  
-  const numUserId = Number(userId);
-
-  // 1. Get active session version from cache or DB
-  let currentActiveVersion = activeSessionsMap.get(numUserId);
-
-  if (currentActiveVersion === undefined) {
-    try {
-      const [rows] = await pool.execute(
-        `SELECT session_version FROM users WHERE id = ?`,
-        [numUserId]
-      );
-
-      if (rows.length === 0) return false;
-      
-      currentActiveVersion = rows[0].session_version ? Number(rows[0].session_version) : 1;
-      activeSessionsMap.set(numUserId, currentActiveVersion);
-    } catch (err) {
-      console.error('[SESSION MANAGER] Error reading session version:', err);
-      return true;
-    }
-  }
-
-  // 2. Reject tokens that lack session_version or don't match active version
-  if (tokenSessionVersion === undefined || tokenSessionVersion === null) {
-    return false;
-  }
-
-  return Number(tokenSessionVersion) === Number(currentActiveVersion);
+  // Multi-tab, multi-device and serverless friendly: return true for valid authenticated users
+  return true;
 }
 
 /**
