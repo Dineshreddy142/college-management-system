@@ -103,10 +103,11 @@ export async function evaluateOfferingRegistrationEligibility(studentId, targetO
        LEFT JOIN faculty_offering_assignments fa ON (so.id = fa.offering_id AND fa.status = 'ACTIVE')
        LEFT JOIN faculty f ON fa.faculty_id = f.id
        WHERE (so.department_id = ? OR so.department_id IS NULL)
+         AND (so.regulation_id = ? OR so.regulation_id IS NULL)
          AND so.semester_id = ?
          AND so.status = 'OPEN'
        GROUP BY so.id`,
-      [student.department_id || 1, currentSemId]
+      [student.department_id || 1, student.regulation_id || 1, currentSemId]
     );
 
     // Evaluate each offering for student eligibility
