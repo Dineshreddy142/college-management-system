@@ -438,6 +438,7 @@ export async function initializeDatabase() {
 
     // Seed standard regulations
     const initialRegulations = [
+      { name: 'R25', year: 2025, description: 'Outcome-Based Choice Credit System Regulations 2025-2029' },
       { name: 'R24', year: 2024, description: 'New Outcome-Based Education (OBE) Curriculum Model 2024-2028' },
       { name: 'R22', year: 2022, description: 'Choice Based Credit System (CBCS) Standard Curriculum 2022-2026' },
       { name: 'R20', year: 2020, description: 'Autonomous Academic Regulations 2020-2024' }
@@ -451,6 +452,20 @@ export async function initializeDatabase() {
         [reg.name, reg.year, reg.description]
       );
     }
+
+    try {
+      const [regCols] = await pool.query('DESCRIBE regulations');
+      const regColNames = regCols.map(c => c.Field);
+      if (!regColNames.includes('total_required_credits')) {
+        await pool.query('ALTER TABLE regulations ADD COLUMN total_required_credits INT DEFAULT 160');
+      }
+      if (!regColNames.includes('min_credits_per_sem')) {
+        await pool.query('ALTER TABLE regulations ADD COLUMN min_credits_per_sem DECIMAL(4,1) DEFAULT 16.0');
+      }
+      if (!regColNames.includes('max_credits_per_sem')) {
+        await pool.query('ALTER TABLE regulations ADD COLUMN max_credits_per_sem DECIMAL(4,1) DEFAULT 28.0');
+      }
+    } catch (e) {}
 
     // 12.d Curriculums Table
     await pool.query(`
