@@ -78,11 +78,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
     parentRelation: "Father",
     parentMobile: "",
     school10th: "",
-    percentage10th: "88.5",
+    board10th: "",
+    year10th: "",
+    percentage10th: "",
     school12th: "",
-    percentage12th: "91.2",
-    entranceExam: "JEE Main",
-    entranceScore: "94.5",
+    board12th: "",
+    year12th: "",
+    percentage12th: "",
+    entranceExam: "",
+    entranceScore: "",
     courseName: "B.Tech Computer Science & Engineering",
     departmentName: "Computer Science & Engineering",
     admissionCategory: "General",
@@ -191,8 +195,16 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
   // Create Application Handler with Duplicate Check
   const handleCreateApplication = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAppForm.firstName.trim() || !newAppForm.email.trim() || !newAppForm.mobile.trim()) {
-      triggerToast("⚠️ First Name, Email, and Mobile are required.");
+    if (!newAppForm.firstName.trim() || !newAppForm.lastName.trim() || !newAppForm.email.trim() || !newAppForm.mobile.trim()) {
+      triggerToast("⚠️ First Name, Last Name, Email, and Mobile Contact are required.");
+      return;
+    }
+    if (!newAppForm.percentage10th || !newAppForm.proof10thName) {
+      triggerToast("⚠️ 10th Percentage and 10th Marksheet Proof Document are compulsory!");
+      return;
+    }
+    if (!newAppForm.percentage12th || !newAppForm.proof12thName) {
+      triggerToast("⚠️ 12th Percentage and 12th Marksheet Proof Document are compulsory!");
       return;
     }
 
@@ -214,8 +226,12 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         parent_relation: newAppForm.parentRelation,
         parent_mobile: newAppForm.parentMobile,
         school_10th: newAppForm.school10th,
+        board_10th: newAppForm.board10th,
+        year_10th: newAppForm.year10th,
         percentage_10th: newAppForm.percentage10th,
         school_12th: newAppForm.school12th,
+        board_12th: newAppForm.board12th,
+        year_12th: newAppForm.year12th,
         percentage_12th: newAppForm.percentage12th,
         entrance_exam: newAppForm.entranceExam,
         entrance_score: newAppForm.entranceScore,
@@ -232,6 +248,39 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
       if (res.data?.success) {
         triggerToast(`✨ Application ${res.data.data.application_number} created successfully!`);
         setShowNewAppModal(false);
+        setNewAppForm({
+          firstName: "",
+          lastName: "",
+          dob: "",
+          gender: "Male",
+          mobile: "",
+          email: "",
+          address: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          parentName: "",
+          parentRelation: "Father",
+          parentMobile: "",
+          school10th: "",
+          board10th: "",
+          year10th: "",
+          percentage10th: "",
+          school12th: "",
+          board12th: "",
+          year12th: "",
+          percentage12th: "",
+          entranceExam: "",
+          entranceScore: "",
+          courseName: availableCourses[0] || "B.Tech Computer Science & Engineering",
+          departmentName: "Computer Science & Engineering",
+          admissionCategory: "General",
+          admissionType: "Regular",
+          proof10thName: "",
+          proof10thData: "",
+          proof12thName: "",
+          proof12thData: ""
+        });
         fetchDashboardData();
       }
     } catch (err: any) {
@@ -876,12 +925,12 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white border-b pb-2">Academic Qualifications</h3>
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div><span className="text-slate-400 block">10th School / Board:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.school_10th || 'State Board'} ({selectedApp.board_10th || 'SSLC'})</strong></div>
-                      <div><span className="text-slate-400 block">10th Percentage:</span> <strong className="text-emerald-600 font-bold">{selectedApp.percentage_10th || '88.5'}%</strong></div>
-                      <div><span className="text-slate-400 block">12th School / Board:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.school_12th || 'Higher Sec School'} ({selectedApp.board_12th || 'HSC'})</strong></div>
-                      <div><span className="text-slate-400 block">12th Percentage:</span> <strong className="text-emerald-600 font-bold">{selectedApp.percentage_12th || '91.2'}%</strong></div>
-                      <div><span className="text-slate-400 block">Entrance Exam / Score:</span> <strong className="text-blue-600 font-bold">{selectedApp.entrance_exam || 'JEE Main'} (Score: {selectedApp.entrance_score || '94.5'})</strong></div>
-                      <div><span className="text-slate-400 block">Category / Type:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.admission_category} • {selectedApp.admission_type}</strong></div>
+                      <div><span className="text-slate-400 block">10th School / Board:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.school_10th ? `${selectedApp.school_10th} (${selectedApp.board_10th || 'SSLC'})` : 'N/A'}</strong></div>
+                      <div><span className="text-slate-400 block">10th Percentage:</span> <strong className="text-emerald-600 font-bold">{selectedApp.percentage_10th != null ? `${selectedApp.percentage_10th}%` : 'N/A'}</strong></div>
+                      <div><span className="text-slate-400 block">12th School / Board:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.school_12th ? `${selectedApp.school_12th} (${selectedApp.board_12th || 'HSC'})` : 'N/A'}</strong></div>
+                      <div><span className="text-slate-400 block">12th Percentage:</span> <strong className="text-emerald-600 font-bold">{selectedApp.percentage_12th != null ? `${selectedApp.percentage_12th}%` : 'N/A'}</strong></div>
+                      <div><span className="text-slate-400 block">Entrance Exam / Score:</span> <strong className="text-blue-600 font-bold">{selectedApp.entrance_exam ? `${selectedApp.entrance_exam} (Score: ${selectedApp.entrance_score || 'N/A'})` : 'N/A'}</strong></div>
+                      <div><span className="text-slate-400 block">Category / Type:</span> <strong className="text-slate-900 dark:text-white">{selectedApp.admission_category || 'General'} • {selectedApp.admission_type || 'Regular'}</strong></div>
                     </div>
                   </div>
                 </div>
@@ -928,8 +977,8 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white border-b pb-2">Course Eligibility Criteria Evaluation</h3>
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 space-y-2 text-xs">
                     <p><strong>Required 12th Percentage:</strong> Min 60.0%</p>
-                    <p><strong>Applicant 12th Percentage:</strong> {selectedApp.percentage_12th || '91.2'}%</p>
-                    <p><strong>Entrance Examination Score:</strong> {selectedApp.entrance_score || '94.5'}</p>
+                    <p><strong>Applicant 12th Percentage:</strong> {selectedApp.percentage_12th != null ? `${selectedApp.percentage_12th}%` : 'N/A'}</p>
+                    <p><strong>Entrance Examination Score:</strong> {selectedApp.entrance_score != null ? selectedApp.entrance_score : 'N/A'}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -1130,17 +1179,18 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                     required
                     value={newAppForm.firstName}
                     onChange={(e) => setNewAppForm(prev => ({ ...prev, firstName: e.target.value }))}
-                    placeholder="e.g. Dinesh"
+                    placeholder="Enter First Name"
                     className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Last Name</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Last Name *</label>
                   <input
                     type="text"
+                    required
                     value={newAppForm.lastName}
                     onChange={(e) => setNewAppForm(prev => ({ ...prev, lastName: e.target.value }))}
-                    placeholder="e.g. N"
+                    placeholder="Enter Last Name"
                     className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
@@ -1154,7 +1204,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                     required
                     value={newAppForm.email}
                     onChange={(e) => setNewAppForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="dinesh@example.com"
+                    placeholder="applicant@example.com"
                     className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
@@ -1165,7 +1215,57 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                     required
                     value={newAppForm.mobile}
                     onChange={(e) => setNewAppForm(prev => ({ ...prev, mobile: e.target.value }))}
-                    placeholder="+91 98765 43210"
+                    placeholder="+91 Mobile Number"
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Date of Birth *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newAppForm.dob}
+                    onChange={(e) => setNewAppForm(prev => ({ ...prev, dob: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Gender *</label>
+                  <select
+                    value={newAppForm.gender}
+                    onChange={(e) => setNewAppForm(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Parent / Guardian Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAppForm.parentName}
+                    onChange={(e) => setNewAppForm(prev => ({ ...prev, parentName: e.target.value }))}
+                    placeholder="Father / Mother Name"
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Parent Mobile *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newAppForm.parentMobile}
+                    onChange={(e) => setNewAppForm(prev => ({ ...prev, parentMobile: e.target.value }))}
+                    placeholder="Parent Contact Number"
                     className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
@@ -1186,7 +1286,18 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
 
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">10th Grade Record</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">10th Academic Record</label>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Board / School Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAppForm.school10th}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, school10th: e.target.value }))}
+                      placeholder="e.g. State Board / CBSE"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white mb-2"
+                    />
+                  </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Percentage (%) *</label>
                     <input
@@ -1195,14 +1306,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                       required
                       value={newAppForm.percentage10th}
                       onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage10th: e.target.value }))}
-                      placeholder="e.g. 88.5"
-                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      placeholder="Enter 10th % (e.g. 88.5)"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white mb-2"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Marksheet Proof</label>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Marksheet Proof Document *</label>
                     <input
                       type="file"
+                      required={!newAppForm.proof10thName}
                       accept="image/*,application/pdf"
                       onChange={(e) => handleFileUpload(e, 'proof10th')}
                       className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-700 dark:file:text-blue-300"
@@ -1216,7 +1328,18 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">12th Grade Record</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">12th Academic Record</label>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Board / School Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAppForm.school12th}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, school12th: e.target.value }))}
+                      placeholder="e.g. Higher Sec School / CBSE"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white mb-2"
+                    />
+                  </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Percentage (%) *</label>
                     <input
@@ -1225,14 +1348,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                       required
                       value={newAppForm.percentage12th}
                       onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage12th: e.target.value }))}
-                      placeholder="e.g. 91.2"
-                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      placeholder="Enter 12th % (e.g. 91.2)"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white mb-2"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Marksheet Proof</label>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Marksheet Proof Document *</label>
                     <input
                       type="file"
+                      required={!newAppForm.proof12thName}
                       accept="image/*,application/pdf"
                       onChange={(e) => handleFileUpload(e, 'proof12th')}
                       className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-700 dark:file:text-blue-300"

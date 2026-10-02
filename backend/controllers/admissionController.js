@@ -284,10 +284,10 @@ export async function createApplication(req, res) {
       remarks
     } = req.body;
 
-    if (!first_name || !email || !mobile || !course_name) {
+    if (!first_name || !last_name || !email || !mobile || !course_name || percentage_10th == null || percentage_12th == null) {
       return res.status(400).json({
         success: false,
-        message: 'First Name, Email, Mobile Number, and Course Name are required.'
+        message: 'First Name, Last Name, Email, Mobile, Course Name, 10th Percentage, and 12th Percentage are all required.'
       });
     }
 
