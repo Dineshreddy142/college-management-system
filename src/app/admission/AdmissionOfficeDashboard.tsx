@@ -46,6 +46,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
   const [courses, setCourses] = useState<any[]>([]);
   const [reportsData, setReportsData] = useState<any>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -186,6 +187,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
 
   // Fetch Full Application Details
   const handleOpenAppDetails = async (appId: string | number) => {
+    setFormError(null);
     try {
       const res = await client.get(`/admission/applications/${appId}`);
       if (res.data?.success) {
@@ -193,27 +195,38 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         setActiveNav("application-details");
       }
     } catch (err: any) {
-      triggerToast(`⚠️ Failed to load details: ${err.message}`);
+      const msg = err.response?.data?.message || err.message || 'Failed to load application details.';
+      triggerToast(`⚠️ ${msg}`);
+      setFormError(msg);
     }
   };
 
   // Create Application Handler with Duplicate Check
   const handleCreateApplication = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!newAppForm.firstName.trim() || !newAppForm.lastName.trim() || !newAppForm.email.trim() || !newAppForm.mobile.trim()) {
-      triggerToast("⚠️ First Name, Last Name, Email, and Mobile Contact are required.");
+      const msg = "First Name, Last Name, Email, and Mobile Contact are required.";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!newAppForm.photoName || !newAppForm.photoData) {
-      triggerToast("⚠️ Candidate Photograph upload is compulsory!");
+      const msg = "Candidate Photograph upload is compulsory! Please select a passport photo file.";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!newAppForm.percentage10th || !newAppForm.proof10thName) {
-      triggerToast("⚠️ 10th Percentage and 10th Marksheet Proof Document are compulsory!");
+      const msg = "10th Percentage and 10th Marksheet Proof Document are compulsory!";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!newAppForm.percentage12th || !newAppForm.proof12thName) {
-      triggerToast("⚠️ 12th Percentage and 12th Marksheet Proof Document are compulsory!");
+      const msg = "12th Percentage and 12th Marksheet Proof Document are compulsory!";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
 
@@ -260,6 +273,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         triggerToast(`✨ Application ${res.data.data.application_number} created successfully!`);
         setShowNewAppModal(false);
         setActiveNav("applications");
+        setFormError(null);
         setNewAppForm({
           firstName: "",
           lastName: "",
@@ -300,9 +314,13 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
     } catch (err: any) {
       if (err.response?.status === 409 && err.response?.data?.isDuplicate) {
         setDuplicateWarning(err.response.data.existingApplication);
-        triggerToast("⚠️ Duplicate Application Detected! Review existing record.");
+        const msg = "Duplicate Application Detected! An application with this email or mobile already exists.";
+        setFormError(msg);
+        triggerToast(`⚠️ ${msg}`);
       } else {
-        triggerToast(`⚠️ ${err.response?.data?.message || err.message || 'Failed to submit application.'}`);
+        const msg = err.response?.data?.message || err.message || 'Failed to submit application.';
+        setFormError(msg);
+        triggerToast(`⚠️ ${msg}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -311,6 +329,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
 
   // Status Change Handler
   const handleUpdateStatus = async (appId: number, status: string, remarks?: string) => {
+    setFormError(null);
     try {
       const res = await client.put(`/admission/applications/${appId}/status`, { status, remarks });
       if (res.data?.success) {
@@ -319,12 +338,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         fetchDashboardData();
       }
     } catch (err: any) {
-      triggerToast(`⚠️ ${err.response?.data?.message || 'Status update failed.'}`);
+      const msg = err.response?.data?.message || 'Status update failed.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
     }
   };
 
   // Verify Document Handler
   const handleVerifyDocument = async (docId: number, verification_status: string, remarks?: string) => {
+    setFormError(null);
     try {
       const res = await client.post(`/admission/documents/${docId}/verify`, { verification_status, remarks });
       if (res.data?.success) {
@@ -333,12 +355,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         fetchDashboardData();
       }
     } catch (err: any) {
-      triggerToast(`⚠️ ${err.response?.data?.message || 'Document verification failed.'}`);
+      const msg = err.response?.data?.message || 'Document verification failed.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
     }
   };
 
   // Verify Eligibility Handler
   const handleVerifyEligibility = async (appId: number, eligibility_status: string) => {
+    setFormError(null);
     try {
       const res = await client.post(`/admission/applications/${appId}/verify-eligibility`, { eligibility_status });
       if (res.data?.success) {
@@ -347,12 +372,15 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         fetchDashboardData();
       }
     } catch (err: any) {
-      triggerToast(`⚠️ ${err.response?.data?.message || 'Eligibility verification failed.'}`);
+      const msg = err.response?.data?.message || 'Eligibility verification failed.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
     }
   };
 
   // Allocate Seat Handler with Over-Allocation Protection
   const handleAllocateSeat = async (appId: number) => {
+    setFormError(null);
     try {
       const res = await client.post(`/admission/applications/${appId}/allocate-seat`, {});
       if (res.data?.success) {
@@ -361,13 +389,16 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         fetchDashboardData();
       }
     } catch (err: any) {
-      triggerToast(`⚠️ ${err.response?.data?.message || 'Seat allocation failed.'}`);
+      const msg = err.response?.data?.message || 'Seat allocation failed.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
     }
   };
 
   // Record Payment Handler
   const handleRecordPaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!selectedApp) return;
 
     try {
@@ -592,6 +623,18 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
 
         {/* Scrollable Workspace Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+          {/* Prominent Global Error Alert Banner */}
+          {formError && (
+            <div className="mb-5 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+                <span>{formError}</span>
+              </div>
+              <button onClick={() => setFormError(null)} className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-500 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* ─────────────────────────────────────────────────────────────────────────────
               VIEW 0: SIDEBAR NEW APPLICATION REGISTRATION PAGE

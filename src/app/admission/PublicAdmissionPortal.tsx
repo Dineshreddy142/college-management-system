@@ -12,6 +12,7 @@ export function PublicAdmissionPortal() {
   const [activeStep, setActiveStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Security Access Verification Form
   const [accessEmail, setAccessEmail] = useState("");
@@ -147,21 +148,30 @@ export function PublicAdmissionPortal() {
   // Handler: Submit Application Payload to Backend API
   const handleSubmitApplication = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.mobile.trim()) {
-      triggerToast("⚠️ First Name, Last Name, Email, and Mobile Contact are required.");
+      const msg = "First Name, Last Name, Email, and Mobile Contact are required.";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!form.photoName || !form.photoData) {
-      triggerToast("⚠️ Candidate Photograph upload is compulsory!");
+      const msg = "Candidate Photograph upload is compulsory! Please select a passport photo file.";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!form.percentage10th || !form.proof10thName) {
-      triggerToast("⚠️ 10th Percentage and 10th Marksheet Proof Document are compulsory!");
+      const msg = "10th Percentage and 10th Marksheet Proof Document are compulsory!";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     if (!form.percentage12th || !form.proof12thName) {
-      triggerToast("⚠️ 12th Percentage and 12th Marksheet Proof Document are compulsory!");
+      const msg = "12th Percentage and 12th Marksheet Proof Document are compulsory!";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
 
@@ -206,10 +216,13 @@ export function PublicAdmissionPortal() {
       if (res.data?.success) {
         setSubmittedApp(res.data.data);
         setActiveStep(5); // Success step
+        setFormError(null);
         triggerToast("🎉 Application Submitted Successfully!");
       }
     } catch (err: any) {
-      triggerToast(`⚠️ ${err.response?.data?.message || err.message || 'Application submission failed.'}`);
+      const msg = err.response?.data?.message || err.message || 'Application submission failed.';
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -218,8 +231,11 @@ export function PublicAdmissionPortal() {
   // Handler: Track Application Status
   const handleTrackStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!trackAppNumber.trim()) {
-      triggerToast("⚠️ Enter Application Number (e.g. ADM-2026-00101)");
+      const msg = "Enter Application Number (e.g. ADM-2026-00101)";
+      setFormError(msg);
+      triggerToast(`⚠️ ${msg}`);
       return;
     }
     setIsTracking(true);
@@ -278,6 +294,18 @@ export function PublicAdmissionPortal() {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+        {/* Prominent Global Error Alert Banner */}
+        {formError && (
+          <div className="p-4 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center justify-between gap-3 shadow-xl">
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+              <span>{formError}</span>
+            </div>
+            <button onClick={() => setFormError(null)} className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-400 cursor-pointer">
+              ✕
+            </button>
+          </div>
+        )}
         
         {/* ─────────────────────────────────────────────────────────────────────────────
             SECURITY GATE: CANDIDATE IDENTITY VERIFICATION
