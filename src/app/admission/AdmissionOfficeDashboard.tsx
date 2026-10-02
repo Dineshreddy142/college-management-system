@@ -1408,11 +1408,23 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                         {selectedApp.documents && selectedApp.documents[selectedDocIndex] ? (
                           (() => {
                             const currentDoc = selectedApp.documents[selectedDocIndex];
-                            const filePath = currentDoc.file_path || (currentDoc.document_name === 'Photograph' ? selectedApp.photo_data : null);
+                            const rawPath = currentDoc.file_path || (currentDoc.document_name === 'Photograph' ? selectedApp.photo_data : null);
+                            const filePath = rawPath ? rawPath.trim() : null;
+
+                            const isPdf = !!filePath && (
+                              filePath.startsWith('data:application/pdf') ||
+                              filePath.toLowerCase().includes('.pdf') ||
+                              filePath.toLowerCase().includes('pdf')
+                            );
+
+                            const isImage = !!filePath && !isPdf && (
+                              filePath.startsWith('data:image/') ||
+                              filePath.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i)
+                            );
 
                             return (
                               <div className="space-y-4">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                   <div>
                                     <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{currentDoc.document_name}</h4>
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -1424,6 +1436,18 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                                   </div>
 
                                   <div className="flex items-center gap-2">
+                                    {filePath && (
+                                      <a
+                                        href={filePath}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        download={currentDoc.document_name}
+                                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
+                                        title="Open in new tab / Download file"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5 text-blue-400" /> Open / Download
+                                      </a>
+                                    )}
                                     <button
                                       onClick={() => handleVerifyDocument(currentDoc.id, 'Verified', 'Verified by officer during document audit')}
                                       className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1"
@@ -1440,18 +1464,27 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                                 </div>
 
                                 {/* Embedded Viewer Box */}
-                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-3 flex flex-col items-center justify-center min-h-[320px] max-h-[450px] overflow-auto">
+                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-3 flex flex-col items-center justify-center min-h-[340px] max-h-[480px] overflow-auto">
                                   {filePath ? (
-                                    filePath.startsWith('data:image/') || filePath.startsWith('http') || filePath.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[400px] w-auto object-contain rounded-lg shadow-xl" />
-                                    ) : filePath.startsWith('data:application/pdf') ? (
-                                      <iframe src={filePath} title={currentDoc.document_name} className="w-full h-[400px] rounded-lg border-0" />
+                                    isImage ? (
+                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[420px] w-auto object-contain rounded-lg shadow-xl" />
+                                    ) : isPdf ? (
+                                      <iframe src={filePath} title={currentDoc.document_name} className="w-full h-[420px] bg-white rounded-lg border-0 shadow-lg" />
                                     ) : (
-                                      <div className="text-center p-6 space-y-2">
+                                      <div className="text-center p-6 space-y-3">
                                         <FileText className="w-12 h-12 text-blue-400 mx-auto" />
-                                        <p className="text-xs text-slate-300 font-bold">{currentDoc.document_name} file attached</p>
-                                        <a href={filePath} target="_blank" rel="noreferrer" className="inline-block px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold">
-                                          Open File in New Tab
+                                        <div>
+                                          <p className="text-sm font-bold text-white">{currentDoc.document_name}</p>
+                                          <p className="text-xs text-slate-400 mt-1">Uploaded File Preview</p>
+                                        </div>
+                                        <a
+                                          href={filePath}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          download={currentDoc.document_name}
+                                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg cursor-pointer"
+                                        >
+                                          <Download className="w-4 h-4" /> Open / Download File
                                         </a>
                                       </div>
                                     )
