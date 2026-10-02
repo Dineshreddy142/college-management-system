@@ -7,7 +7,7 @@ import {
   Calendar, Layers, ShieldCheck, Mail, Phone, ExternalLink, Bookmark,
   BarChart3, PieChart, TrendingUp, ChevronDown, Menu, LogOut, Eye,
   Lock, AlertTriangle, CheckSquare, XCircle, FileSpreadsheet, ArrowLeft,
-  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput,
+  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput, Upload,
   Sun, Moon
 } from 'lucide-react';
 import client from '../../api/client';
