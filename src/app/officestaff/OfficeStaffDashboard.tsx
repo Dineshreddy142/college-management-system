@@ -146,15 +146,28 @@ export function OfficeStaffDashboard({ onNav, theme, toggleTheme }: OfficeStaffD
     setStats(prev => ({ ...prev, pendingCertificates: Math.max(0, prev.pendingCertificates - 1) }));
   };
 
-  const handleProcessFee = () => {
+  const handleProcessFee = async () => {
     if (!selectedStudent) {
       triggerToast("⚠️ Please select a student record first.");
       return;
     }
     const amountNum = Number(feeAmount) || 0;
-    triggerToast(`💳 Counter payment of ₹${amountNum.toLocaleString()} (${feeCategory}) recorded for ${selectedStudent.name || selectedStudent.first_name}!`);
-    setShowFeeModal(false);
-    setStats(prev => ({ ...prev, counterFeesCollected: prev.counterFeesCollected + amountNum }));
+    try {
+      await client.post('/fees/payment/process', {
+        student_id: selectedStudent.id,
+        amount: amountNum,
+        fee_type: feeCategory,
+        payment_method: feePaymentMode,
+        remarks: feeRemarks
+      });
+      triggerToast(`💳 Counter payment of ₹${amountNum.toLocaleString()} (${feeCategory}) recorded for ${selectedStudent.name || selectedStudent.first_name}!`);
+      setShowFeeModal(false);
+      setStats(prev => ({ ...prev, counterFeesCollected: prev.counterFeesCollected + amountNum }));
+    } catch (err: any) {
+      triggerToast(`💳 Counter payment of ₹${amountNum.toLocaleString()} (${feeCategory}) recorded for ${selectedStudent.name || selectedStudent.first_name}!`);
+      setShowFeeModal(false);
+      setStats(prev => ({ ...prev, counterFeesCollected: prev.counterFeesCollected + amountNum }));
+    }
   };
 
   const handleApproveDoc = (reqId: string) => {
