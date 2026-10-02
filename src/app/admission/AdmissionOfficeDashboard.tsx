@@ -7,9 +7,11 @@ import {
   Calendar, Layers, ShieldCheck, Mail, Phone, ExternalLink, Bookmark,
   BarChart3, PieChart, TrendingUp, ChevronDown, Menu, LogOut, Eye,
   Lock, AlertTriangle, CheckSquare, XCircle, FileSpreadsheet, ArrowLeft,
-  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput
+  UserCheck2, FileCheck2, School, GraduationCap, Copy, Hash, FileInput,
+  Sun, Moon
 } from 'lucide-react';
 import client from '../../api/client';
+import { useAuth } from '../portal/AuthContext';
 
 interface AdmissionOfficeDashboardProps {
   onNav?: (module: string) => void;
@@ -18,6 +20,7 @@ interface AdmissionOfficeDashboardProps {
 }
 
 export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: AdmissionOfficeDashboardProps) {
+  const { user, logout } = useAuth();
   // Navigation & Sidebar State
   const [activeNav, setActiveNav] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -418,13 +421,16 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
           <div className="p-4 border-t border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
-                AO
+                {user?.username?.charAt(0).toUpperCase() || 'A'}
               </div>
               <div>
-                <p className="text-xs font-bold text-white leading-none">Admission Officer</p>
-                <span className="text-[10px] text-slate-500">Officer Portal</span>
+                <p className="text-xs font-bold text-white leading-none">{user?.full_name || user?.username || 'Admission Officer'}</p>
+                <span className="text-[10px] text-slate-500">Admissions Secretariat</span>
               </div>
             </div>
+            <button onClick={logout} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition" title="Logout">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         )}
       </aside>
@@ -448,6 +454,12 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
           </div>
 
           <div className="flex items-center gap-3">
+            {toggleTheme && (
+              <button onClick={toggleTheme} className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition" title="Toggle Theme">
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              </button>
+            )}
+
             <button
               onClick={() => setShowNewAppModal(true)}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition cursor-pointer"
