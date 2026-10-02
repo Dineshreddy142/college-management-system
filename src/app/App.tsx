@@ -17,7 +17,6 @@ import { PublicAdmissionPortal } from "./admission/PublicAdmissionPortal";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 
 import { ProfileModule } from "./shared/ProfileModule";
-import { LiveCampus2DMap } from "./shared/LiveCampus2DMap";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
@@ -220,7 +219,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
   { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
   { id: "timetable", label: "Master Timetable", icon: CalendarDays, badge: null },
-  { id: "campus-map", label: "Campus 2D Twin & Floors", icon: Building, badge: "2D Live" },
   { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
   { id: "exams", label: "Examinations Governance", icon: FileText, badge: "Governance" },
   { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
@@ -2005,10 +2003,6 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "attendance": return <AttendanceModule onGoBulk={() => setMod("bulk-data")} />;
       case "exams": return <ExaminationModule onGoBulk={() => setMod("bulk-data")} />;
       case "timetable": return <TimetableManager />;
-      case "campus-map":
-      case "floor-management":
-      case "campus-blocks":
-        return <LiveCampus2DMap isAdminMode={true} />;
       case "fees": return <FeeManagement />;
       case "library": return <LibraryManagement />;
       case "hostel": return <HostelManagement />;
@@ -2046,7 +2040,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
             }
           }} 
         />
-        <main className={cn("flex-1 min-w-0", (mod === "campus-map" || mod === "floor-management" || mod.startsWith("campus-")) ? "overflow-hidden p-0 flex flex-col min-h-0" : "overflow-y-auto p-3 sm:p-5 scrollbar-thin")}>{render()}</main>
+        <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 scrollbar-thin">{render()}</main>
       </div>
     </div>
   );

@@ -20,7 +20,6 @@ import { ComplaintsModule } from "./ComplaintsModule";
 import { StudentSemesterRegistration } from "./StudentSemesterRegistration";
 import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { AnalyticsModule } from "./AnalyticsModule";
-import { LiveCampus2DMap } from "../shared/LiveCampus2DMap";
 
 export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [activeModule, setActiveModule] = useState("dashboard");
@@ -35,7 +34,6 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "semester-registration": return <StudentSemesterRegistration />;
       case "my-subjects": return <AcademicsModule />;
       case "timetable": return <TimetableModule />;
-      case "campus-map": return <LiveCampus2DMap isAdminMode={false} />;
       case "assignments": return <AssignmentsModule />;
       case "examination": return <ExaminationModule />;
       case "results": return <ResultsModule />;
