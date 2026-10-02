@@ -1411,16 +1411,12 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                             const rawPath = currentDoc.file_path || (currentDoc.document_name === 'Photograph' ? selectedApp.photo_data : null);
                             const filePath = rawPath ? rawPath.trim() : null;
 
-                            const isPdf = !!filePath && (
-                              filePath.startsWith('data:application/pdf') ||
-                              filePath.toLowerCase().includes('.pdf') ||
-                              filePath.toLowerCase().includes('pdf')
-                            );
-
-                            const isImage = !!filePath && !isPdf && (
+                            const isExplicitImage = !!filePath && (
                               filePath.startsWith('data:image/') ||
                               filePath.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i)
                             );
+
+                            const isPhotoDoc = currentDoc.document_name === 'Photograph';
 
                             return (
                               <div className="space-y-4">
@@ -1436,18 +1432,6 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    {filePath && (
-                                      <a
-                                        href={filePath}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        download={currentDoc.document_name}
-                                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
-                                        title="Open in new tab / Download file"
-                                      >
-                                        <ExternalLink className="w-3.5 h-3.5 text-blue-400" /> Open / Download
-                                      </a>
-                                    )}
                                     <button
                                       onClick={() => handleVerifyDocument(currentDoc.id, 'Verified', 'Verified by officer during document audit')}
                                       className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1"
@@ -1463,30 +1447,23 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                                   </div>
                                 </div>
 
-                                {/* Embedded Viewer Box */}
-                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-3 flex flex-col items-center justify-center min-h-[340px] max-h-[480px] overflow-auto">
+                                {/* Embedded Viewer Box - Direct Inline PDF / Image Viewer */}
+                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-2 flex flex-col items-center justify-center min-h-[380px] max-h-[500px] overflow-hidden">
                                   {filePath ? (
-                                    isImage ? (
-                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[420px] w-auto object-contain rounded-lg shadow-xl" />
-                                    ) : isPdf ? (
-                                      <iframe src={filePath} title={currentDoc.document_name} className="w-full h-[420px] bg-white rounded-lg border-0 shadow-lg" />
+                                    isExplicitImage || isPhotoDoc ? (
+                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[460px] w-auto object-contain rounded-lg shadow-xl" />
                                     ) : (
-                                      <div className="text-center p-6 space-y-3">
-                                        <FileText className="w-12 h-12 text-blue-400 mx-auto" />
-                                        <div>
-                                          <p className="text-sm font-bold text-white">{currentDoc.document_name}</p>
-                                          <p className="text-xs text-slate-400 mt-1">Uploaded File Preview</p>
-                                        </div>
-                                        <a
-                                          href={filePath}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          download={currentDoc.document_name}
-                                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg cursor-pointer"
-                                        >
-                                          <Download className="w-4 h-4" /> Open / Download File
-                                        </a>
-                                      </div>
+                                      <object
+                                        data={filePath}
+                                        type="application/pdf"
+                                        className="w-full h-[460px] rounded-xl border-0 shadow-lg bg-white"
+                                      >
+                                        <iframe
+                                          src={filePath}
+                                          title={currentDoc.document_name}
+                                          className="w-full h-[460px] rounded-xl border-0 shadow-lg bg-white"
+                                        />
+                                      </object>
                                     )
                                   ) : (
                                     <div className="text-center p-8 space-y-2 text-slate-500">
