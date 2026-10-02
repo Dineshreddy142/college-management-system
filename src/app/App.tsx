@@ -201,7 +201,15 @@ function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder
 // SIDEBAR & TOP NAV
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SIDEBAR_ITEMS = [
+interface SidebarItem {
+  id: string;
+  label: string;
+  icon: any;
+  badge?: string | null;
+  children?: SidebarItem[];
+}
+
+const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "dashboard", label: "Dashboard Overview", icon: LayoutDashboard, badge: null },
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
   { id: "registration-control", label: "Registration Windows", icon: UserCheck, badge: "Live" },
