@@ -2164,6 +2164,16 @@ export async function initializeDatabase() {
         )
       `);
 
+      // Safe Auto-Column Guardrails for applications table
+      try {
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS percentage_10th DECIMAL(5,2) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS school_10th VARCHAR(150) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS board_10th VARCHAR(100) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS year_10th INT NULL`);
+      } catch (alterErr) {
+        // Ignored if MySQL version handles IF NOT EXISTS or column already present
+      }
+
       await pool.query(`
         CREATE TABLE IF NOT EXISTS applicant_documents (
           id INT AUTO_INCREMENT PRIMARY KEY,
