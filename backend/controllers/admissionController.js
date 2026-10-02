@@ -186,30 +186,57 @@ export async function getApplicationById(req, res) {
     const { id } = req.params;
     const [rows] = await pool.execute(`SELECT * FROM applications WHERE id = ? OR application_number = ?`, [id, id]);
 
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Application record not found' });
     }
 
     const application = rows[0];
 
-    const [docs] = await pool.execute(`SELECT * FROM applicant_documents WHERE application_id = ?`, [application.id]);
-    const [seats] = await pool.execute(`SELECT * FROM seat_allocations WHERE application_id = ?`, [application.id]);
-    const [payments] = await pool.execute(`SELECT * FROM admission_fee_payments WHERE application_id = ? ORDER BY created_at DESC`, [application.id]);
-    const [history] = await pool.execute(`SELECT * FROM admission_history WHERE application_id = ? ORDER BY created_at DESC`, [application.id]);
+    let docs = [];
+    try {
+      const [dRows] = await pool.execute(`SELECT * FROM applicant_documents WHERE application_id = ? ORDER BY id ASC`, [application.id]);
+      docs = dRows;
+    } catch (dErr) {
+      console.warn('[DOCS FETCH NOTICE]', dErr.message);
+    }
+
+    let seatAllocation = null;
+    try {
+      const [sRows] = await pool.execute(`SELECT * FROM seat_allocations WHERE application_id = ? ORDER BY id DESC LIMIT 1`, [application.id]);
+      seatAllocation = sRows[0] || null;
+    } catch (sErr) {
+      console.warn('[SEAT ALLOC FETCH NOTICE]', sErr.message);
+    }
+
+    let payments = [];
+    try {
+      const [pRows] = await pool.execute(`SELECT * FROM admission_fee_payments WHERE application_id = ? ORDER BY id DESC`, [application.id]);
+      payments = pRows;
+    } catch (pErr) {
+      console.warn('[PAYMENTS FETCH NOTICE]', pErr.message);
+    }
+
+    let history = [];
+    try {
+      const [hRows] = await pool.execute(`SELECT * FROM admission_history WHERE application_id = ? ORDER BY id DESC`, [application.id]);
+      history = hRows;
+    } catch (hErr) {
+      console.warn('[HISTORY FETCH NOTICE]', hErr.message);
+    }
 
     return res.json({
       success: true,
       data: {
         ...application,
         documents: docs,
-        seatAllocation: seats[0] || null,
-        payments: payments,
-        history: history
+        seatAllocation,
+        payments,
+        history
       }
     });
   } catch (error) {
     console.error('[GET APPLICATION BY ID ERROR]', error);
-    return res.status(500).json({ success: false, message: 'Failed to retrieve application details' });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to retrieve application details' });
   }
 }
 

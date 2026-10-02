@@ -2218,9 +2218,16 @@ export async function initializeDatabase() {
           payment_status VARCHAR(50) DEFAULT 'Paid',
           payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           created_by VARCHAR(100) NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
         )
       `);
+
+      try {
+        await pool.query(`ALTER TABLE admission_fee_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      } catch (altPayErr) {
+        // Ignored
+      }
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS admission_history (
