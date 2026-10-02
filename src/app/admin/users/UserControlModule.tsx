@@ -468,6 +468,7 @@ export const UserControlModule: React.FC = () => {
             <option value="parent">Parents</option>
             <option value="hod">HODs</option>
             <option value="office">Office Staff</option>
+            <option value="admission">Admission Officers</option>
             <option value="accountant">Accountants</option>
           </select>
 
@@ -744,6 +745,7 @@ export const UserControlModule: React.FC = () => {
                   <option value="Librarian">Librarian</option>
                   <option value="Placement Officer">Placement Officer</option>
                   <option value="Office Staff">Office Staff</option>
+                  <option value="Admission Officer">Admission Officer (Admissions Secretariat)</option>
                   <option value="Admin">Administrator (System Admin)</option>
                 </select>
               </div>
