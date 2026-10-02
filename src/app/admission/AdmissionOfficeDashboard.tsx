@@ -1053,7 +1053,144 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
           )}
 
           {/* ─────────────────────────────────────────────────────────────────────────────
-              VIEW 4: COURSES & SEAT AVAILABILITY MANAGEMENT (SECTION 9 & 10)
+              VIEW: DOCUMENT VERIFICATION SECRETARIAT
+          ───────────────────────────────────────────────────────────────────────────── */}
+          {activeNav === "documents" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Applications</span>
+                  <p className="text-xl font-black text-slate-900 dark:text-white">{applications.length}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] text-amber-500 uppercase font-bold tracking-wider">Pending Verification</span>
+                  <p className="text-xl font-black text-amber-600">{applications.filter(a => a.document_status !== 'Verified').length}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">Verified Marksheets</span>
+                  <p className="text-xl font-black text-emerald-600">{applications.filter(a => a.document_status === 'Verified').length}</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-blue-600" /> Candidate Document Verification Desk
+                  </h3>
+                  <span className="text-xs text-slate-400">Review 10th/12th marksheets & scorecards</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b text-slate-500 font-bold uppercase">
+                      <tr>
+                        <th className="p-4">Application ID</th>
+                        <th className="p-4">Candidate Name</th>
+                        <th className="p-4">Course</th>
+                        <th className="p-4">10th / 12th Scores</th>
+                        <th className="p-4">Doc Status</th>
+                        <th className="p-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredApps.map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="p-4 font-mono font-bold text-blue-600 dark:text-blue-400">{app.application_number}</td>
+                          <td className="p-4">
+                            <p className="font-bold text-slate-900 dark:text-white">{app.applicant_name}</p>
+                            <span className="text-[11px] text-slate-400">{app.email}</span>
+                          </td>
+                          <td className="p-4 text-slate-700 dark:text-slate-300">{app.course_name}</td>
+                          <td className="p-4 text-slate-600 dark:text-slate-300 font-semibold">
+                            <p>10th: <span className="text-emerald-600">{app.percentage_10th != null ? `${app.percentage_10th}%` : 'N/A'}</span></p>
+                            <p>12th: <span className="text-emerald-600">{app.percentage_12th != null ? `${app.percentage_12th}%` : 'N/A'}</span></p>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
+                              app.document_status === 'Verified' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                            }`}>
+                              {app.document_status}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => {
+                                handleOpenAppDetails(app.id);
+                                setDetailTab("documents");
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] cursor-pointer"
+                            >
+                              Verify Marksheets
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────────────────
+              VIEW: ELIGIBILITY CHECKER VIEW
+          ───────────────────────────────────────────────────────────────────────────── */}
+          {activeNav === "eligibility" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-emerald-600" /> Academic Cutoff Eligibility Desk
+                  </h3>
+                  <span className="text-xs text-slate-400">Min Cutoff: 60.0% 12th Grade</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b text-slate-500 font-bold uppercase">
+                      <tr>
+                        <th className="p-4">Application ID</th>
+                        <th className="p-4">Candidate Name</th>
+                        <th className="p-4">Target Course</th>
+                        <th className="p-4">12th Score</th>
+                        <th className="p-4">Eligibility Status</th>
+                        <th className="p-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredApps.map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="p-4 font-mono font-bold text-blue-600 dark:text-blue-400">{app.application_number}</td>
+                          <td className="p-4 font-bold text-slate-900 dark:text-white">{app.applicant_name}</td>
+                          <td className="p-4 text-slate-700 dark:text-slate-300">{app.course_name}</td>
+                          <td className="p-4 font-bold text-emerald-600">{app.percentage_12th != null ? `${app.percentage_12th}%` : 'N/A'}</td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
+                              app.eligibility_status === 'Eligible' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-slate-600'
+                            }`}>
+                              {app.eligibility_status}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => {
+                                handleOpenAppDetails(app.id);
+                                setDetailTab("eligibility");
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] cursor-pointer"
+                            >
+                              Evaluate Eligibility
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────────────────
+              VIEW: COURSES & SEAT AVAILABILITY MANAGEMENT
           ───────────────────────────────────────────────────────────────────────────── */}
           {activeNav === "courses-seats" && (
             <div className="space-y-4">
@@ -1081,7 +1218,107 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
           )}
 
           {/* ─────────────────────────────────────────────────────────────────────────────
-              VIEW 5: ADMISSION REPORTS MODULE (SECTION 21)
+              VIEW: FEES & PAYMENTS DESK
+          ───────────────────────────────────────────────────────────────────────────── */}
+          {activeNav === "fees-payments" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600" /> Admission Fee Payment Desk
+                  </h3>
+                  <span className="text-xs text-slate-400">Cash Counter / POS / Demand Draft Receipts</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b text-slate-500 font-bold uppercase">
+                      <tr>
+                        <th className="p-4">Application ID</th>
+                        <th className="p-4">Candidate Name</th>
+                        <th className="p-4">Course</th>
+                        <th className="p-4">Fee Status</th>
+                        <th className="p-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredApps.map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="p-4 font-mono font-bold text-blue-600 dark:text-blue-400">{app.application_number}</td>
+                          <td className="p-4 font-bold text-slate-900 dark:text-white">{app.applicant_name}</td>
+                          <td className="p-4 text-slate-700 dark:text-slate-300">{app.course_name}</td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
+                              app.fee_status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+                            }`}>
+                              {app.fee_status}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => {
+                                handleOpenAppDetails(app.id);
+                                setDetailTab("fee");
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] cursor-pointer"
+                            >
+                              Record Payment
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────────────────
+              VIEW: ENROLLMENT SECRETARIAT
+          ───────────────────────────────────────────────────────────────────────────── */}
+          {activeNav === "enrollment" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-indigo-600" /> Enrolled Students Register
+                  </h3>
+                  <span className="text-xs text-slate-400">Confirmed candidates provisioned to Office Staff Desk</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b text-slate-500 font-bold uppercase">
+                      <tr>
+                        <th className="p-4">Student ID</th>
+                        <th className="p-4">Candidate Name</th>
+                        <th className="p-4">Course & Dept</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Enrollment Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {applications.filter(a => a.application_status === 'Enrolled' || a.application_status === 'Admission Confirmed').map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="p-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{app.enrolled_student_id || app.application_number}</td>
+                          <td className="p-4 font-bold text-slate-900 dark:text-white">{app.applicant_name}</td>
+                          <td className="p-4 text-slate-700 dark:text-slate-300">{app.course_name}</td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">
+                              {app.application_status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-slate-400">{app.enrollment_date ? new Date(app.enrollment_date).toLocaleDateString() : new Date().toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────────────────
+              VIEW: ADMISSION REPORTS MODULE
           ───────────────────────────────────────────────────────────────────────────── */}
           {activeNav === "reports" && reportsData && (
             <div className="space-y-6">
