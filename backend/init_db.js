@@ -2426,8 +2426,13 @@ export async function initializeDatabase() {
         }
         console.log('[DATABASE INIT] Standard B.Tech Semesters 1 to 8 Master Curriculum seeded successfully.');
       }
-    } catch (seedErr) {
-      console.warn('[DATABASE INIT] Note on B.Tech curriculum seeding:', seedErr.message);
+    try {
+      await pool.execute('SET FOREIGN_KEY_CHECKS = 0');
+      await pool.execute('DROP TABLE IF EXISTS floor_connections, floor_versions, floor_objects, floor_layers, floors, buildings, block_audit_logs');
+      await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
+      console.log('[DATABASE INIT] Removed Campus Block Twin database tables.');
+    } catch (dropErr) {
+      console.warn('[DATABASE INIT] Note on dropping block tables:', dropErr.message);
     }
 
     console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');

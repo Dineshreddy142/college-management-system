@@ -15,11 +15,7 @@ import { OfficeStaffDashboard } from "./officestaff/OfficeStaffDashboard";
 import { AdmissionOfficeDashboard } from "./admission/AdmissionOfficeDashboard";
 import { PublicAdmissionPortal } from "./admission/PublicAdmissionPortal";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
-import { BuildingManagement } from "./admin/block-management/BuildingManagement";
-import { FloorManagement } from "./admin/block-management/FloorManagement";
-import { RoomManagement } from "./admin/block-management/RoomManagement";
-import { FloorEditor } from "./admin/block-management/FloorEditor";
-import { FloorVersions } from "./admin/block-management/FloorVersions";
+
 import { ProfileModule } from "./shared/ProfileModule";
 
 import { BulkDataHub } from "./admin/bulk/BulkDataHub";
@@ -214,18 +210,6 @@ const SIDEBAR_ITEMS = [
   { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
   { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
-  {
-    id: "block-management",
-    label: "Campus Block Twin",
-    icon: Building,
-    badge: null,
-    children: [
-      { id: "building-management", label: "Building Management", icon: Building, badge: null },
-      { id: "floor-management", label: "Floor Management", icon: Layers, badge: null },
-      { id: "room-management", label: "Room Management", icon: DoorOpen, badge: null },
-      { id: "floor-versions", label: "Floor Versions", icon: History, badge: null },
-    ]
-  },
   { id: "timetable", label: "Master Timetable", icon: CalendarDays, badge: null },
   { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
   { id: "exams", label: "Examinations Governance", icon: FileText, badge: "Governance" },
@@ -257,7 +241,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
     if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'academic', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'coe' || normRole === 'controllerofexaminations') return ['dashboard', 'exams', 'students', 'faculty', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'dean') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'block-management', 'registration-control', 'audit-logs'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'registration-control', 'audit-logs'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement' || normRole === 'placementofficer') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
@@ -1987,7 +1971,6 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   const [mod, setMod] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeEditorFloorId, setActiveEditorFloorId] = useState<number>(1);
 
   const roleName = (user?.role || '').toLowerCase();
   const isChancellor = roleName.includes('chancellor');
@@ -2016,10 +1999,6 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "library": return <LibraryManagement />;
       case "hostel": return <HostelManagement />;
       case "placement": return <PlacementModule />;
-      case "building-management": return <BuildingManagement onNavigateToFloors={() => setMod("floor-management")} />;
-      case "floor-management": return <FloorManagement onNavigateToVersions={() => setMod("floor-versions")} />;
-      case "room-management": return <RoomManagement />;
-      case "floor-versions": return <FloorVersions initialFloorId={activeEditorFloorId || undefined} />;
 
       case "reports": return <ReportsAnalytics />;
       case "audit-logs": return <AuditLogsModule />;
