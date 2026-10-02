@@ -8,7 +8,7 @@ import {
   getStudentActiveCBCSWindow,
   submitStudentCBCSPreferences
 } from '../controllers/cbcsController.js';
-import { authenticateToken, authorizeRole } from '../middleware/authMiddleware.js';
+import { authenticateToken, authorizeRole } from '../middleware.js';
 
 const router = express.Router();
 
