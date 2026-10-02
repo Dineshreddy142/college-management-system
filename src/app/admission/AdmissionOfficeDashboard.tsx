@@ -56,11 +56,12 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
   // Selected Application & Detail View State
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [detailTab, setDetailTab] = useState<"overview" | "documents" | "eligibility" | "seat" | "fee" | "history">("overview");
+  const [selectedDocIndex, setSelectedDocIndex] = useState(0);
 
   // Duplicate Check Modal State
   const [duplicateWarning, setDuplicateWarning] = useState<any>(null);
 
-  // New Application Form Modal
+  // New Application Form Modal & Page State
   const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newAppForm, setNewAppForm] = useState({
@@ -91,19 +92,23 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
     departmentName: "Computer Science & Engineering",
     admissionCategory: "General",
     admissionType: "Regular",
+    photoName: "",
+    photoData: "",
     proof10thName: "",
     proof10thData: "",
     proof12thName: "",
     proof12thData: ""
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'proof10th' | 'proof12th') => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'photo' | 'proof10th' | 'proof12th') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64Data = reader.result as string;
-      if (fieldName === 'proof10th') {
+      if (fieldName === 'photo') {
+        setNewAppForm(prev => ({ ...prev, photoName: file.name, photoData: base64Data }));
+      } else if (fieldName === 'proof10th') {
         setNewAppForm(prev => ({ ...prev, proof10thName: file.name, proof10thData: base64Data }));
       } else {
         setNewAppForm(prev => ({ ...prev, proof12thName: file.name, proof12thData: base64Data }));
@@ -199,6 +204,10 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
       triggerToast("⚠️ First Name, Last Name, Email, and Mobile Contact are required.");
       return;
     }
+    if (!newAppForm.photoName || !newAppForm.photoData) {
+      triggerToast("⚠️ Candidate Photograph upload is compulsory!");
+      return;
+    }
     if (!newAppForm.percentage10th || !newAppForm.proof10thName) {
       triggerToast("⚠️ 10th Percentage and 10th Marksheet Proof Document are compulsory!");
       return;
@@ -239,6 +248,8 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         department_name: newAppForm.departmentName,
         admission_category: newAppForm.admissionCategory,
         admission_type: newAppForm.admissionType,
+        photo_name: newAppForm.photoName,
+        photo_data: newAppForm.photoData,
         proof_10th_name: newAppForm.proof10thName,
         proof_10th_data: newAppForm.proof10thData,
         proof_12th_name: newAppForm.proof12thName,
@@ -248,6 +259,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
       if (res.data?.success) {
         triggerToast(`✨ Application ${res.data.data.application_number} created successfully!`);
         setShowNewAppModal(false);
+        setActiveNav("applications");
         setNewAppForm({
           firstName: "",
           lastName: "",
@@ -276,6 +288,8 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
           departmentName: "Computer Science & Engineering",
           admissionCategory: "General",
           admissionType: "Regular",
+          photoName: "",
+          photoData: "",
           proof10thName: "",
           proof10thData: "",
           proof12thName: "",
@@ -446,6 +460,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         <div className="p-3 space-y-1 overflow-y-auto flex-1 scrollbar-thin">
           {[
             { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
+            { id: "new-application", label: "Register Application", icon: <UserPlus className="w-4 h-4 text-emerald-400" /> },
             { 
               id: "applications", 
               label: "Applications", 
@@ -559,7 +574,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
             )}
 
             <button
-              onClick={() => setShowNewAppModal(true)}
+              onClick={() => setActiveNav("new-application")}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> New Application
@@ -577,6 +592,284 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
 
         {/* Scrollable Workspace Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
+
+          {/* ─────────────────────────────────────────────────────────────────────────────
+              VIEW 0: SIDEBAR NEW APPLICATION REGISTRATION PAGE
+          ───────────────────────────────────────────────────────────────────────────── */}
+          {activeNav === "new-application" && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="p-6 rounded-3xl bg-slate-900 text-white border border-slate-800 shadow-xl flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                    <UserPlus className="w-6 h-6 text-blue-400" /> Candidate Application Registration Desk
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">Register new student application directly into the university admissions system.</p>
+                </div>
+                <button
+                  onClick={() => setActiveNav("applications")}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 flex items-center gap-2 cursor-pointer transition"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Applications
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateApplication} className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">1. Candidate Identity & Contact Details</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAppForm.firstName}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="First Name"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAppForm.lastName}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Last Name"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={newAppForm.email}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="applicant@example.com"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Mobile Contact *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={newAppForm.mobile}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, mobile: e.target.value }))}
+                      placeholder="+91 Mobile Number"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Date of Birth *</label>
+                    <input
+                      type="date"
+                      required
+                      value={newAppForm.dob}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, dob: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Gender *</label>
+                    <select
+                      value={newAppForm.gender}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, gender: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Candidate Photograph Upload Box */}
+                <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {newAppForm.photoData ? (
+                      <img src={newAppForm.photoData} alt="Photo" className="w-16 h-16 rounded-2xl object-cover border-2 border-blue-600 shadow-md" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs">
+                        No Photo
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-900 dark:text-white mb-0.5">Candidate Photograph * (Compulsory)</label>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Upload official passport photo (JPG, PNG, JPEG)</p>
+                      {newAppForm.photoName && (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Photo Attached: {newAppForm.photoName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <label className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition shrink-0">
+                    Choose Photograph
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'photo')}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-3 pt-2">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">2. Guardian Details & Target Course</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Parent / Guardian Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAppForm.parentName}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, parentName: e.target.value }))}
+                      placeholder="Father / Mother Name"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Parent Mobile *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={newAppForm.parentMobile}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, parentMobile: e.target.value }))}
+                      placeholder="Parent Contact Number"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Target Course *</label>
+                    <select
+                      value={newAppForm.courseName}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, courseName: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    >
+                      {availableCourses.map((c, idx) => (
+                        <option key={idx} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-3 pt-2">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">3. Academic Qualifications & Marksheet Proofs</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* 10th Record Card */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 uppercase">10th Academic Marksheet</h4>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th School / Board Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newAppForm.school10th}
+                        onChange={(e) => setNewAppForm(prev => ({ ...prev, school10th: e.target.value }))}
+                        placeholder="e.g. State Board / CBSE"
+                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Percentage (%) *</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        required
+                        value={newAppForm.percentage10th}
+                        onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage10th: e.target.value }))}
+                        placeholder="Enter 10th % (e.g. 88.5)"
+                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Marksheet Proof Document *</label>
+                      <input
+                        type="file"
+                        required={!newAppForm.proof10thName}
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleFileUpload(e, 'proof10th')}
+                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700"
+                      />
+                      {newAppForm.proof10thName && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Attached: {newAppForm.proof10thName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 12th Record Card */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 uppercase">12th Academic Marksheet</h4>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th School / Board Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newAppForm.school12th}
+                        onChange={(e) => setNewAppForm(prev => ({ ...prev, school12th: e.target.value }))}
+                        placeholder="e.g. Higher Sec School / CBSE"
+                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Percentage (%) *</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        required
+                        value={newAppForm.percentage12th}
+                        onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage12th: e.target.value }))}
+                        placeholder="Enter 12th % (e.g. 91.2)"
+                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Marksheet Proof Document *</label>
+                      <input
+                        type="file"
+                        required={!newAppForm.proof12thName}
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleFileUpload(e, 'proof12th')}
+                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700"
+                      />
+                      {newAppForm.proof12thName && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Attached: {newAppForm.proof12thName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setActiveNav("applications")}
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg flex items-center gap-2 cursor-pointer"
+                  >
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Register Application'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* ─────────────────────────────────────────────────────────────────────────────
               VIEW 1: ADMISSION OFFICER DASHBOARD (SECTION 2)
@@ -965,37 +1258,178 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                 </div>
               )}
 
-              {/* TAB CONTENT: DOCUMENTS VERIFICATION (SECTION 7) */}
+              {/* TAB CONTENT: DOCUMENTS VERIFICATION (SECTION 7 - INTERACTIVE SIDE-BY-SIDE AUDIT) */}
               {detailTab === "documents" && (
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white border-b pb-2">Mandatory Document Verification Checklist</h3>
-                  <div className="space-y-3">
-                    {(selectedApp.documents || []).map((doc: any) => (
-                      <div key={doc.id} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-xs text-slate-900 dark:text-white">{doc.document_name}</p>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            doc.verification_status === 'Verified' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                          }`}>
-                            {doc.verification_status}
-                          </span>
+                <div className="space-y-4">
+                  {/* Global Verification Action Bar */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-blue-950 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg border border-slate-800">
+                    <div>
+                      <h4 className="font-extrabold text-sm flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" /> Interactive Side-by-Side Document Audit Desk
+                      </h4>
+                      <p className="text-xs text-slate-300">Compare applicant entered details against uploaded marksheets & credentials before approval.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!selectedApp.documents || selectedApp.documents.length === 0) return;
+                          for (const d of selectedApp.documents) {
+                            await handleVerifyDocument(d.id, 'Verified', 'Verified in batch comparison');
+                          }
+                          handleUpdateStatus(selectedApp.id, 'Under Review', 'All documents verified by officer');
+                          triggerToast('✨ All candidate documents verified successfully!');
+                        }}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Approve All Documents & Set Verified
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Split View Container */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left Column (5 cols): Entered Candidate Details */}
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                          {selectedApp.photo_data ? (
+                            <img src={selectedApp.photo_data} alt="Photo" className="w-14 h-14 rounded-2xl object-cover border-2 border-blue-500 shadow-md" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs">
+                              No Photo
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="font-black text-sm text-slate-900 dark:text-white">{selectedApp.applicant_name}</h4>
+                            <p className="text-xs text-slate-500 font-mono">{selectedApp.application_number}</p>
+                            <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600">
+                              {selectedApp.course_name}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleVerifyDocument(doc.id, 'Verified', 'Verified by officer')}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
-                          >
-                            Verify Document
-                          </button>
-                          <button
-                            onClick={() => handleVerifyDocument(doc.id, 'Rejected', 'Re-upload required')}
-                            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px]"
-                          >
-                            Reject & Request Re-upload
-                          </button>
+
+                        <div className="space-y-3 text-xs">
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Personal Identity</span>
+                            <p><strong>DOB:</strong> {selectedApp.dob ? new Date(selectedApp.dob).toLocaleDateString() : 'N/A'} • <strong>Gender:</strong> {selectedApp.gender || 'N/A'}</p>
+                            <p><strong>Email:</strong> {selectedApp.email}</p>
+                            <p><strong>Mobile:</strong> {selectedApp.mobile}</p>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Entered 10th Marks vs Document</span>
+                            <p><strong>Board / School:</strong> {selectedApp.school_10th || selectedApp.board_10th || 'N/A'}</p>
+                            <p className="text-sm"><strong>10th Percentage:</strong> <span className="text-emerald-600 font-black">{selectedApp.percentage_10th != null ? `${selectedApp.percentage_10th}%` : 'N/A'}</span></p>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Entered 12th Marks vs Document</span>
+                            <p><strong>Board / School:</strong> {selectedApp.school_12th || selectedApp.board_12th || 'N/A'}</p>
+                            <p className="text-sm"><strong>12th Percentage:</strong> <span className="text-emerald-600 font-black">{selectedApp.percentage_12th != null ? `${selectedApp.percentage_12th}%` : 'N/A'}</span></p>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Entrance Qualification</span>
+                            <p><strong>Exam:</strong> {selectedApp.entrance_exam || 'Direct Merit'}</p>
+                            <p><strong>Score / Rank:</strong> {selectedApp.entrance_score || 'N/A'}</p>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Right Column (7 cols): Document Selection, Previewer & Verification Desk */}
+                    <div className="lg:col-span-7 space-y-4">
+                      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                        {/* Document Selector Pills */}
+                        <div className="flex flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                          {(selectedApp.documents || []).map((doc: any, idx: number) => (
+                            <button
+                              key={doc.id}
+                              onClick={() => setSelectedDocIndex(idx)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                selectedDocIndex === idx
+                                  ? 'bg-blue-600 text-white shadow-md'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                              }`}
+                            >
+                              <span>{doc.document_name}</span>
+                              <span className={`w-2 h-2 rounded-full ${
+                                doc.verification_status === 'Verified' ? 'bg-emerald-400' :
+                                doc.verification_status === 'Rejected' ? 'bg-rose-500' : 'bg-amber-400'
+                              }`} />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Document Viewer Frame */}
+                        {selectedApp.documents && selectedApp.documents[selectedDocIndex] ? (
+                          (() => {
+                            const currentDoc = selectedApp.documents[selectedDocIndex];
+                            const filePath = currentDoc.file_path || (currentDoc.document_name === 'Photograph' ? selectedApp.photo_data : null);
+
+                            return (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{currentDoc.document_name}</h4>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                      currentDoc.verification_status === 'Verified' ? 'bg-emerald-500/10 text-emerald-600' :
+                                      currentDoc.verification_status === 'Rejected' ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'
+                                    }`}>
+                                      Status: {currentDoc.verification_status}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleVerifyDocument(currentDoc.id, 'Verified', 'Verified by officer during document audit')}
+                                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1"
+                                    >
+                                      <Check className="w-3.5 h-3.5" /> Approve Document
+                                    </button>
+                                    <button
+                                      onClick={() => handleVerifyDocument(currentDoc.id, 'Rejected', 'Deficiency flagged by officer')}
+                                      className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-1"
+                                    >
+                                      <X className="w-3.5 h-3.5" /> Flag Defective
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Embedded Viewer Box */}
+                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-3 flex flex-col items-center justify-center min-h-[320px] max-h-[450px] overflow-auto">
+                                  {filePath ? (
+                                    filePath.startsWith('data:image/') || filePath.startsWith('http') || filePath.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[400px] w-auto object-contain rounded-lg shadow-xl" />
+                                    ) : filePath.startsWith('data:application/pdf') ? (
+                                      <iframe src={filePath} title={currentDoc.document_name} className="w-full h-[400px] rounded-lg border-0" />
+                                    ) : (
+                                      <div className="text-center p-6 space-y-2">
+                                        <FileText className="w-12 h-12 text-blue-400 mx-auto" />
+                                        <p className="text-xs text-slate-300 font-bold">{currentDoc.document_name} file attached</p>
+                                        <a href={filePath} target="_blank" rel="noreferrer" className="inline-block px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold">
+                                          Open File in New Tab
+                                        </a>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <div className="text-center p-8 space-y-2 text-slate-500">
+                                      <AlertCircle className="w-10 h-10 mx-auto text-amber-400" />
+                                      <p className="text-xs font-bold text-slate-300">No document file attached for this item yet.</p>
+                                      <p className="text-[11px] text-slate-500">Applicant may be requested to upload during registration phase.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            No documents available to inspect.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1510,6 +1944,35 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                     <option value="Other">Other</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Mandatory Candidate Photo Box */}
+              <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {newAppForm.photoData ? (
+                    <img src={newAppForm.photoData} alt="Photo" className="w-12 h-12 rounded-xl object-cover border-2 border-blue-600" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-[10px]">
+                      No Photo
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white">Candidate Photo *</label>
+                    <span className="text-[10px] text-slate-500">Upload passport size photo</span>
+                    {newAppForm.photoName && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{newAppForm.photoName}</p>
+                    )}
+                  </div>
+                </div>
+                <label className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] cursor-pointer shrink-0">
+                  Upload Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, 'photo')}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

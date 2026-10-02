@@ -342,6 +342,8 @@ export async function createApplication(req, res) {
 
     // Seed required default documents for verification with proof file paths if uploaded
     const {
+      photo_name,
+      photo_data,
       proof_10th_name,
       proof_10th_data,
       proof_12th_name,
@@ -350,12 +352,21 @@ export async function createApplication(req, res) {
       proof_entrance_data
     } = req.body;
 
+    // Update photo_data in applications table if provided
+    if (photo_data) {
+      try {
+        await pool.execute(`UPDATE applications SET photo_data = ? WHERE id = ?`, [photo_data, appId]);
+      } catch (pErr) {
+        // Ignored
+      }
+    }
+
     const reqDocs = [
-      { name: 'Photograph', path: null },
+      { name: 'Photograph', path: photo_data || photo_name || null },
       { name: 'Identity Proof (Aadhaar / Passport)', path: null },
-      { name: '10th Marksheet Proof', path: proof_10th_name || (proof_10th_data ? 'Uploaded Marksheet Proof' : null) },
-      { name: '12th Marksheet Proof', path: proof_12th_name || (proof_12th_data ? 'Uploaded Marksheet Proof' : null) },
-      { name: 'Entrance Scorecard Proof', path: proof_entrance_name || (proof_entrance_data ? 'Uploaded Scorecard Proof' : null) },
+      { name: '10th Marksheet Proof', path: proof_10th_data || proof_10th_name || null },
+      { name: '12th Marksheet Proof', path: proof_12th_data || proof_12th_name || null },
+      { name: 'Entrance Scorecard Proof', path: proof_entrance_data || proof_entrance_name || null },
       { name: 'Transfer Certificate (TC)', path: null },
       { name: 'Conduct Certificate', path: null }
     ];

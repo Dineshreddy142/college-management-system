@@ -2170,6 +2170,7 @@ export async function initializeDatabase() {
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS school_10th VARCHAR(150) NULL`);
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS board_10th VARCHAR(100) NULL`);
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS year_10th INT NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS photo_data LONGTEXT NULL`);
       } catch (alterErr) {
         // Ignored if MySQL version handles IF NOT EXISTS or column already present
       }

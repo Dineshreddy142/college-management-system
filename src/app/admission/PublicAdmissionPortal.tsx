@@ -73,6 +73,8 @@ export function PublicAdmissionPortal() {
     departmentName: "Computer Science & Engineering",
     admissionCategory: "General",
     admissionType: "Regular",
+    photoName: "",
+    photoData: "",
     proof10thName: "",
     proof10thData: "",
     proof12thName: "",
@@ -124,14 +126,16 @@ export function PublicAdmissionPortal() {
     }
   };
 
-  // Handler: File Reader for Proof Documents
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'proof10th' | 'proof12th') => {
+  // Handler: File Reader for Proof Documents & Photograph
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'photo' | 'proof10th' | 'proof12th') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64Data = reader.result as string;
-      if (fieldName === 'proof10th') {
+      if (fieldName === 'photo') {
+        setForm(prev => ({ ...prev, photoName: file.name, photoData: base64Data }));
+      } else if (fieldName === 'proof10th') {
         setForm(prev => ({ ...prev, proof10thName: file.name, proof10thData: base64Data }));
       } else {
         setForm(prev => ({ ...prev, proof12thName: file.name, proof12thData: base64Data }));
@@ -146,6 +150,10 @@ export function PublicAdmissionPortal() {
 
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.mobile.trim()) {
       triggerToast("⚠️ First Name, Last Name, Email, and Mobile Contact are required.");
+      return;
+    }
+    if (!form.photoName || !form.photoData) {
+      triggerToast("⚠️ Candidate Photograph upload is compulsory!");
       return;
     }
     if (!form.percentage10th || !form.proof10thName) {
@@ -187,6 +195,8 @@ export function PublicAdmissionPortal() {
         department_name: form.departmentName,
         admission_category: form.admissionCategory,
         admission_type: form.admissionType,
+        photo_name: form.photoName,
+        photo_data: form.photoData,
         proof_10th_name: form.proof10thName,
         proof_10th_data: form.proof10thData,
         proof_12th_name: form.proof12thName,
@@ -533,6 +543,36 @@ export function PublicAdmissionPortal() {
                         className="w-full p-3 rounded-2xl bg-slate-800 border border-slate-700 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+
+                    <div className="sm:col-span-2 p-4 rounded-3xl bg-slate-800/60 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        {form.photoData ? (
+                          <img src={form.photoData} alt="Applicant Photo" className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-md" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-500 font-bold text-xs">
+                            No Photo
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs font-bold text-white mb-0.5">Candidate Photograph * (Compulsory)</label>
+                          <p className="text-[11px] text-slate-400">Upload passport size photo (JPG, PNG, JPEG)</p>
+                          {form.photoName && (
+                            <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1 mt-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Photo Attached: {form.photoName}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <label className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition shrink-0">
+                        Choose Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, 'photo')}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex justify-end pt-4">
@@ -541,6 +581,10 @@ export function PublicAdmissionPortal() {
                       onClick={() => {
                         if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.mobile.trim()) {
                           triggerToast("⚠️ First Name, Last Name, Email, and Mobile are required.");
+                          return;
+                        }
+                        if (!form.photoName || !form.photoData) {
+                          triggerToast("⚠️ Candidate Photograph upload is compulsory!");
                           return;
                         }
                         setActiveStep(2);
