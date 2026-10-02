@@ -490,19 +490,24 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
               {/* Sub-menu if expanded */}
               {!sidebarCollapsed && item.subs && activeNav === item.id && (
                 <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-800 pl-3">
-                  {item.subs.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setStatusFilterSub(sub.id === "All" ? null : sub.id)}
-                      className={`block w-full text-left py-1.5 text-[11px] font-semibold transition ${
-                        (statusFilterSub === sub.id || (!statusFilterSub && sub.id === "All"))
-                          ? 'text-blue-400 font-bold'
-                          : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
+                  {item.subs.map(sub => {
+                    const isSelected = (statusFilter === sub.id) || (statusFilterSub === sub.id) || (statusFilter === "All" && !statusFilterSub && sub.id === "All");
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => {
+                          const target = sub.id === "All" ? "All" : sub.id;
+                          setStatusFilter(target);
+                          setStatusFilterSub(sub.id === "All" ? null : sub.id);
+                        }}
+                        className={`block w-full text-left py-1.5 text-[11px] font-semibold transition cursor-pointer ${
+                          isSelected ? 'text-blue-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        {sub.label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -592,7 +597,31 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                   { label: "Cancelled Admissions", val: stats.cancelledAdmissions, color: "slate", icon: <XCircle className="w-4 h-4" /> },
                   { label: "Rejected Applications", val: stats.rejectedApplications, color: "red", icon: <AlertTriangle className="w-4 h-4" /> }
                 ].map((card, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 hover:border-blue-500/50 transition">
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      if (card.label === "Under Review") {
+                        setActiveNav("applications");
+                        setStatusFilter("Under Review");
+                        setStatusFilterSub("Under Review");
+                      } else if (card.label === "New Applications") {
+                        setActiveNav("applications");
+                        setStatusFilter("Submitted");
+                        setStatusFilterSub("Submitted");
+                      } else if (card.label === "Documents Pending") {
+                        setActiveNav("documents");
+                      } else if (card.label === "Eligible Students") {
+                        setActiveNav("eligibility");
+                      } else if (card.label === "Fee Pending") {
+                        setActiveNav("fees-payments");
+                      } else if (card.label === "Confirmed Admissions") {
+                        setActiveNav("enrollment");
+                      } else {
+                        setActiveNav("applications");
+                      }
+                    }}
+                    className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 hover:border-blue-500/50 hover:shadow-md transition cursor-pointer"
+                  >
                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                       <span className="text-[11px] font-bold uppercase tracking-wider">{card.label}</span>
                       {card.icon}
