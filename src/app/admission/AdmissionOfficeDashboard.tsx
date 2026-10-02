@@ -1473,7 +1473,7 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                         let rawPath = currentDoc.file_path;
                         const docNameLower = (currentDoc.document_name || '').toLowerCase();
 
-                        // Smart fallback lookup if file_path in document object is not a direct data URI or URL
+                        // Lookup direct data URI or URL from application telemetry columns if missing from doc item
                         if (!rawPath || (!rawPath.startsWith('data:') && !rawPath.startsWith('http') && !rawPath.startsWith('blob:'))) {
                           if (docNameLower.includes('photo') && selectedApp.photo_data) {
                             rawPath = selectedApp.photo_data;
@@ -1486,60 +1486,14 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                           }
                         }
 
-                        // Generate a valid real Base64 PDF Data URI if missing so browser's native PDF engine ALWAYS loads a real PDF document
-                        if (!rawPath || (!rawPath.startsWith('data:') && !rawPath.startsWith('http') && !rawPath.startsWith('blob:'))) {
-                          const docTitle = currentDoc.document_name || 'Official Document Proof';
-                          const appNum = selectedApp.application_number || 'ADM-2026-00101';
-                          const appName = selectedApp.applicant_name || 'Applicant';
-                          const course = selectedApp.course_name || 'Degree Course';
-                          
-                          const pdfContent = `%PDF-1.4
-1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj
-2 0 obj <</Type /Pages /Kids [3 0 R] /Count 1>> endobj
-3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources <</Font <</F1 5 0 R>>>>>> endobj
-4 0 obj <</Length 360>> stream
-BT
-/F1 18 Tf
-50 720 Td
-(${docTitle.toUpperCase()}) Tj
-/F1 12 Tf
-0 -35 Td
-(OFFICIAL APPLICANT VERIFIED PDF DOCUMENT RECORD) Tj
-0 -22 Td
-(Application Number: ${appNum}) Tj
-0 -20 Td
-(Candidate Full Name: ${appName}) Tj
-0 -20 Td
-(Degree / Course Applied: ${course}) Tj
-0 -20 Td
-(Verification Authority: State Board & University Admissions Council) Tj
-0 -20 Td
-(Document Category: ${docTitle}) Tj
-0 -35 Td
-(STATUS: OFFICIAL APPLICANT UPLOADED PDF - VERIFIED ORIGINAL) Tj
-ET
-endstream endobj
-5 0 obj <</Type /Font /Subtype /Type1 /BaseFont /Helvetica>> endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000244 00000 n 
-0000000650 00000 n 
-trailer <</Size 6 /Root 1 0 R>>
-startxref
-750
-%%EOF`;
-                          try {
-                            rawPath = `data:application/pdf;base64,${btoa(pdfContent)}`;
-                          } catch (e) {
-                            // fallback
-                          }
-                        }
+                        const isRealUploadedFile = !!rawPath && (
+                          rawPath.startsWith('data:') ||
+                          rawPath.startsWith('http://') ||
+                          rawPath.startsWith('https://') ||
+                          rawPath.startsWith('blob:')
+                        );
 
-                        const filePath = rawPath && rawPath.trim() ? rawPath.trim() : null;
+                        const filePath = isRealUploadedFile ? rawPath!.trim() : null;
 
                         const isExplicitImage = !!filePath && (
                           filePath.startsWith('data:image/') ||
@@ -1610,22 +1564,71 @@ startxref
                                   </div>
                                 </div>
 
-                                {/* Embedded Viewer Box - Direct Real Native Browser PDF Viewer Engine */}
-                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-2 flex flex-col items-center justify-center min-h-[500px] max-h-[600px] overflow-hidden relative shadow-2xl">
-                                  {isExplicitImage || isPhotoDoc ? (
-                                    <img src={filePath!} alt={currentDoc.document_name} className="max-h-[520px] w-auto object-contain rounded-xl shadow-2xl border border-slate-800 my-auto" />
-                                  ) : (
-                                    <object
-                                      data={filePath!}
-                                      type="application/pdf"
-                                      className="w-full h-[540px] rounded-xl border-0 shadow-lg bg-white"
-                                    >
-                                      <iframe
-                                        src={filePath!}
-                                        title={currentDoc.document_name}
+                                {/* Embedded Viewer Box - Renders Real Uploaded PDF / Image File or Upload Attachment Desk */}
+                                <div className="w-full bg-slate-950 rounded-2xl border border-slate-800 p-2 flex flex-col items-center justify-center min-h-[480px] max-h-[600px] overflow-hidden relative shadow-2xl">
+                                  {filePath ? (
+                                    isExplicitImage || isPhotoDoc ? (
+                                      <img src={filePath} alt={currentDoc.document_name} className="max-h-[520px] w-auto object-contain rounded-xl shadow-2xl border border-slate-800 my-auto" />
+                                    ) : (
+                                      <object
+                                        data={filePath}
+                                        type="application/pdf"
                                         className="w-full h-[540px] rounded-xl border-0 shadow-lg bg-white"
-                                      />
-                                    </object>
+                                      >
+                                        <iframe
+                                          src={filePath}
+                                          title={currentDoc.document_name}
+                                          className="w-full h-[540px] rounded-xl border-0 shadow-lg bg-white"
+                                        />
+                                      </object>
+                                    )
+                                  ) : (
+                                    /* Clean Document Upload Attachment Panel */
+                                    <div className="w-full h-full p-8 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-center items-center text-center space-y-5">
+                                      <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                        <AlertCircle className="w-8 h-8" />
+                                      </div>
+                                      <div className="space-y-1.5 max-w-md">
+                                        <h5 className="font-extrabold text-base text-white">No Document File Attached Yet</h5>
+                                        <p className="text-xs text-slate-400">
+                                          The applicant has not uploaded a PDF/Image file for <strong className="text-slate-200">{currentDoc.document_name}</strong>.
+                                        </p>
+                                      </div>
+
+                                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-left text-xs space-y-2 w-full max-w-md">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Candidate Record Telemetry</span>
+                                        <div className="flex justify-between border-b border-slate-800 pb-1">
+                                          <span className="text-slate-400">Applicant:</span>
+                                          <span className="font-bold text-white">{selectedApp.applicant_name}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-slate-800 pb-1">
+                                          <span className="text-slate-400">Application No:</span>
+                                          <span className="font-mono text-blue-400 font-bold">{selectedApp.application_number}</span>
+                                        </div>
+                                        {docNameLower.includes('10th') && (
+                                          <div className="flex justify-between border-b border-slate-800 pb-1">
+                                            <span className="text-slate-400">Entered 10th Marks:</span>
+                                            <span className="font-bold text-emerald-400">{selectedApp.percentage_10th ? `${selectedApp.percentage_10th}%` : 'N/A'} ({selectedApp.board_10th || 'State Board'})</span>
+                                          </div>
+                                        )}
+                                        {docNameLower.includes('12th') && (
+                                          <div className="flex justify-between border-b border-slate-800 pb-1">
+                                            <span className="text-slate-400">Entered 12th Marks:</span>
+                                            <span className="font-bold text-emerald-400">{selectedApp.percentage_12th ? `${selectedApp.percentage_12th}%` : 'N/A'} ({selectedApp.board_12th || 'State Board'})</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <label className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 cursor-pointer flex items-center gap-2 transition">
+                                        <Upload className="w-4 h-4" /> Upload PDF Document File
+                                        <input
+                                          type="file"
+                                          accept="application/pdf,image/*"
+                                          onChange={(e) => handleUploadOfficerDoc(e, currentDoc.id)}
+                                          className="hidden"
+                                        />
+                                      </label>
+                                    </div>
                                   )}
                                 </div>
                               </div>
