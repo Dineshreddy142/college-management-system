@@ -295,3 +295,38 @@ export const addOrUpdateFloorCorridor = async (req, res) => {
     return errorResponse(res, err.message || 'Failed to save corridor on floor', [], 500);
   }
 };
+
+/**
+ * PUT /api/campus/floors/:floorId/dimensions
+ * Admin resizes the floor building space (Width x Length meters & Canvas Pixels)
+ */
+export const updateFloorDimensions = async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const { widthMeters, lengthMeters, pixelWidth, pixelHeight, name } = req.body;
+
+    await pool.execute(
+      `UPDATE block_floors
+       SET floor_width_meters = COALESCE(?, floor_width_meters),
+           floor_length_meters = COALESCE(?, floor_length_meters),
+           canvas_pixel_width = COALESCE(?, canvas_pixel_width),
+           canvas_pixel_height = COALESCE(?, canvas_pixel_height),
+           name = COALESCE(?, name)
+       WHERE id = ?`,
+      [
+        widthMeters ? Number(widthMeters) : null,
+        lengthMeters ? Number(lengthMeters) : null,
+        pixelWidth ? Number(pixelWidth) : null,
+        pixelHeight ? Number(pixelHeight) : null,
+        name || null,
+        floorId
+      ]
+    );
+
+    return successResponse(res, 'Floor building space dimensions updated successfully', { floorId });
+  } catch (err) {
+    console.error('[UPDATE FLOOR DIMENSIONS ERROR]:', err);
+    return errorResponse(res, err.message || 'Failed to update floor building space size', [], 500);
+  }
+};
+

@@ -23,7 +23,16 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
   // Modals / Editor States (For Admin)
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isAddCorridorOpen, setIsAddCorridorOpen] = useState(false);
+  const [isEditDimensionsOpen, setIsEditDimensionsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [dimForm, setDimForm] = useState({
+    name: 'First Floor - CSE Wing',
+    widthMeters: '60',
+    lengthMeters: '40',
+    pixelWidth: '1600',
+    pixelHeight: '1000'
+  });
 
   const [newRoom, setNewRoom] = useState({
     roomCode: 'CSE-105',
@@ -92,6 +101,15 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
       const res = await client.get(`/campus/floors/${fId}/live-occupancy`);
       if (res.data && res.data.data) {
         setLiveData(res.data.data);
+        if (res.data.data.floor) {
+          setDimForm({
+            name: res.data.data.floor.name || 'Floor',
+            widthMeters: String(res.data.data.floor.floor_width_meters || 60),
+            lengthMeters: String(res.data.data.floor.floor_length_meters || 40),
+            pixelWidth: String(res.data.data.floor.canvas_pixel_width || 1600),
+            pixelHeight: String(res.data.data.floor.canvas_pixel_height || 1000)
+          });
+        }
       }
     } catch (err) {
       console.error('Error fetching live occupancy:', err);
@@ -99,6 +117,27 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
       setIsLoading(false);
     }
   }, []);
+
+  const handleDimensionsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFloorId) return;
+    try {
+      const res = await client.put(`/campus/floors/${selectedFloorId}/dimensions`, {
+        name: dimForm.name,
+        widthMeters: Number(dimForm.widthMeters),
+        lengthMeters: Number(dimForm.lengthMeters),
+        pixelWidth: Number(dimForm.pixelWidth),
+        pixelHeight: Number(dimForm.pixelHeight)
+      });
+      if (res.data && res.data.success) {
+        showToast('Floor building space size updated!');
+        setIsEditDimensionsOpen(false);
+        fetchLiveOccupancy(selectedFloorId);
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to update floor dimensions', 'error');
+    }
+  };
 
   useEffect(() => {
     fetchBlocks();
@@ -246,6 +285,14 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
           {isAdminMode && (
             <>
               <button
+                onClick={() => setIsEditDimensionsOpen(true)}
+                className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-purple-600/20"
+                title="Change length, width & building space size"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span>Resize Floor Space</span>
+              </button>
+              <button
                 onClick={() => setIsAddRoomOpen(true)}
                 className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
               >
@@ -263,6 +310,7 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
           <button
             onClick={() => selectedFloorId && fetchLiveOccupancy(selectedFloorId)}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white cursor-pointer"
+            title="Refresh Live Occupancy"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -298,6 +346,19 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
 
       {/* 2D CANVAS CONTAINER */}
       <div className="bg-slate-950 rounded-3xl border border-slate-800 p-6 shadow-2xl overflow-auto relative min-h-[600px] scrollbar-thin">
+        {/* Zoom & Viewport Controls Overlay */}
+        <div className="sticky top-0 right-0 z-40 float-right flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 p-1.5 rounded-2xl shadow-2xl backdrop-blur-md mb-2">
+          <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.15, 2.5))} className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer" title="Zoom In">
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-mono font-bold text-indigo-400 px-1.5">{Math.round(zoomLevel * 100)}%</span>
+          <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.15, 0.4))} className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer" title="Zoom Out">
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <button onClick={() => setZoomLevel(1.0)} className="px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-xs font-bold cursor-pointer" title="Reset Zoom">
+            100%
+          </button>
+        </div>
         {isLoading ? (
           <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
             <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
@@ -626,6 +687,104 @@ export const LiveCampus2DMap: React.FC<LiveCampus2DMapProps> = ({ isAdminMode = 
               <div className="pt-3 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsAddCorridorOpen(false)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold">Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold">Save Corridor</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Floor Dimensions & Building Space (Admin) */}
+      {isEditDimensionsOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Customize Floor Building Space Size</h3>
+                <p className="text-xs text-slate-500">Configure physical meters & 2D canvas workspace size</p>
+              </div>
+              <button onClick={() => setIsEditDimensionsOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleDimensionsSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Floor Name / Wing</label>
+                <input
+                  type="text"
+                  value={dimForm.name}
+                  onChange={e => setDimForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold"
+                  placeholder="e.g. First Floor - CSE Wing"
+                  required
+                />
+              </div>
+
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-3">
+                <p className="font-bold text-indigo-700 dark:text-indigo-400 text-xs flex items-center gap-1.5">
+                  <Maximize2 className="w-4 h-4" /> Physical Floor Dimensions (Meters)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Width (Meters)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={dimForm.widthMeters}
+                      onChange={e => setDimForm(prev => ({ ...prev, widthMeters: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Length (Meters)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={dimForm.lengthMeters}
+                      onChange={e => setDimForm(prev => ({ ...prev, lengthMeters: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-100 dark:border-purple-900/50 space-y-3">
+                <p className="font-bold text-purple-700 dark:text-purple-400 text-xs flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" /> 2D Visualizer Canvas Space (Pixels)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Canvas Width (px)</label>
+                    <input
+                      type="number"
+                      value={dimForm.pixelWidth}
+                      onChange={e => setDimForm(prev => ({ ...prev, pixelWidth: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      placeholder="e.g. 1600"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Canvas Height (px)</label>
+                    <input
+                      type="number"
+                      value={dimForm.pixelHeight}
+                      onChange={e => setDimForm(prev => ({ ...prev, pixelHeight: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      placeholder="e.g. 1000"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2">
+                <button type="button" onClick={() => setIsEditDimensionsOpen(false)} className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300">Cancel</button>
+                <button type="submit" className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg shadow-purple-600/30">Save Dimensions</button>
               </div>
             </form>
           </div>

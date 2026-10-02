@@ -6,7 +6,8 @@ import {
   createBlockFloor,
   getLiveFloorOccupancy,
   addOrUpdateFloorRoom,
-  addOrUpdateFloorCorridor
+  addOrUpdateFloorCorridor,
+  updateFloorDimensions
 } from '../controllers/campusController.js';
 import { authenticateToken, authorizeRole } from '../middleware.js';
 
@@ -20,6 +21,7 @@ router.post('/blocks/:blockId/floors', authenticateToken, authorizeRole(['Admin'
 
 // --- 2D LIVE OCCUPANCY & BUILDER ROUTES ---
 router.get('/floors/:floorId/live-occupancy', authenticateToken, getLiveFloorOccupancy);
+router.put('/floors/:floorId/dimensions', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), updateFloorDimensions);
 router.post('/floors/:floorId/rooms', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), addOrUpdateFloorRoom);
 router.post('/floors/:floorId/corridors', authenticateToken, authorizeRole(['Admin', 'Registrar', 'HOD']), addOrUpdateFloorCorridor);
 
