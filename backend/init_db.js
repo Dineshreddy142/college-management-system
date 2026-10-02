@@ -2170,7 +2170,14 @@ export async function initializeDatabase() {
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS school_10th VARCHAR(150) NULL`);
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS board_10th VARCHAR(100) NULL`);
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS year_10th INT NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS photo_name VARCHAR(255) NULL`);
         await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS photo_data LONGTEXT NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_10th_name VARCHAR(255) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_10th_data LONGTEXT NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_12th_name VARCHAR(255) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_12th_data LONGTEXT NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_entrance_name VARCHAR(255) NULL`);
+        await pool.query(`ALTER TABLE applications ADD COLUMN IF NOT EXISTS proof_entrance_data LONGTEXT NULL`);
       } catch (alterErr) {
         // Ignored if MySQL version handles IF NOT EXISTS or column already present
       }
@@ -2180,7 +2187,7 @@ export async function initializeDatabase() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           application_id INT NOT NULL,
           document_name VARCHAR(150) NOT NULL,
-          file_path VARCHAR(255) NULL,
+          file_path LONGTEXT NULL,
           verification_status VARCHAR(50) DEFAULT 'Uploaded',
           verified_by VARCHAR(100) NULL,
           verification_date DATETIME NULL,
@@ -2190,6 +2197,12 @@ export async function initializeDatabase() {
           FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
         )
       `);
+
+      try {
+        await pool.query(`ALTER TABLE applicant_documents MODIFY COLUMN file_path LONGTEXT NULL`);
+      } catch (mErr) {
+        // Ignored if column already LONGTEXT
+      }
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS seat_allocations (

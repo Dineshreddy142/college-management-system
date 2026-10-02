@@ -200,6 +200,59 @@ export async function getApplicationById(req, res) {
       console.warn('[DOCS FETCH NOTICE]', dErr.message);
     }
 
+    // Auto-repair / backfill applicant_documents if empty or missing file_path data
+    if (!docs || docs.length === 0) {
+      const reqDocs = [
+        { name: 'Photograph', path: application.photo_data || application.photo_name || null },
+        { name: '10th Marksheet Proof', path: application.proof_10th_data || application.proof_10th_name || null },
+        { name: '12th Marksheet Proof', path: application.proof_12th_data || application.proof_12th_name || null },
+        { name: 'Identity Proof (Aadhaar / Passport)', path: null },
+        { name: 'Entrance Scorecard Proof', path: application.proof_entrance_data || (application.entrance_score ? `Score: ${application.entrance_score}` : null) }
+      ];
+
+      for (const doc of reqDocs) {
+        try {
+          const [insRes] = await pool.execute(
+            `INSERT INTO applicant_documents (application_id, document_name, file_path, verification_status) VALUES (?, ?, ?, ?)`,
+            [application.id, doc.name, doc.path, doc.path ? 'Uploaded' : 'Not Uploaded']
+          );
+          docs.push({
+            id: insRes.insertId,
+            application_id: application.id,
+            document_name: doc.name,
+            file_path: doc.path,
+            verification_status: doc.path ? 'Uploaded' : 'Not Uploaded'
+          });
+        } catch (insErr) {
+          console.warn('[DOC BACKFILL NOTICE]', insErr.message);
+        }
+      }
+    } else {
+      // Sync file_path from application columns if doc.file_path in applicant_documents is truncated or missing
+      for (const doc of docs) {
+        const nameLower = (doc.document_name || '').toLowerCase();
+        let updatedPath = null;
+        if (nameLower.includes('photo') && (!doc.file_path || !doc.file_path.startsWith('data:')) && application.photo_data) {
+          updatedPath = application.photo_data;
+        } else if (nameLower.includes('10th') && (!doc.file_path || !doc.file_path.startsWith('data:')) && application.proof_10th_data) {
+          updatedPath = application.proof_10th_data;
+        } else if (nameLower.includes('12th') && (!doc.file_path || !doc.file_path.startsWith('data:')) && application.proof_12th_data) {
+          updatedPath = application.proof_12th_data;
+        } else if (nameLower.includes('entrance') && (!doc.file_path || !doc.file_path.startsWith('data:')) && application.proof_entrance_data) {
+          updatedPath = application.proof_entrance_data;
+        }
+
+        if (updatedPath) {
+          doc.file_path = updatedPath;
+          try {
+            await pool.execute(`UPDATE applicant_documents SET file_path = ? WHERE id = ?`, [updatedPath, doc.id]);
+          } catch (uErr) {
+            // Ignored
+          }
+        }
+      }
+    }
+
     let seatAllocation = null;
     try {
       const [sRows] = await pool.execute(`SELECT * FROM seat_allocations WHERE application_id = ? ORDER BY id DESC LIMIT 1`, [application.id]);
@@ -352,13 +405,29 @@ export async function createApplication(req, res) {
       proof_entrance_data
     } = req.body;
 
-    // Update photo_data in applications table if provided
-    if (photo_data) {
-      try {
-        await pool.execute(`UPDATE applications SET photo_data = ? WHERE id = ?`, [photo_data, appId]);
-      } catch (pErr) {
-        // Ignored
-      }
+    // Update proof & photo columns in applications table if provided
+    try {
+      await pool.execute(
+        `UPDATE applications SET 
+          photo_name = COALESCE(?, photo_name),
+          photo_data = COALESCE(?, photo_data),
+          proof_10th_name = COALESCE(?, proof_10th_name),
+          proof_10th_data = COALESCE(?, proof_10th_data),
+          proof_12th_name = COALESCE(?, proof_12th_name),
+          proof_12th_data = COALESCE(?, proof_12th_data),
+          proof_entrance_name = COALESCE(?, proof_entrance_name),
+          proof_entrance_data = COALESCE(?, proof_entrance_data)
+        WHERE id = ?`,
+        [
+          photo_name || null, photo_data || null,
+          proof_10th_name || null, proof_10th_data || null,
+          proof_12th_name || null, proof_12th_data || null,
+          proof_entrance_name || null, proof_entrance_data || null,
+          appId
+        ]
+      );
+    } catch (pErr) {
+      console.warn('[PROOF DATA UPDATE NOTICE]', pErr.message);
     }
 
     const reqDocs = [
