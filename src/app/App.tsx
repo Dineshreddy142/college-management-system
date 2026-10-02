@@ -12,6 +12,7 @@ import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
 import { ChancellorDashboard } from "./chancellor/ChancellorDashboard";
 import { OfficeStaffDashboard } from "./officestaff/OfficeStaffDashboard";
+import { AdmissionOfficeDashboard } from "./admission/AdmissionOfficeDashboard";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { BuildingManagement } from "./admin/block-management/BuildingManagement";
 import { FloorManagement } from "./admin/block-management/FloorManagement";
@@ -1989,13 +1990,17 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
 
   const roleName = (user?.role || '').toLowerCase();
   const isChancellor = roleName.includes('chancellor');
-  const isOfficeStaff = roleName.includes('office') || roleName.includes('staff');
+  const isAdmissionOfficer = roleName.includes('admission');
+  const isOfficeStaff = !isAdmissionOfficer && (roleName.includes('office') || roleName.includes('staff'));
 
   const render = () => {
     switch (mod) {
       case "dashboard": 
         if (isChancellor) {
           return <ChancellorDashboard onNav={(m) => setMod(m)} theme={theme} toggleTheme={toggleTheme} />;
+        }
+        if (isAdmissionOfficer) {
+          return <AdmissionOfficeDashboard onNav={(m) => setMod(m)} theme={theme} toggleTheme={toggleTheme} />;
         }
         if (isOfficeStaff) {
           return <OfficeStaffDashboard onNav={(m) => setMod(m)} theme={theme} toggleTheme={toggleTheme} />;
@@ -2765,6 +2770,13 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/office/dashboard" element={<ProtectedRoute allowedRole="Office Staff"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/office/dashboard/*" element={<ProtectedRoute allowedRole="Office Staff"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/office" element={<Navigate to="/office/dashboard" replace />} />
+
+          <Route path="/admission/dashboard" element={<ProtectedRoute allowedRole="Admission Officer"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/admission/dashboard/*" element={<ProtectedRoute allowedRole="Admission Officer"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/admission" element={<Navigate to="/admission/dashboard" replace />} />
+          <Route path="/admissionofficer/dashboard" element={<ProtectedRoute allowedRole="Admission Officer"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/admissionofficer/dashboard/*" element={<ProtectedRoute allowedRole="Admission Officer"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
+          <Route path="/admissionofficer" element={<Navigate to="/admission/dashboard" replace />} />
 
           <Route path="/faculty/dashboard" element={<ProtectedRoute allowedRole="Faculty"><FacultyDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/faculty/dashboard/*" element={<ProtectedRoute allowedRole="Faculty"><FacultyDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />

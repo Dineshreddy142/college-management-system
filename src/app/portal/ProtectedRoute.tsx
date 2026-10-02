@@ -39,7 +39,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     const isOfficeMatch = (allowedRoleNorm.includes('office') || allowedRoleNorm.includes('staff')) &&
                           (userRoleNorm.includes('office') || userRoleNorm.includes('staff'));
 
-    if (!isAdmin && !isExact && !isSubMatch && !isOfficeMatch) {
+    const isAdmissionMatch = (allowedRoleNorm.includes('admission') && userRoleNorm.includes('admission'));
+
+    if (!isAdmin && !isExact && !isSubMatch && !isOfficeMatch && !isAdmissionMatch) {
       return <Navigate to="/access-denied" replace />;
     }
   }

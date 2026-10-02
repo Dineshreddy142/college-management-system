@@ -37,6 +37,7 @@ import examRoutes from './routes/examRoutes.js';
 import feeRoutes from './routes/feeRoutes.js';
 import libraryRoutes from './routes/libraryRoutes.js';
 import blockRoutes from './routes/blockRoutes.js';
+import admissionRoutes from './routes/admissionRoutes.js';
 import { initializeDatabase } from './init_db.js';
 import { getAnalyticsSummary } from './controllers/dashboardController.js';
 
@@ -123,6 +124,7 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/bulk', bulkUploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/chancellor', chancellorRoutes);
+app.use('/api/admission', admissionRoutes);
 
 // --- DASHBOARD ANALYTICS & AUDIT LOGS ---
 app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), getAnalyticsSummary);

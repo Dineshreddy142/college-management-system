@@ -82,7 +82,9 @@ export const ForcePasswordChange: React.FC = () => {
           principal: 'admin',
           office: 'officestaff',
           officestaff: 'officestaff',
-          staff: 'officestaff'
+          staff: 'officestaff',
+          admission: 'admission',
+          admissionofficer: 'admission'
         };
         const dest = roleMap[userRole] || 'student';
 

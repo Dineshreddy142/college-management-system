@@ -31,6 +31,7 @@ const roleConfig: Record<string, { title: string, field: string, placeholder: st
   placement: { title: 'Placement Login', field: 'Email or Employee ID', placeholder: 'Enter placement officer email', icon: '🏢', badge: 'Placement Portal' },
   principal: { title: 'Principal Login', field: 'Email or Employee ID', placeholder: 'Enter principal email', icon: '👔', badge: 'Principal Portal' },
   office: { title: 'Office Staff Login', field: 'Email or Employee ID', placeholder: 'Enter office staff email', icon: '💼', badge: 'Office Portal' },
+  admission: { title: 'Admission Officer Login', field: 'Email or Officer ID', placeholder: 'Enter admission officer email', icon: '📝', badge: 'Admission Portal' },
 };
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
@@ -142,7 +143,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
       principal: 'admin',
       office: 'officestaff',
       officestaff: 'officestaff',
-      staff: 'officestaff'
+      staff: 'officestaff',
+      admission: 'admission',
+      admissionofficer: 'admission'
     };
     const dest = roleMap[rawRole] || 'student';
     navigate(`/${dest}/dashboard`);

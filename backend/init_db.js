@@ -2086,6 +2086,163 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Chancellor & Mentor tables setup warning:', mentorDbErr.message);
     }
 
+    // --- ADMISSION OFFICE MODULE TABLES ---
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_courses (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          course_code VARCHAR(20) NOT NULL UNIQUE,
+          course_name VARCHAR(150) NOT NULL,
+          degree_type VARCHAR(50) DEFAULT 'B.Tech',
+          department_name VARCHAR(150) NOT NULL,
+          duration_years INT DEFAULT 4,
+          total_seats INT DEFAULT 120,
+          allocated_seats INT DEFAULT 0,
+          available_seats INT DEFAULT 120,
+          min_12th_percentage DECIMAL(5,2) DEFAULT 60.00,
+          annual_fee DECIMAL(10,2) DEFAULT 125000.00,
+          status ENUM('Active', 'Closed', 'Upcoming') DEFAULT 'Active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS applications (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_number VARCHAR(50) NOT NULL UNIQUE,
+          applicant_name VARCHAR(150) NOT NULL,
+          first_name VARCHAR(75) NULL,
+          last_name VARCHAR(75) NULL,
+          dob DATE NULL,
+          gender VARCHAR(20) NULL,
+          mobile VARCHAR(25) NOT NULL,
+          email VARCHAR(100) NOT NULL,
+          address TEXT NULL,
+          city VARCHAR(100) NULL,
+          state VARCHAR(100) NULL,
+          country VARCHAR(100) DEFAULT 'India',
+          postal_code VARCHAR(20) NULL,
+          parent_name VARCHAR(150) NULL,
+          parent_relation VARCHAR(50) DEFAULT 'Parent',
+          parent_mobile VARCHAR(25) NULL,
+          parent_email VARCHAR(100) NULL,
+          parent_occupation VARCHAR(100) NULL,
+          parent_address TEXT NULL,
+          school_10th VARCHAR(150) NULL,
+          board_10th VARCHAR(100) NULL,
+          year_10th INT NULL,
+          percentage_10th DECIMAL(5,2) NULL,
+          school_12th VARCHAR(150) NULL,
+          board_12th VARCHAR(100) NULL,
+          year_12th INT NULL,
+          percentage_12th DECIMAL(5,2) NULL,
+          diploma_details TEXT NULL,
+          entrance_exam VARCHAR(100) NULL,
+          entrance_rank VARCHAR(50) NULL,
+          entrance_score DECIMAL(6,2) NULL,
+          course_id INT NULL,
+          course_name VARCHAR(150) NULL,
+          department_name VARCHAR(150) NULL,
+          admission_category VARCHAR(50) DEFAULT 'General',
+          admission_type VARCHAR(50) DEFAULT 'Regular',
+          application_status VARCHAR(50) DEFAULT 'Draft',
+          document_status VARCHAR(50) DEFAULT 'Pending',
+          eligibility_status VARCHAR(50) DEFAULT 'Pending',
+          fee_status VARCHAR(50) DEFAULT 'Pending',
+          fee_amount DECIMAL(10,2) DEFAULT 125000.00,
+          paid_amount DECIMAL(10,2) DEFAULT 0.00,
+          remarks TEXT NULL,
+          allocated_seat_number VARCHAR(50) NULL,
+          enrolled_student_id VARCHAR(50) NULL,
+          enrollment_date DATETIME NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_app_email (email),
+          INDEX idx_app_mobile (mobile),
+          INDEX idx_app_status (application_status)
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS applicant_documents (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL,
+          document_name VARCHAR(150) NOT NULL,
+          file_path VARCHAR(255) NULL,
+          verification_status VARCHAR(50) DEFAULT 'Uploaded',
+          verified_by VARCHAR(100) NULL,
+          verification_date DATETIME NULL,
+          remarks TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS seat_allocations (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL,
+          course_id INT NULL,
+          course_name VARCHAR(150) NOT NULL,
+          department_name VARCHAR(150) NOT NULL,
+          seat_number VARCHAR(50) NOT NULL,
+          category VARCHAR(50) DEFAULT 'General',
+          allocated_by VARCHAR(100) NOT NULL,
+          allocation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_fee_payments (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL,
+          applicant_name VARCHAR(150) NOT NULL,
+          course_name VARCHAR(150) NOT NULL,
+          receipt_number VARCHAR(50) NOT NULL UNIQUE,
+          transaction_id VARCHAR(100) NOT NULL UNIQUE,
+          amount DECIMAL(10,2) NOT NULL,
+          payment_method VARCHAR(50) DEFAULT 'Cash Counter',
+          payment_status VARCHAR(50) DEFAULT 'Paid',
+          payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_by VARCHAR(100) NULL,
+          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_history (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL,
+          action VARCHAR(150) NOT NULL,
+          previous_status VARCHAR(50) NULL,
+          new_status VARCHAR(50) NULL,
+          performed_by VARCHAR(100) NOT NULL,
+          remarks TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Seed default courses if empty
+      const [existingCourses] = await pool.query('SELECT COUNT(*) as count FROM admission_courses');
+      if (existingCourses[0].count === 0) {
+        await pool.query(`
+          INSERT INTO admission_courses (course_code, course_name, degree_type, department_name, duration_years, total_seats, available_seats, min_12th_percentage, annual_fee) VALUES
+          ('BTECH-CSE', 'B.Tech Computer Science & Engineering', 'B.Tech', 'Computer Science & Engineering', 4, 120, 115, 60.00, 125000.00),
+          ('BTECH-ECE', 'B.Tech Electronics & Communication', 'B.Tech', 'Electronics & Communication', 4, 90, 88, 55.00, 115000.00),
+          ('BTECH-ME', 'B.Tech Mechanical Engineering', 'B.Tech', 'Mechanical Engineering', 4, 60, 58, 50.00, 105000.00),
+          ('BTECH-CE', 'B.Tech Civil Engineering', 'B.Tech', 'Civil Engineering', 4, 60, 60, 50.00, 100000.00),
+          ('MTECH-CS', 'M.Tech Software Engineering', 'M.Tech', 'Computer Science & Engineering', 2, 30, 28, 65.00, 150000.00),
+          ('MBA-FIN', 'Master of Business Administration (Finance)', 'MBA', 'Management Studies', 2, 60, 55, 55.00, 180000.00)
+        `);
+      }
+    } catch (admTablesErr) {
+      console.warn('[DATABASE INIT] Admission tables setup notice:', admTablesErr.message);
+    }
+
     // --- SEED ESSENTIAL ROLES & PERMANENT ADMIN ---
     const roles = [
       'Admin',
@@ -2102,7 +2259,8 @@ export async function initializeDatabase() {
       'Accountant',
       'Librarian',
       'Placement Officer',
-      'Office Staff'
+      'Office Staff',
+      'Admission Officer'
     ];
 
     for (const r of roles) {
