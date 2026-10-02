@@ -86,8 +86,48 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
     courseName: "B.Tech Computer Science & Engineering",
     departmentName: "Computer Science & Engineering",
     admissionCategory: "General",
-    admissionType: "Regular"
+    admissionType: "Regular",
+    proof10thName: "",
+    proof10thData: "",
+    proof12thName: "",
+    proof12thData: ""
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'proof10th' | 'proof12th') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = reader.result as string;
+      if (fieldName === 'proof10th') {
+        setNewAppForm(prev => ({ ...prev, proof10thName: file.name, proof10thData: base64Data }));
+      } else {
+        setNewAppForm(prev => ({ ...prev, proof12thName: file.name, proof12thData: base64Data }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const MASTER_COURSES = [
+    "B.Tech Computer Science & Engineering",
+    "B.Tech Electronics & Communication",
+    "B.Tech Mechanical Engineering",
+    "B.Tech Electrical & Electronics Engineering",
+    "B.Tech Civil Engineering",
+    "B.Tech Artificial Intelligence & Data Science",
+    "B.Sc Computer Science",
+    "B.Sc Data Science",
+    "BBA Business Analytics",
+    "B.Com Honors",
+    "MBA International Business",
+    "M.Tech Computer Science",
+    "MCA Software Systems"
+  ];
+
+  const availableCourses = Array.from(new Set([
+    ...courses.map((c: any) => c.course_name),
+    ...MASTER_COURSES
+  ]));
 
   // Action Modals State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -182,7 +222,11 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
         course_name: newAppForm.courseName,
         department_name: newAppForm.departmentName,
         admission_category: newAppForm.admissionCategory,
-        admission_type: newAppForm.admissionType
+        admission_type: newAppForm.admissionType,
+        proof_10th_name: newAppForm.proof10thName,
+        proof_10th_data: newAppForm.proof10thData,
+        proof_12th_name: newAppForm.proof12thName,
+        proof_12th_data: newAppForm.proof12thData
       });
 
       if (res.data?.success) {
@@ -1127,26 +1171,78 @@ export function AdmissionOfficeDashboard({ onNav, theme, toggleTheme }: Admissio
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Applied Course</label>
-                  <select
-                    value={newAppForm.courseName}
-                    onChange={(e) => setNewAppForm(prev => ({ ...prev, courseName: e.target.value }))}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
-                  >
-                    {courses.map(c => <option key={c.id} value={c.course_name}>{c.course_name}</option>)}
-                  </select>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Applied Course *</label>
+                <select
+                  value={newAppForm.courseName}
+                  onChange={(e) => setNewAppForm(prev => ({ ...prev, courseName: e.target.value }))}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {availableCourses.map((c, idx) => (
+                    <option key={idx} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">10th Grade Record</label>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Percentage (%) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={newAppForm.percentage10th}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage10th: e.target.value }))}
+                      placeholder="e.g. 88.5"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">10th Marksheet Proof</label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileUpload(e, 'proof10th')}
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-700 dark:file:text-blue-300"
+                    />
+                    {newAppForm.proof10thName && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Attached: {newAppForm.proof10thName}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">12th Percentage (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={newAppForm.percentage12th}
-                    onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage12th: e.target.value }))}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
-                  />
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">12th Grade Record</label>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Percentage (%) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={newAppForm.percentage12th}
+                      onChange={(e) => setNewAppForm(prev => ({ ...prev, percentage12th: e.target.value }))}
+                      placeholder="e.g. 91.2"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border text-xs font-semibold text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">12th Marksheet Proof</label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileUpload(e, 'proof12th')}
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 dark:file:bg-slate-700 dark:file:text-blue-300"
+                    />
+                    {newAppForm.proof12thName && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Attached: {newAppForm.proof12thName}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 

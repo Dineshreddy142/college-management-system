@@ -313,20 +313,30 @@ export async function createApplication(req, res) {
 
     const appId = result.insertId;
 
-    // Seed required default documents for verification
+    // Seed required default documents for verification with proof file paths if uploaded
+    const {
+      proof_10th_name,
+      proof_10th_data,
+      proof_12th_name,
+      proof_12th_data,
+      proof_entrance_name,
+      proof_entrance_data
+    } = req.body;
+
     const reqDocs = [
-      'Photograph',
-      'Identity Proof (Aadhaar / Passport)',
-      '10th Marksheet',
-      '12th Marksheet',
-      'Transfer Certificate (TC)',
-      'Conduct Certificate'
+      { name: 'Photograph', path: null },
+      { name: 'Identity Proof (Aadhaar / Passport)', path: null },
+      { name: '10th Marksheet Proof', path: proof_10th_name || (proof_10th_data ? 'Uploaded Marksheet Proof' : null) },
+      { name: '12th Marksheet Proof', path: proof_12th_name || (proof_12th_data ? 'Uploaded Marksheet Proof' : null) },
+      { name: 'Entrance Scorecard Proof', path: proof_entrance_name || (proof_entrance_data ? 'Uploaded Scorecard Proof' : null) },
+      { name: 'Transfer Certificate (TC)', path: null },
+      { name: 'Conduct Certificate', path: null }
     ];
 
-    for (const docName of reqDocs) {
+    for (const doc of reqDocs) {
       await pool.execute(
-        `INSERT INTO applicant_documents (application_id, document_name, verification_status) VALUES (?, ?, 'Uploaded')`,
-        [appId, docName]
+        `INSERT INTO applicant_documents (application_id, document_name, file_path, verification_status) VALUES (?, ?, ?, ?)`,
+        [appId, doc.name, doc.path, doc.path ? 'Uploaded' : 'Not Uploaded']
       );
     }
 
