@@ -6,6 +6,7 @@ import {
   createApplication,
   updateApplicationStatus,
   verifyDocument,
+  uploadDocumentFile,
   verifyEligibility,
   allocateSeat,
   recordPayment,
@@ -27,6 +28,7 @@ router.get('/applications/:id', authenticateToken, authorizeRole(allowedRoles), 
 router.put('/applications/:id/status', authenticateToken, authorizeRole(allowedRoles), updateApplicationStatus);
 
 router.post('/documents/:docId/verify', authenticateToken, authorizeRole(allowedRoles), verifyDocument);
+router.post('/documents/:docId/upload', authenticateToken, authorizeRole(allowedRoles), uploadDocumentFile);
 router.post('/applications/:id/verify-eligibility', authenticateToken, authorizeRole(allowedRoles), verifyEligibility);
 router.post('/applications/:id/allocate-seat', authenticateToken, authorizeRole(allowedRoles), allocateSeat);
 router.post('/applications/:id/record-payment', authenticateToken, authorizeRole(allowedRoles), recordPayment);

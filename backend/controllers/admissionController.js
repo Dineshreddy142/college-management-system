@@ -586,6 +586,66 @@ export async function verifyDocument(req, res) {
 }
 
 /**
+ * POST /api/admission/documents/:docId/upload
+ * Allows officer to upload/replace real PDF file for an applicant document
+ */
+export async function uploadDocumentFile(req, res) {
+  try {
+    const { docId } = req.params;
+    const { file_path } = req.body;
+
+    if (!file_path) {
+      return res.status(400).json({ success: false, message: 'File data is required' });
+    }
+
+    const officerName = req.user?.full_name || req.user?.username || 'Admission Officer';
+
+    const [docRows] = await pool.execute(`SELECT * FROM applicant_documents WHERE id = ?`, [docId]);
+    if (docRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Document record not found' });
+    }
+
+    const doc = docRows[0];
+
+    await pool.execute(
+      `UPDATE applicant_documents 
+       SET file_path = ?, verification_status = 'Uploaded', verified_by = ?, verification_date = NOW(), remarks = 'Real PDF Document file attached'
+       WHERE id = ?`,
+      [file_path, officerName, docId]
+    );
+
+    // Sync corresponding column in applications table
+    const docNameLower = (doc.document_name || '').toLowerCase();
+    if (docNameLower.includes('photo')) {
+      await pool.execute(`UPDATE applications SET photo_data = ? WHERE id = ?`, [file_path, doc.application_id]);
+    } else if (docNameLower.includes('10th')) {
+      await pool.execute(`UPDATE applications SET proof_10th_data = ? WHERE id = ?`, [file_path, doc.application_id]);
+    } else if (docNameLower.includes('12th')) {
+      await pool.execute(`UPDATE applications SET proof_12th_data = ? WHERE id = ?`, [file_path, doc.application_id]);
+    } else if (docNameLower.includes('entrance')) {
+      await pool.execute(`UPDATE applications SET proof_entrance_data = ? WHERE id = ?`, [file_path, doc.application_id]);
+    }
+
+    await logAdmissionHistory(
+      doc.application_id,
+      `Document "${doc.document_name}" File Uploaded`,
+      doc.verification_status,
+      'Uploaded',
+      officerName,
+      'Real PDF Document uploaded & saved to record'
+    );
+
+    return res.json({
+      success: true,
+      message: `PDF document file for "${doc.document_name}" uploaded & saved successfully!`
+    });
+  } catch (error) {
+    console.error('[UPLOAD DOC FILE ERROR]', error);
+    return res.status(500).json({ success: false, message: 'Failed to upload document file' });
+  }
+}
+
+/**
  * POST /api/admission/applications/:id/verify-eligibility
  */
 export async function verifyEligibility(req, res) {
