@@ -981,6 +981,59 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 12.m CBCS Choice Registration Windows Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cbcs_registration_windows (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        academic_year_id INT NOT NULL DEFAULT 1,
+        semester_id INT NOT NULL,
+        regulation_id INT NOT NULL DEFAULT 1,
+        department_id INT NULL,
+        start_datetime DATETIME NOT NULL,
+        end_datetime DATETIME NOT NULL,
+        min_credits DECIMAL(4,1) DEFAULT 16.0,
+        max_credits DECIMAL(4,1) DEFAULT 26.0,
+        status ENUM('DRAFT', 'OPEN', 'ALLOCATION_PROCESSED', 'CLOSED') DEFAULT 'OPEN',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 12.n Student CBCS Elective Ranked Preferences Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_cbcs_preferences (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        window_id INT NOT NULL,
+        student_id INT NOT NULL,
+        elective_group VARCHAR(50) NOT NULL DEFAULT 'PE-1',
+        offering_id INT NOT NULL,
+        preference_rank INT NOT NULL,
+        status ENUM('PENDING', 'ALLOCATED', 'REJECTED_FULL', 'REJECTED_PREREQ') DEFAULT 'PENDING',
+        allocated_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_st_win_grp_rank (window_id, student_id, elective_group, preference_rank),
+        UNIQUE KEY uq_st_win_offering (window_id, student_id, offering_id)
+      )
+    `);
+
+    // 12.o CBCS Automated Allocation Execution Logs Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cbcs_allocation_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        window_id INT NOT NULL,
+        total_students_processed INT DEFAULT 0,
+        total_allocated INT DEFAULT 0,
+        total_unallocated INT DEFAULT 0,
+        preference_1_count INT DEFAULT 0,
+        preference_2_count INT DEFAULT 0,
+        preference_3_plus_count INT DEFAULT 0,
+        executed_by INT NULL,
+        execution_details JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // 13. Attendance header table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance (
