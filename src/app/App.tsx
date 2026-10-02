@@ -13,6 +13,7 @@ import { ParentDashboard } from "./parent/ParentDashboard";
 import { ChancellorDashboard } from "./chancellor/ChancellorDashboard";
 import { OfficeStaffDashboard } from "./officestaff/OfficeStaffDashboard";
 import { AdmissionOfficeDashboard } from "./admission/AdmissionOfficeDashboard";
+import { PublicAdmissionPortal } from "./admission/PublicAdmissionPortal";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 import { BuildingManagement } from "./admin/block-management/BuildingManagement";
 import { FloorManagement } from "./admin/block-management/FloorManagement";
@@ -2717,6 +2718,11 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/:role/change-email" element={<UpdateEmail />} />
           <Route path="/access-denied" element={<AccessDenied />} />
           <Route path="/force-change-password" element={<ProtectedRoute><ForcePasswordChange /></ProtectedRoute>} />
+          
+          {/* Public Candidate Admission Routes */}
+          <Route path="/apply" element={<PublicAdmissionPortal />} />
+          <Route path="/admission-apply" element={<PublicAdmissionPortal />} />
+          <Route path="/apply/status" element={<PublicAdmissionPortal />} />
           
           {/* Protected Dashboards */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
