@@ -228,6 +228,7 @@ export const createCurriculum = async (req, res) => {
 
 // POST /api/curriculums/:id/subjects (Map Subject to Curriculum)
 export const addSubjectToCurriculum = async (req, res) => {
+  let conn;
   try {
     const { id } = req.params;
     const { subject_id, is_compulsory, is_elective, is_lab, elective_group, credits } = req.body;
@@ -236,15 +237,20 @@ export const addSubjectToCurriculum = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Subject ID is required.' });
     }
 
-    // Verify curriculum exists
-    const [currRows] = await pool.query('SELECT id FROM curriculums WHERE id = ?', [id]);
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Verify curriculum exists with FOR UPDATE lock inside transaction boundary
+    const [currRows] = await conn.query('SELECT id FROM curriculums WHERE id = ? FOR UPDATE', [id]);
     if (currRows.length === 0) {
+      await conn.rollback();
       return res.status(404).json({ success: false, message: 'Curriculum record not found' });
     }
 
     // Verify subject exists
-    const [subjRows] = await pool.query('SELECT id, credits, offering_type, category_id FROM subjects WHERE id = ?', [subject_id]);
+    const [subjRows] = await conn.query('SELECT id, credits, offering_type, category_id FROM subjects WHERE id = ?', [subject_id]);
     if (subjRows.length === 0) {
+      await conn.rollback();
       return res.status(404).json({ success: false, message: 'Subject record not found' });
     }
 
@@ -254,8 +260,8 @@ export const addSubjectToCurriculum = async (req, res) => {
     const autoIsElective = is_elective !== undefined ? (is_elective ? 1 : 0) : 0;
     const autoIsCompulsory = is_compulsory !== undefined ? (is_compulsory ? 1 : 0) : (autoIsElective ? 0 : 1);
 
-    // Insert or update mapping
-    await pool.query(`
+    // Insert or update mapping atomically
+    await conn.query(`
       INSERT INTO curriculum_subjects (curriculum_id, subject_id, is_compulsory, is_elective, is_lab, elective_group, credits, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'Active')
       ON DUPLICATE KEY UPDATE
@@ -267,16 +273,18 @@ export const addSubjectToCurriculum = async (req, res) => {
         status = 'Active'
     `, [id, subject_id, autoIsCompulsory, autoIsElective, autoIsLab, elective_group || null, effectiveCredits]);
 
-    // Recalculate totals on curriculums table
-    const [totals] = await pool.query(
+    // Recalculate totals on curriculums table using the same transaction connection
+    const [totals] = await conn.query(
       'SELECT COUNT(*) as count, COALESCE(SUM(credits), 0) as sum FROM curriculum_subjects WHERE curriculum_id = ? AND status = "Active"',
       [id]
     );
 
-    await pool.query(
+    await conn.query(
       'UPDATE curriculums SET total_subjects = ?, total_credits = ? WHERE id = ?',
       [totals[0].count, totals[0].sum, id]
     );
+
+    await conn.commit();
 
     res.json({
       success: true,
@@ -284,33 +292,56 @@ export const addSubjectToCurriculum = async (req, res) => {
       data: { curriculum_id: id, subject_id, total_subjects: totals[0].count, total_credits: totals[0].sum }
     });
   } catch (error) {
+    if (conn) {
+      try { await conn.rollback(); } catch (rbErr) {}
+    }
     console.error('Error adding subject to curriculum:', error);
     res.status(500).json({ success: false, message: 'Failed to map subject to curriculum', error: error.message });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 // DELETE /api/curriculums/:id/subjects/:subjectId (Unmap Subject)
 export const removeSubjectFromCurriculum = async (req, res) => {
+  let conn;
   try {
     const { id, subjectId } = req.params;
 
-    await pool.query('DELETE FROM curriculum_subjects WHERE curriculum_id = ? AND subject_id = ?', [id, subjectId]);
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
 
-    // Recalculate totals
-    const [totals] = await pool.query(
+    // Verify curriculum exists with FOR UPDATE lock inside transaction boundary
+    const [currRows] = await conn.query('SELECT id FROM curriculums WHERE id = ? FOR UPDATE', [id]);
+    if (currRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: 'Curriculum record not found' });
+    }
+
+    await conn.query('DELETE FROM curriculum_subjects WHERE curriculum_id = ? AND subject_id = ?', [id, subjectId]);
+
+    // Recalculate totals using the same transaction connection
+    const [totals] = await conn.query(
       'SELECT COUNT(*) as count, COALESCE(SUM(credits), 0) as sum FROM curriculum_subjects WHERE curriculum_id = ? AND status = "Active"',
       [id]
     );
 
-    await pool.query(
+    await conn.query(
       'UPDATE curriculums SET total_subjects = ?, total_credits = ? WHERE id = ?',
       [totals[0].count, totals[0].sum, id]
     );
 
+    await conn.commit();
+
     res.json({ success: true, message: 'Subject unmapped from curriculum successfully' });
   } catch (error) {
+    if (conn) {
+      try { await conn.rollback(); } catch (rbErr) {}
+    }
     console.error('Error removing subject from curriculum:', error);
     res.status(500).json({ success: false, message: 'Failed to unmap subject from curriculum', error: error.message });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
