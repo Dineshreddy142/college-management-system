@@ -16,11 +16,21 @@ export const getRegulations = async (req, res) => {
 // POST /api/regulations
 export const createRegulation = async (req, res) => {
   try {
-    const { name, effective_year, description, status } = req.body;
+    const { name, effective_year, description, status, improvement_policy, cgpa_calculation_rule } = req.body;
 
     if (!name || !effective_year) {
       return res.status(400).json({ success: false, message: 'Regulation Name and Effective Year are required.' });
     }
+
+    const validImprovementPolicies = ['BEST_GRADE', 'LATEST_GRADE'];
+    const validCgpaRules = ['BEST_ATTEMPT_ONLY', 'ALL_ATTEMPTS'];
+
+    const effImprovementPolicy = improvement_policy && validImprovementPolicies.includes(improvement_policy)
+      ? improvement_policy
+      : 'BEST_GRADE';
+    const effCgpaRule = cgpa_calculation_rule && validCgpaRules.includes(cgpa_calculation_rule)
+      ? cgpa_calculation_rule
+      : 'BEST_ATTEMPT_ONLY';
 
     const cleanName = name.trim().toUpperCase();
 
@@ -30,14 +40,28 @@ export const createRegulation = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      'INSERT INTO regulations (name, effective_year, description, status) VALUES (?, ?, ?, ?)',
-      [cleanName, parseInt(effective_year), description ? description.trim() : null, status || 'Active']
+      `INSERT INTO regulations (name, effective_year, description, status, improvement_policy, cgpa_calculation_rule)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        cleanName,
+        parseInt(effective_year),
+        description ? description.trim() : null,
+        status || 'Active',
+        effImprovementPolicy,
+        effCgpaRule
+      ]
     );
 
     res.status(201).json({
       success: true,
       message: 'Regulation created successfully',
-      data: { id: result.insertId, name: cleanName, effective_year }
+      data: {
+        id: result.insertId,
+        name: cleanName,
+        effective_year,
+        improvement_policy: effImprovementPolicy,
+        cgpa_calculation_rule: effCgpaRule
+      }
     });
   } catch (error) {
     console.error('Error creating regulation:', error);
@@ -49,11 +73,36 @@ export const createRegulation = async (req, res) => {
 export const updateRegulation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, effective_year, description, status } = req.body;
+    const { name, effective_year, description, status, improvement_policy, cgpa_calculation_rule } = req.body;
+
+    const validImprovementPolicies = ['BEST_GRADE', 'LATEST_GRADE'];
+    const validCgpaRules = ['BEST_ATTEMPT_ONLY', 'ALL_ATTEMPTS'];
+
+    const effImprovementPolicy = improvement_policy && validImprovementPolicies.includes(improvement_policy)
+      ? improvement_policy
+      : null;
+    const effCgpaRule = cgpa_calculation_rule && validCgpaRules.includes(cgpa_calculation_rule)
+      ? cgpa_calculation_rule
+      : null;
 
     await pool.query(
-      'UPDATE regulations SET name = COALESCE(?, name), effective_year = COALESCE(?, effective_year), description = ?, status = COALESCE(?, status) WHERE id = ?',
-      [name ? name.trim().toUpperCase() : null, effective_year ? parseInt(effective_year) : null, description ? description.trim() : null, status, id]
+      `UPDATE regulations
+       SET name = COALESCE(?, name),
+           effective_year = COALESCE(?, effective_year),
+           description = ?,
+           status = COALESCE(?, status),
+           improvement_policy = COALESCE(?, improvement_policy),
+           cgpa_calculation_rule = COALESCE(?, cgpa_calculation_rule)
+       WHERE id = ?`,
+      [
+        name ? name.trim().toUpperCase() : null,
+        effective_year ? parseInt(effective_year) : null,
+        description ? description.trim() : null,
+        status,
+        effImprovementPolicy,
+        effCgpaRule,
+        id
+      ]
     );
 
     res.json({ success: true, message: 'Regulation updated successfully' });

@@ -7,6 +7,8 @@ export interface RegulationItem {
   effective_year: number;
   description?: string;
   status: 'Active' | 'Inactive';
+  improvement_policy?: 'BEST_GRADE' | 'LATEST_GRADE';
+  cgpa_calculation_rule?: 'BEST_ATTEMPT_ONLY' | 'ALL_ATTEMPTS';
 }
 
 interface RegulationListProps {

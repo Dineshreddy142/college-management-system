@@ -21,6 +21,8 @@ export const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
   const [effectiveYear, setEffectiveYear] = useState<number>(new Date().getFullYear());
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
+  const [improvementPolicy, setImprovementPolicy] = useState<'BEST_GRADE' | 'LATEST_GRADE'>('BEST_GRADE');
+  const [cgpaCalculationRule, setCgpaCalculationRule] = useState<'BEST_ATTEMPT_ONLY' | 'ALL_ATTEMPTS'>('BEST_ATTEMPT_ONLY');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,11 +33,15 @@ export const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
       setEffectiveYear(regulation.effective_year || new Date().getFullYear());
       setDescription(regulation.description || '');
       setStatus(regulation.status || 'Active');
+      setImprovementPolicy(regulation.improvement_policy || 'BEST_GRADE');
+      setCgpaCalculationRule(regulation.cgpa_calculation_rule || 'BEST_ATTEMPT_ONLY');
     } else {
       setName('');
       setEffectiveYear(new Date().getFullYear());
       setDescription('');
       setStatus('Active');
+      setImprovementPolicy('BEST_GRADE');
+      setCgpaCalculationRule('BEST_ATTEMPT_ONLY');
     }
     setError('');
   }, [regulation, isOpen]);
@@ -57,7 +63,9 @@ export const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
         name: name.trim().toUpperCase(),
         effective_year: Number(effectiveYear) || new Date().getFullYear(),
         description: description.trim(),
-        status
+        status,
+        improvement_policy: improvementPolicy,
+        cgpa_calculation_rule: cgpaCalculationRule
       });
       onClose();
     } catch (err: any) {
@@ -133,6 +141,36 @@ export const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
               placeholder="Enter curriculum model notes (e.g. Outcome Based Education Model)..."
               className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Improvement Policy
+              </label>
+              <select
+                value={improvementPolicy}
+                onChange={(e) => setImprovementPolicy(e.target.value as 'BEST_GRADE' | 'LATEST_GRADE')}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="BEST_GRADE">Best Grade</option>
+                <option value="LATEST_GRADE">Latest Grade</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                CGPA Rule
+              </label>
+              <select
+                value={cgpaCalculationRule}
+                onChange={(e) => setCgpaCalculationRule(e.target.value as 'BEST_ATTEMPT_ONLY' | 'ALL_ATTEMPTS')}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="BEST_ATTEMPT_ONLY">Best Attempt Only</option>
+                <option value="ALL_ATTEMPTS">All Attempts Included</option>
+              </select>
+            </div>
           </div>
 
           <div>
