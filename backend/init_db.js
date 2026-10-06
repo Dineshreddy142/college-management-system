@@ -87,6 +87,26 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 3c. System settings table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed default system settings if empty
+    await pool.query(`
+      INSERT INTO system_settings (setting_key, setting_value)
+      VALUES 
+        ('system_name', 'College Management System'),
+        ('academic_year', '2025-2026'),
+        ('current_semester', 'Even'),
+        ('maintenance_mode', 'false')
+      ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    `);
+
     // 4. Failed login attempts table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS failed_login_attempts (

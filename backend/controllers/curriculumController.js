@@ -122,7 +122,7 @@ export const getCurriculums = async (req, res) => {
       params.push(status);
     }
 
-    query += ` GROUP BY c.id ORDER BY c.id DESC`;
+    query += ` GROUP BY c.id, d.name, d.code, crs.name, r.name, r.effective_year, sem.name, sem.semester_number, ay.name, ay.year_level ORDER BY c.id DESC`;
 
     const [rows] = await pool.query(query, params);
     res.json({ success: true, count: rows.length, data: rows });
