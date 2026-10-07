@@ -2335,32 +2335,193 @@ export async function initializeDatabase() {
       }
 
       await pool.query(`
-        CREATE TABLE IF NOT EXISTS admission_history (
+        CREATE TABLE IF NOT EXISTS admission_merit_weights (
           id INT AUTO_INCREMENT PRIMARY KEY,
-          application_id INT NOT NULL,
-          action VARCHAR(150) NOT NULL,
-          previous_status VARCHAR(50) NULL,
-          new_status VARCHAR(50) NULL,
-          performed_by VARCHAR(100) NOT NULL,
-          remarks TEXT NULL,
+          program_id INT NULL,
+          academic_weight DECIMAL(5,2) DEFAULT 60.00,
+          entrance_weight DECIMAL(5,2) DEFAULT 30.00,
+          interview_weight DECIMAL(5,2) DEFAULT 10.00,
+          updated_by_user_id INT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `);
 
-      // Seed default courses if empty
-      const [existingCourses] = await pool.query('SELECT COUNT(*) as count FROM admission_courses');
-      if (existingCourses[0].count === 0) {
-        await pool.query(`
-          INSERT INTO admission_courses (course_code, course_name, degree_type, department_name, duration_years, total_seats, available_seats, min_12th_percentage, annual_fee) VALUES
-          ('BTECH-CSE', 'B.Tech Computer Science & Engineering', 'B.Tech', 'Computer Science & Engineering', 4, 120, 115, 60.00, 125000.00),
-          ('BTECH-ECE', 'B.Tech Electronics & Communication', 'B.Tech', 'Electronics & Communication', 4, 90, 88, 55.00, 115000.00),
-          ('BTECH-ME', 'B.Tech Mechanical Engineering', 'B.Tech', 'Mechanical Engineering', 4, 60, 58, 50.00, 105000.00),
-          ('BTECH-CE', 'B.Tech Civil Engineering', 'B.Tech', 'Civil Engineering', 4, 60, 60, 50.00, 100000.00),
-          ('MTECH-CS', 'M.Tech Software Engineering', 'M.Tech', 'Computer Science & Engineering', 2, 30, 28, 65.00, 150000.00),
-          ('MBA-FIN', 'Master of Business Administration (Finance)', 'MBA', 'Management Studies', 2, 60, 55, 55.00, 180000.00)
-        `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_merit_rankings (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL UNIQUE,
+          cycle_id INT NULL,
+          program_id INT NULL,
+          academic_score DECIMAL(6,2) DEFAULT 0.00,
+          entrance_score DECIMAL(6,2) DEFAULT 0.00,
+          interview_score DECIMAL(6,2) DEFAULT 0.00,
+          final_score DECIMAL(6,2) DEFAULT 0.00,
+          overall_rank INT DEFAULT 0,
+          program_rank INT DEFAULT 0,
+          category_rank INT DEFAULT 0,
+          generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (application_id) REFERENCES admission_applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_shortlists (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NOT NULL,
+          cycle_id INT NULL,
+          program_id INT NULL,
+          category VARCHAR(50) DEFAULT 'General',
+          merit_rank INT DEFAULT 0,
+          shortlist_status ENUM('SHORTLISTED', 'PUBLISHED', 'REMOVED', 'CONVERTED') DEFAULT 'SHORTLISTED',
+          shortlisted_by_user_id INT NULL,
+          published_at DATETIME NULL,
+          remarks TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (application_id) REFERENCES admission_applications(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_seat_quotas (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          program_id INT NOT NULL,
+          quota_category VARCHAR(50) NOT NULL,
+          total_seats INT DEFAULT 0,
+          allocated_seats INT DEFAULT 0,
+          reserved_seats INT DEFAULT 0,
+          management_seats INT DEFAULT 0,
+          nri_seats INT DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (program_id) REFERENCES admission_programs(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_duplicate_flags (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          applicant_id_1 INT NOT NULL,
+          applicant_id_2 INT NOT NULL,
+          match_type ENUM('EXACT_EMAIL', 'EXACT_MOBILE', 'POSSIBLE_NAME_DOB') NOT NULL,
+          status ENUM('FLAGGED', 'REVIEWED_LINKED', 'MARKED_NOT_DUPLICATE') DEFAULT 'FLAGGED',
+          reviewed_by_user_id INT NULL,
+          remarks TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (applicant_id_1) REFERENCES admission_applicants(id) ON DELETE CASCADE,
+          FOREIGN KEY (applicant_id_2) REFERENCES admission_applicants(id) ON DELETE CASCADE
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_communications (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          application_id INT NULL,
+          applicant_id INT NULL,
+          channel ENUM('EMAIL', 'SMS', 'SYSTEM_NOTIFICATION') DEFAULT 'EMAIL',
+          recipient VARCHAR(150) NOT NULL,
+          subject VARCHAR(255) NOT NULL,
+          template_key VARCHAR(100) NULL,
+          message_body TEXT NOT NULL,
+          delivery_status ENUM('SENT', 'PENDING', 'FAILED') DEFAULT 'SENT',
+          sent_by_user_id INT NULL,
+          sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_communication_templates (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          template_key VARCHAR(100) NOT NULL UNIQUE,
+          template_name VARCHAR(150) NOT NULL,
+          channel VARCHAR(50) DEFAULT 'EMAIL',
+          subject_template VARCHAR(255) NOT NULL,
+          body_template TEXT NOT NULL,
+          is_active TINYINT(1) DEFAULT 1,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_bulk_imports (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          filename VARCHAR(255) NOT NULL,
+          total_records INT DEFAULT 0,
+          valid_records INT DEFAULT 0,
+          duplicate_records INT DEFAULT 0,
+          invalid_records INT DEFAULT 0,
+          imported_records INT DEFAULT 0,
+          status ENUM('PREVIEWED', 'IMPORTED', 'FAILED') DEFAULT 'PREVIEWED',
+          imported_by_user_id INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_enquiries (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          candidate_name VARCHAR(150) NOT NULL,
+          email VARCHAR(100) NOT NULL,
+          mobile VARCHAR(25) NOT NULL,
+          interested_program_id INT NULL,
+          department_id INT NULL,
+          academic_year_id INT NULL,
+          source ENUM('Website', 'Phone', 'Walk-in', 'Education Fair', 'Referral', 'Social Media', 'Advertisement') DEFAULT 'Website',
+          assigned_counsellor_id INT NULL,
+          status ENUM('New Enquiry', 'Counselling', 'Interested', 'Application Started', 'Application Submitted', 'Converted') DEFAULT 'New Enquiry',
+          remarks TEXT NULL,
+          followup_date DATE NULL,
+          converted_application_id INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_counselling_sessions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          enquiry_id INT NULL,
+          application_id INT NULL,
+          counsellor_id INT NOT NULL,
+          scheduled_at DATETIME NOT NULL,
+          status ENUM('SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW') DEFAULT 'SCHEDULED',
+          remarks TEXT NULL,
+          followup_date DATE NULL,
+          preference_details TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admission_campaigns (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          campaign_name VARCHAR(150) NOT NULL,
+          academic_year_id INT NULL,
+          admission_type VARCHAR(50) DEFAULT 'Undergraduate',
+          start_date DATE NULL,
+          end_date DATE NULL,
+          target_applications INT DEFAULT 500,
+          budget DECIMAL(10,2) DEFAULT 50000.00,
+          status ENUM('ACTIVE', 'UPCOMING', 'COMPLETED', 'PAUSED') DEFAULT 'ACTIVE',
+          created_by_user_id INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Safe Auto-Column Guardrails for existing tables
+      try {
+        await pool.query(`ALTER TABLE admission_applications ADD COLUMN IF NOT EXISTS merit_rank INT DEFAULT 0`);
+        await pool.query(`ALTER TABLE admission_applications ADD COLUMN IF NOT EXISTS final_score DECIMAL(6,2) DEFAULT 0.00`);
+        await pool.query(`ALTER TABLE admission_applications ADD COLUMN IF NOT EXISTS is_shortlisted TINYINT(1) DEFAULT 0`);
+        await pool.query(`ALTER TABLE admission_applications ADD COLUMN IF NOT EXISTS quota_category VARCHAR(50) DEFAULT 'General'`);
+      } catch (colErr) {
+        // Ignored if column exists
       }
+
     } catch (admTablesErr) {
       console.warn('[DATABASE INIT] Admission tables setup notice:', admTablesErr.message);
     }
