@@ -158,9 +158,26 @@ export const getSubjectById = async (req, res) => {
   }
 };
 
+let subjectColsChecked = false;
+async function ensureSubjectColumns() {
+  if (subjectColsChecked) return;
+  try {
+    const [cols] = await pool.query('DESCRIBE subjects');
+    const colNames = cols.map(c => c.Field);
+    if (!colNames.includes('theory_hours')) {
+      await pool.query('ALTER TABLE subjects ADD COLUMN theory_hours INT DEFAULT 3').catch(() => {});
+    }
+    if (!colNames.includes('lab_hours')) {
+      await pool.query('ALTER TABLE subjects ADD COLUMN lab_hours INT DEFAULT 0').catch(() => {});
+    }
+    subjectColsChecked = true;
+  } catch (e) {}
+}
+
 // POST /api/subjects
 export const createSubject = async (req, res) => {
   try {
+    await ensureSubjectColumns();
     const {
       code,
       name,

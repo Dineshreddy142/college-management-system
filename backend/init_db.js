@@ -383,6 +383,12 @@ export async function initializeDatabase() {
       if (!sColNames.includes('practical_hours')) {
         await pool.query('ALTER TABLE subjects ADD COLUMN practical_hours INT DEFAULT 0');
       }
+      if (!sColNames.includes('theory_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN theory_hours INT DEFAULT 3');
+      }
+      if (!sColNames.includes('lab_hours')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN lab_hours INT DEFAULT 0');
+      }
       if (!sColNames.includes('total_hours')) {
         await pool.query('ALTER TABLE subjects ADD COLUMN total_hours INT DEFAULT 3');
       }
