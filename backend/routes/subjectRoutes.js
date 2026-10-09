@@ -19,6 +19,7 @@ import {
   generateTranscriptController,
   getRegulations,
   createRegulation,
+  getAcademicYears,
   getBatches,
   createBatch,
   getSubjectVersions,
@@ -66,6 +67,7 @@ router.get('/academic/regulations', authenticateToken, getRegulations);
 router.post('/academic/regulations', authenticateToken, authorizeRole(['Admin']), createRegulation);
 
 router.get('/academic/batches', authenticateToken, getBatches);
+router.get('/academic/academic-years', authenticateToken, getAcademicYears);
 router.post('/academic/batches', authenticateToken, authorizeRole(['Admin']), createBatch);
 
 router.get('/academic/subject-versions/:regulationId', authenticateToken, getSubjectVersions);

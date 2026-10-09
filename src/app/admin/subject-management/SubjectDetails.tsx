@@ -25,7 +25,7 @@ export const SubjectDetails: React.FC<SubjectDetailsProps> = ({
   const totalMarks = subject.total_marks ?? 100;
   const passingMarks = subject.passing_marks ?? 40;
 
-  const allocatedFaculty = (subject as any).allocated_faculty || [];
+  const allocatedFaculty = Array.isArray((subject as any)?.allocated_faculty) ? (subject as any).allocated_faculty : [];
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">

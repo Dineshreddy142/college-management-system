@@ -54,11 +54,17 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    const safeDepartments = Array.isArray(departments) ? departments : [];
+    const safePrograms = Array.isArray(programs) ? programs : [];
+    const safeSemesters = Array.isArray(semesters) ? semesters : [];
+    const safeAcademicYears = Array.isArray(academicYears) ? academicYears : [];
+
     if (subject) {
       setCode(subject.code || '');
       setName(subject.name || '');
       setShortName(subject.short_name || '');
-      setCategoryId(subject.category_id || (categories[0]?.id ?? ''));
+      setCategoryId(subject.category_id || (safeCategories[0]?.id ?? ''));
       setDepartmentId(subject.department_id || '');
       setCourseId(subject.course_id || '');
       setSemesterId(subject.semester_id || '');
@@ -80,11 +86,11 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
       setCode('');
       setName('');
       setShortName('');
-      setCategoryId(categories[0]?.id ?? '');
-      setDepartmentId(departments[0]?.id ?? '');
-      setCourseId(programs[0]?.id ?? '');
-      setSemesterId(semesters[0]?.id ?? '');
-      setAcademicYearId(academicYears[0]?.id ?? '');
+      setCategoryId(safeCategories[0]?.id ?? '');
+      setDepartmentId(safeDepartments[0]?.id ?? '');
+      setCourseId(safePrograms[0]?.id ?? '');
+      setSemesterId(safeSemesters[0]?.id ?? '');
+      setAcademicYearId(safeAcademicYears[0]?.id ?? '');
       setRegulation('R23');
       setCredits(3);
       setLectureHours(3);
@@ -108,8 +114,11 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
   const calculatedTotalMarks = (Number(internalMarks) || 0) + (Number(externalMarks) || 0);
 
   const handleAutoGenerateCode = () => {
+    const safeDepartments = Array.isArray(departments) ? departments : [];
+    const safeSemesters = Array.isArray(semesters) ? semesters : [];
+
     const regYear = (regulation || 'R25').replace(/[^0-9]/g, '') || '25';
-    const selDept = departments.find(d => String(d.id) === String(departmentId));
+    const selDept = safeDepartments.find(d => String(d.id) === String(departmentId));
     let deptCode = 'CS';
     if (selDept?.code) {
       deptCode = selDept.code.toUpperCase();
@@ -125,7 +134,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
       else deptCode = dName.substring(0, 2);
     }
 
-    const selSem = semesters.find(s => String(s.id) === String(semesterId));
+    const selSem = safeSemesters.find(s => String(s.id) === String(semesterId));
     let semNum = '1';
     if (selSem?.semester_number) semNum = String(selSem.semester_number);
     else if (selSem?.name) {
@@ -299,7 +308,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   required
                 >
                   <option value="">Select Category</option>
-                  {categories.map((cat) => (
+                  {(Array.isArray(categories) ? categories : []).map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
@@ -341,7 +350,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All / Interdepartmental</option>
-                  {departments.map((dept) => (
+                  {(Array.isArray(departments) ? departments : []).map((dept) => (
                     <option key={dept.id} value={dept.id}>
                       {dept.name} ({dept.code})
                     </option>
@@ -359,7 +368,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Programs</option>
-                  {programs.map((prog) => (
+                  {(Array.isArray(programs) ? programs : []).map((prog) => (
                     <option key={prog.id} value={prog.id}>
                       {prog.name}
                     </option>
@@ -377,7 +386,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Semester</option>
-                  {semesters.map((sem) => (
+                  {(Array.isArray(semesters) ? semesters : []).map((sem) => (
                     <option key={sem.id} value={sem.id}>
                       {sem.name || `Semester ${sem.semester_number}`}
                     </option>
@@ -395,7 +404,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Year Level</option>
-                  {academicYears.map((ay) => (
+                  {(Array.isArray(academicYears) ? academicYears : []).map((ay) => (
                     <option key={ay.id} value={ay.id}>
                       {ay.name || `Year ${ay.year_level}`}
                     </option>

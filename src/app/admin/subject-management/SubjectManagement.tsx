@@ -7,6 +7,36 @@ import { SubjectList, SubjectItem } from './SubjectList';
 import { SubjectForm } from './SubjectForm';
 import { SubjectDetails } from './SubjectDetails';
 
+export function normalizeListResponse<T = any>(response: any, preferredKeys: string[] = []): T[] {
+  if (!response) return [];
+  const payload = response.data !== undefined ? response.data : response;
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) return payload;
+
+  if (typeof payload === 'object') {
+    if (Array.isArray(payload.data)) return payload.data;
+
+    if (payload.data && typeof payload.data === 'object') {
+      for (const key of preferredKeys) {
+        if (Array.isArray(payload.data[key])) return payload.data[key];
+      }
+      for (const key of ['departments', 'courses', 'programs', 'semesters', 'batches', 'academic_years', 'subjects', 'categories', 'items', 'rows', 'list']) {
+        if (Array.isArray(payload.data[key])) return payload.data[key];
+      }
+    }
+
+    for (const key of preferredKeys) {
+      if (Array.isArray(payload[key])) return payload[key];
+    }
+    for (const key of ['departments', 'courses', 'programs', 'semesters', 'batches', 'academic_years', 'subjects', 'categories', 'items', 'rows', 'list']) {
+      if (Array.isArray(payload[key])) return payload[key];
+    }
+  }
+
+  return [];
+}
+
 export const SubjectManagement: React.FC = () => {
   const [categories, setCategories] = useState<SubjectCategory[]>([]);
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -46,10 +76,9 @@ export const SubjectManagement: React.FC = () => {
     setIsLoadingCategories(true);
     try {
       const res = await client.get('/subject-categories');
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        setCategories(res.data.data);
-      } else if (Array.isArray(res.data)) {
-        setCategories(res.data);
+      const cats = normalizeListResponse<SubjectCategory>(res, ['categories']);
+      if (cats.length > 0) {
+        setCategories(cats);
       } else {
         setCategories([
           { id: 1, name: 'FOUNDATION / BASIC', code: 'FOUNDATION', description: 'Basic Sciences and Math', subject_count: 5 },
@@ -73,8 +102,12 @@ export const SubjectManagement: React.FC = () => {
     }
   }, []);
 
+  // Meta load error tracking to distinguish API failure from legitimate empty lists
+  const [metaError, setMetaError] = useState<string | null>(null);
+
   // Fetch Academic Meta (Departments, Programs, Semesters, Years)
   const fetchAcademicMeta = useCallback(async () => {
+    setMetaError(null);
     try {
       const [deptRes, progRes, semRes, ayRes] = await Promise.allSettled([
         client.get('/v1/academic/departments'),
@@ -83,20 +116,42 @@ export const SubjectManagement: React.FC = () => {
         client.get('/academic/academic-years')
       ]);
 
-      if (deptRes.status === 'fulfilled' && deptRes.value.data) {
-        setDepartments(Array.isArray(deptRes.value.data) ? deptRes.value.data : deptRes.value.data.data || []);
+      const failedModules: string[] = [];
+
+      if (deptRes.status === 'fulfilled') {
+        setDepartments(normalizeListResponse(deptRes.value, ['departments']));
+      } else {
+        setDepartments([]);
+        failedModules.push('Departments');
       }
-      if (progRes.status === 'fulfilled' && progRes.value.data) {
-        setPrograms(Array.isArray(progRes.value.data) ? progRes.value.data : progRes.value.data.data || []);
+
+      if (progRes.status === 'fulfilled') {
+        setPrograms(normalizeListResponse(progRes.value, ['courses', 'programs']));
+      } else {
+        setPrograms([]);
+        failedModules.push('Programs');
       }
-      if (semRes.status === 'fulfilled' && semRes.value.data) {
-        setSemesters(Array.isArray(semRes.value.data) ? semRes.value.data : semRes.value.data.data || []);
+
+      if (semRes.status === 'fulfilled') {
+        setSemesters(normalizeListResponse(semRes.value, ['semesters']));
+      } else {
+        setSemesters([]);
+        failedModules.push('Semesters');
       }
-      if (ayRes.status === 'fulfilled' && ayRes.value.data) {
-        setAcademicYears(Array.isArray(ayRes.value.data) ? ayRes.value.data : ayRes.value.data.data || []);
+
+      if (ayRes.status === 'fulfilled') {
+        setAcademicYears(normalizeListResponse(ayRes.value, ['academic_years', 'batches']));
+      } else {
+        setAcademicYears([]);
+        failedModules.push('Academic Years');
+      }
+
+      if (failedModules.length > 0) {
+        setMetaError(`Failed to load academic metadata from server for: ${failedModules.join(', ')}.`);
       }
     } catch (err) {
       console.warn('Academic meta notice:', err);
+      setMetaError('Failed to fetch academic structure metadata.');
     }
   }, []);
 
@@ -114,13 +169,10 @@ export const SubjectManagement: React.FC = () => {
       if (searchTerm.trim()) params.search = searchTerm.trim();
 
       const res = await client.get('/subjects', { params });
-      if (res.data) {
-        const rawData = Array.isArray(res.data) ? res.data : (Array.isArray(res.data.data) ? res.data.data : []);
-        setSubjects(rawData);
-      }
+      const rawData = normalizeListResponse<SubjectItem>(res, ['subjects']);
+      setSubjects(rawData);
     } catch (err) {
       console.warn('Subjects notice:', err);
-      // Clean fallback data so user NEVER sees error toasts
       setSubjects([
         { id: 1, code: 'CS301', name: 'Data Structures & Algorithms', short_name: 'DSA', category_name: 'CORE', department_name: 'Computer Science', credits: 4, lecture_hours: 3, practical_hours: 2, status: 'Active' },
         { id: 2, code: 'CS302', name: 'Database Management Systems', short_name: 'DBMS', category_name: 'CORE', department_name: 'Computer Science', credits: 4, lecture_hours: 3, practical_hours: 2, status: 'Active' },
@@ -358,6 +410,21 @@ export const SubjectManagement: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {metaError && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-900/40 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+            <span>{metaError}</span>
+          </div>
+          <button
+            onClick={() => fetchAcademicMeta()}
+            className="text-[11px] font-bold text-amber-700 dark:text-amber-400 underline hover:no-underline"
+          >
+            Retry Loading
+          </button>
+        </div>
+      )}
 
       {/* Category Filter Cards */}
       <SubjectCategoryList

@@ -292,6 +292,25 @@ export const createRegulation = async (req, res) => {
 };
 
 /**
+ * GET /api/academic/academic-years
+ * List academic year definitions directly from academic_years table
+ */
+export const getAcademicYears = async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, name, year_level, created_at
+       FROM academic_years
+       ORDER BY year_level ASC, id ASC`
+    );
+
+    return successResponse(res, 'Academic years retrieved successfully', { academic_years: rows });
+  } catch (err) {
+    console.error('[GET ACADEMIC YEARS ERROR]:', err);
+    return errorResponse(res, 'Failed to fetch academic years', [], 500);
+  }
+};
+
+/**
  * GET /api/academic/batches
  * List batch mapping definitions
  */
