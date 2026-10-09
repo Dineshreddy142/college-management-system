@@ -30,13 +30,13 @@ export const createSemester = async (req, res, next) => {
 
 export const getSemesters = async (req, res, next) => {
     try {
-        const { search, academic_year_id, limit = 10, page = 1 } = req.query;
+        const { search, academic_year_id, limit = 100, page = 1 } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `
             SELECT s.*, ay.name as academic_year_name 
             FROM semesters s 
-            JOIN academic_years ay ON s.academic_year_id = ay.id 
+            LEFT JOIN academic_years ay ON s.academic_year_id = ay.id 
             WHERE 1=1
         `;
         let queryParams = [];
@@ -50,7 +50,7 @@ export const getSemesters = async (req, res, next) => {
             queryParams.push(academic_year_id);
         }
         
-        query += ' ORDER BY s.start_date ASC LIMIT ? OFFSET ?';
+        query += ' ORDER BY s.start_date ASC, s.id ASC LIMIT ? OFFSET ?';
         queryParams.push(Number(limit), Number(offset));
 
         const [rows] = await pool.query(query, queryParams);

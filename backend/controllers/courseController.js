@@ -30,7 +30,7 @@ export const createCourse = async (req, res, next) => {
 
 export const getCourses = async (req, res, next) => {
     try {
-        const { search, department_id, limit = 10, page = 1 } = req.query;
+        const { search, department_id, limit = 100, page = 1 } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `

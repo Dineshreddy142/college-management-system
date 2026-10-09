@@ -110,9 +110,9 @@ export const SubjectManagement: React.FC = () => {
     setMetaError(null);
     try {
       const [deptRes, progRes, semRes, ayRes] = await Promise.allSettled([
-        client.get('/v1/academic/departments'),
-        client.get('/v1/academic/courses'),
-        client.get('/v1/academic/semesters'),
+        client.get('/v1/academic/departments?limit=100'),
+        client.get('/v1/academic/courses?limit=100'),
+        client.get('/v1/academic/semesters?limit=100'),
         client.get('/academic/academic-years')
       ]);
 

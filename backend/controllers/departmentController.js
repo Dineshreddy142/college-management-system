@@ -24,7 +24,7 @@ export const createDepartment = async (req, res, next) => {
 
 export const getDepartments = async (req, res, next) => {
     try {
-        const { search, limit = 10, page = 1, sort = 'name', order = 'ASC' } = req.query;
+        const { search, limit = 100, page = 1, sort = 'name', order = 'ASC' } = req.query;
         const offset = (page - 1) * limit;
 
         let query = 'SELECT * FROM departments';
