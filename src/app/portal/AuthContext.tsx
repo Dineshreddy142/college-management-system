@@ -72,9 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return merged;
             });
           }
-        } catch (error) {
-          console.error("Token validation failed", error);
-          logout();
+        } catch (error: any) {
+          console.warn("Token validation notice:", error?.message);
+          // Only trigger logout on actual 401 Unauthorized status, not temporary network glitches
+          if (error?.response?.status === 401) {
+            logout();
+          }
         }
       }
       setIsLoading(false);
@@ -83,12 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchSettings();
     validateToken();
 
-    // 5-second heartbeat poll & tab focus check to detect remote logins instantly
+    // Periodic token validation check (every 5 minutes)
     const interval = setInterval(() => {
       if (token) {
         validateToken();
       }
-    }, 5000);
+    }, 300000);
 
     const handleFocus = () => {
       if (token) {
