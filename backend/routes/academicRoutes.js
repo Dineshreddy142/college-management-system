@@ -1,34 +1,20 @@
 import express from 'express';
-import {
-  getSubjectsLegacy,
-  createSubjectLegacy,
-  updateSubjectLegacy,
-  getAllocationsLegacy,
-  createAllocationLegacy,
-  deleteAllocationLegacy,
-  getAcademicMetadata,
-  getAcademicSessions,
-  createAcademicSession,
-  getAcademicRegulations,
-  getCurriculumOverview,
-  promoteStudent
-} from '../controllers/academicLegacyController.js';
+import { getSubjects, createSubject, updateSubject } from '../controllers/subjectController.js';
+import { getSubjectOfferings, createSubjectOffering } from '../controllers/offeringRegistrationController.js';
+import { getRegulations } from '../controllers/academicRuleController.js';
 
 const router = express.Router();
 
-router.get('/subjects', getSubjectsLegacy);
-router.post('/subjects', createSubjectLegacy);
-router.put('/subjects/:id', updateSubjectLegacy);
+// Subject Management Routes (Delegated to primary subjectController)
+router.get('/subjects', getSubjects);
+router.post('/subjects', createSubject);
+router.put('/subjects/:id', updateSubject);
 
-router.get('/allocations', getAllocationsLegacy);
-router.post('/allocations', createAllocationLegacy);
-router.delete('/allocations/:id', deleteAllocationLegacy);
+// Subject Allocations / Offerings (Delegated to primary offeringRegistrationController)
+router.get('/allocations', getSubjectOfferings);
+router.post('/allocations', createSubjectOffering);
 
-router.get('/metadata', getAcademicMetadata);
-router.get('/sessions', getAcademicSessions);
-router.post('/sessions', createAcademicSession);
-router.get('/regulations', getAcademicRegulations);
-router.get('/curriculum', getCurriculumOverview);
-router.post('/promote', promoteStudent);
+// Academic Regulations (Delegated to primary academicRuleController)
+router.get('/regulations', getRegulations);
 
 export default router;
