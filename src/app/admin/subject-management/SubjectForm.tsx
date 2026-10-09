@@ -195,7 +195,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to save subject.');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to save subject.');
     } finally {
       setIsLoading(false);
     }

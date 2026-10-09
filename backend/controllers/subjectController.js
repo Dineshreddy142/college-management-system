@@ -210,7 +210,19 @@ export const createSubject = async (req, res) => {
     const effExternal = parseInt(external_marks ?? 60);
     const calculatedTotalMarks = effInternal + effExternal;
 
-    const effProgramId = course_id || program_id || null;
+    const effProgramId = (course_id && course_id !== '') ? course_id : ((program_id && program_id !== '') ? program_id : null);
+    const effDeptId = (department_id && department_id !== '') ? department_id : null;
+    const effCategoryId = (category_id && category_id !== '') ? category_id : null;
+    const effSemId = (semester_id && semester_id !== '') ? semester_id : null;
+    const effAyId = (academic_year_id && academic_year_id !== '') ? academic_year_id : null;
+
+    let effRegulationId = (regulation_id && regulation_id !== '') ? regulation_id : null;
+    if (!effRegulationId && regulation) {
+      try {
+        const [regRows] = await pool.query('SELECT id FROM regulations WHERE LOWER(name) = LOWER(?) LIMIT 1', [regulation.trim()]);
+        if (regRows.length > 0) effRegulationId = regRows[0].id;
+      } catch (e) {}
+    }
 
     const [result] = await pool.query(`
       INSERT INTO subjects (
@@ -224,13 +236,13 @@ export const createSubject = async (req, res) => {
       cleanCode,
       name.trim(),
       short_name ? short_name.trim() : null,
-      category_id || null,
-      department_id || null,
+      effCategoryId,
+      effDeptId,
       effProgramId,
-      academic_year_id || null,
-      semester_id || null,
-      regulation_id || null,
-      regulation || null,
+      effAyId,
+      effSemId,
+      effRegulationId,
+      regulation ? regulation.trim() : null,
       parseFloat(credits ?? 3.0),
       effLecHours,
       effTutHours,
@@ -259,12 +271,12 @@ export const createSubject = async (req, res) => {
       `, [
         effProgramId,
         subjectId,
-        semester_id || null,
-        academic_year_id || null,
-        category_id || null,
+        effSemId,
+        effAyId,
+        effCategoryId,
         elective_group ? 1 : 0,
         elective_group || null
-      ]);
+      ]).catch(err => console.warn('Notice: program_subjects link skipped:', err.message));
     }
 
     res.status(201).json({
@@ -274,7 +286,7 @@ export const createSubject = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating subject:', error);
-    res.status(500).json({ success: false, message: 'Failed to create subject', error: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Failed to create subject', error: error.message });
   }
 };
 
