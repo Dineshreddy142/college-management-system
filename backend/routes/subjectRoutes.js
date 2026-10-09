@@ -6,7 +6,8 @@ import {
   createSubject,
   updateSubject,
   updateSubjectStatus,
-  bulkImportSubjects
+  bulkImportSubjects,
+  clearAllSubjects
 } from '../controllers/subjectController.js';
 import {
   getSubjectPrerequisites,
@@ -50,6 +51,7 @@ router.post('/subjects', authenticateToken, authorizeRole(['Admin', 'HOD']), cre
 router.post('/subjects/bulk-import', authenticateToken, authorizeRole(['Admin', 'HOD']), bulkImportSubjects);
 router.put('/subjects/:id', authenticateToken, authorizeRole(['Admin', 'HOD']), updateSubject);
 router.patch('/subjects/:id/status', authenticateToken, authorizeRole(['Admin', 'HOD']), updateSubjectStatus);
+router.delete('/subjects', authenticateToken, authorizeRole(['Admin']), clearAllSubjects);
 
 // Academic Rule & Prerequisite Routes
 router.get('/academic/subject-prerequisites/:subjectId', getSubjectPrerequisites);

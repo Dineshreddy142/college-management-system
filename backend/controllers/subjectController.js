@@ -665,3 +665,23 @@ export const bulkImportSubjects = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to bulk import subjects', error: error.message });
   }
 };
+
+// DELETE /api/subjects (Clear all subject catalog and offering records)
+export const clearAllSubjects = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM subject_offerings').catch(() => {});
+    await pool.query('DELETE FROM curriculum_subjects').catch(() => {});
+    await pool.query('DELETE FROM program_subjects').catch(() => {});
+    await pool.query('DELETE FROM subject_allocations').catch(() => {});
+    const [result] = await pool.query('DELETE FROM subjects');
+
+    res.json({
+      success: true,
+      message: 'Successfully purged all subject catalog data.',
+      affectedRows: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error clearing subjects:', error);
+    res.status(500).json({ success: false, message: 'Failed to clear subjects', error: error.message });
+  }
+};
