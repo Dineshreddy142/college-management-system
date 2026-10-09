@@ -77,26 +77,10 @@ export const SubjectManagement: React.FC = () => {
     try {
       const res = await client.get('/subject-categories');
       const cats = normalizeListResponse<SubjectCategory>(res, ['categories']);
-      if (cats.length > 0) {
-        setCategories(cats);
-      } else {
-        setCategories([
-          { id: 1, name: 'FOUNDATION / BASIC', code: 'FOUNDATION', description: 'Basic Sciences and Math', subject_count: 5 },
-          { id: 2, name: 'CORE', code: 'CORE', description: 'Essential Core Subjects', subject_count: 18 },
-          { id: 3, name: 'PROFESSIONAL ELECTIVE', code: 'PROFESSIONAL_ELECTIVE', description: 'Department Electives', subject_count: 8 },
-          { id: 4, name: 'OPEN ELECTIVE', code: 'OPEN_ELECTIVE', description: 'Interdisciplinary Electives', subject_count: 6 },
-          { id: 5, name: 'LABORATORY', code: 'LABORATORY', description: 'Practical Lab Sessions', subject_count: 10 }
-        ]);
-      }
+      setCategories(cats);
     } catch (err) {
       console.warn('Categories notice:', err);
-      setCategories([
-        { id: 1, name: 'FOUNDATION / BASIC', code: 'FOUNDATION', description: 'Basic Sciences and Math', subject_count: 5 },
-        { id: 2, name: 'CORE', code: 'CORE', description: 'Essential Core Subjects', subject_count: 18 },
-        { id: 3, name: 'PROFESSIONAL ELECTIVE', code: 'PROFESSIONAL_ELECTIVE', description: 'Department Electives', subject_count: 8 },
-        { id: 4, name: 'OPEN ELECTIVE', code: 'OPEN_ELECTIVE', description: 'Interdisciplinary Electives', subject_count: 6 },
-        { id: 5, name: 'LABORATORY', code: 'LABORATORY', description: 'Practical Lab Sessions', subject_count: 10 }
-      ]);
+      setCategories([]);
     } finally {
       setIsLoadingCategories(false);
     }
@@ -173,13 +157,7 @@ export const SubjectManagement: React.FC = () => {
       setSubjects(rawData);
     } catch (err) {
       console.warn('Subjects notice:', err);
-      setSubjects([
-        { id: 1, code: 'CS301', name: 'Data Structures & Algorithms', short_name: 'DSA', category_name: 'CORE', department_name: 'Computer Science', credits: 4, lecture_hours: 3, practical_hours: 2, status: 'Active' },
-        { id: 2, code: 'CS302', name: 'Database Management Systems', short_name: 'DBMS', category_name: 'CORE', department_name: 'Computer Science', credits: 4, lecture_hours: 3, practical_hours: 2, status: 'Active' },
-        { id: 3, code: 'CS303', name: 'Operating Systems', short_name: 'OS', category_name: 'CORE', department_name: 'Computer Science', credits: 3, lecture_hours: 3, practical_hours: 0, status: 'Active' },
-        { id: 4, code: 'CS304', name: 'Computer Networks', short_name: 'CN', category_name: 'CORE', department_name: 'Computer Science', credits: 3, lecture_hours: 3, practical_hours: 0, status: 'Active' },
-        { id: 5, code: 'CS305', name: 'Software Engineering', short_name: 'SE', category_name: 'CORE', department_name: 'Computer Science', credits: 3, lecture_hours: 3, practical_hours: 0, status: 'Active' }
-      ]);
+      setSubjects([]);
     } finally {
       setIsLoadingSubjects(false);
     }
@@ -275,68 +253,6 @@ export const SubjectManagement: React.FC = () => {
     showToast('Subjects list exported successfully.');
   };
 
-  const handleBatchSeedCurriculum = async () => {
-    try {
-      showToast('Seeding standard B.Tech R25 Semesters 1 to 8 Master Curriculum...');
-      const defaultDeptId = departments[0]?.id || 1;
-      const getSemId = (num: number) => semesters.find((s: any) => Number(s.semester_number) === num)?.id || num;
-
-      const payload = {
-        subjects: [
-          // SEM 1
-          { code: 'AUTO', name: 'Mathematics - I (Linear Algebra & Calculus)', semester_id: getSemId(1), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Engineering Physics', semester_id: getSemId(1), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Programming for Problem Solving (C)', semester_id: getSemId(1), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Engineering Physics Lab', semester_id: getSemId(1), department_id: defaultDeptId, credits: 1.5, offering_type: 'Practical', regulation: 'R25' },
-          { code: 'AUTO', name: 'Programming Lab', semester_id: getSemId(1), department_id: defaultDeptId, credits: 1.5, offering_type: 'Practical', regulation: 'R25' },
-
-          // SEM 2
-          { code: 'AUTO', name: 'Mathematics - II (Differential Equations)', semester_id: getSemId(2), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Engineering Chemistry', semester_id: getSemId(2), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Basic Electrical & Electronics Engg', semester_id: getSemId(2), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-
-          // SEM 3
-          { code: 'AUTO', name: 'Data Structures & Algorithms', semester_id: getSemId(3), department_id: defaultDeptId, credits: 4, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Discrete Mathematics', semester_id: getSemId(3), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Computer Organization & Architecture', semester_id: getSemId(3), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Object Oriented Programming in Java', semester_id: getSemId(3), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Data Structures Lab', semester_id: getSemId(3), department_id: defaultDeptId, credits: 1.5, offering_type: 'Practical', regulation: 'R25' },
-
-          // SEM 4
-          { code: 'AUTO', name: 'Operating Systems', semester_id: getSemId(4), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Database Management Systems', semester_id: getSemId(4), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Design and Analysis of Algorithms', semester_id: getSemId(4), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'DBMS Lab', semester_id: getSemId(4), department_id: defaultDeptId, credits: 1.5, offering_type: 'Practical', regulation: 'R25' },
-
-          // SEM 5
-          { code: 'AUTO', name: 'Computer Networks', semester_id: getSemId(5), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Software Engineering', semester_id: getSemId(5), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Cloud Computing (PE-1)', semester_id: getSemId(5), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', elective_group: 'PE-1', regulation: 'R25' },
-
-          // SEM 6
-          { code: 'AUTO', name: 'Compiler Design', semester_id: getSemId(6), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', regulation: 'R25' },
-          { code: 'AUTO', name: 'Machine Learning (PE-2)', semester_id: getSemId(6), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', elective_group: 'PE-2', regulation: 'R25' },
-
-          // SEM 7
-          { code: 'AUTO', name: 'Deep Learning (PE-3)', semester_id: getSemId(7), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', elective_group: 'PE-3', regulation: 'R25' },
-          { code: 'AUTO', name: 'Major Project Phase - I', semester_id: getSemId(7), department_id: defaultDeptId, credits: 4, offering_type: 'Practical', regulation: 'R25' },
-
-          // SEM 8
-          { code: 'AUTO', name: 'DevOps & Cloud Operations (PE-5)', semester_id: getSemId(8), department_id: defaultDeptId, credits: 3, offering_type: 'Theory', elective_group: 'PE-5', regulation: 'R25' },
-          { code: 'AUTO', name: 'Major Project Phase - II & Viva', semester_id: getSemId(8), department_id: defaultDeptId, credits: 10, offering_type: 'Practical', regulation: 'R25' }
-        ]
-      };
-
-      const res = await client.post('/subjects/bulk-import', payload);
-      if (res.data && res.data.success) {
-        showToast(`Successfully imported ${res.data.count || 25} B.Tech subjects across Semesters 1 to 8!`);
-        fetchSubjects();
-      }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || 'Failed to seed curriculum', 'error');
-    }
-  };
-
   return (
     <div className="space-y-6">
       
@@ -385,14 +301,6 @@ export const SubjectManagement: React.FC = () => {
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <button
-            onClick={handleBatchSeedCurriculum}
-            className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
-            title="Seed standard B.Tech R25 Sem 1 to 8 master subjects"
-          >
-            <Wand2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <span>Seed R25 Syllabus</span>
           </button>
           <button
             onClick={handleExportSubjects}
