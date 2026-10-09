@@ -50,7 +50,7 @@ export const getSemesters = async (req, res, next) => {
             queryParams.push(academic_year_id);
         }
         
-        query += ' ORDER BY s.start_date ASC, s.id ASC LIMIT ? OFFSET ?';
+        query += ' ORDER BY s.semester_number ASC, s.id ASC LIMIT ? OFFSET ?';
         queryParams.push(Number(limit), Number(offset));
 
         const [rows] = await pool.query(query, queryParams);

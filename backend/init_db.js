@@ -229,11 +229,25 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS semesters (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
-        semester_number INT NOT NULL,
+        semester_number INT NOT NULL DEFAULT 1,
         academic_year_id INT NULL,
+        start_date DATE NULL,
+        end_date DATE NULL,
         FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL
       )
     `);
+
+    // Ensure start_date and end_date columns exist on pre-existing semesters table
+    try {
+      const [semCols] = await pool.query('DESCRIBE semesters');
+      const semColNames = semCols.map(c => c.Field);
+      if (!semColNames.includes('start_date')) {
+        await pool.query('ALTER TABLE semesters ADD COLUMN start_date DATE NULL AFTER semester_number');
+      }
+      if (!semColNames.includes('end_date')) {
+        await pool.query('ALTER TABLE semesters ADD COLUMN end_date DATE NULL AFTER start_date');
+      }
+    } catch (e) {}
 
     // Seed semesters 1 to 8 if not already present
     const [existingSemCount] = await pool.query('SELECT COUNT(*) as cnt FROM semesters');
