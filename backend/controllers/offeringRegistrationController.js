@@ -14,17 +14,50 @@ import { successResponse, errorResponse } from '../utils/response.js';
 export const getSubjectOfferings = async (req, res) => {
   try {
     const { departmentId, semesterId, academicYearId, sectionId } = req.query;
+
+    // Auto-sync offerings from central subjects table if any active subjects do not have an offering record yet
+    try {
+      await pool.execute(`
+        INSERT IGNORE INTO subject_offerings (
+          offering_code, academic_year_id, semester_id, regulation_id, department_id, course_id, section_id, subject_version_id, max_students, status
+        )
+        SELECT
+          CONCAT('OFF-', s.code, '-SEC1'),
+          COALESCE(s.academic_year_id, 1),
+          COALESCE(s.semester_id, 1),
+          COALESCE(s.regulation_id, 1),
+          COALESCE(s.department_id, 1),
+          COALESCE(s.course_id, 1),
+          1,
+          s.id,
+          60,
+          'OPEN'
+        FROM subjects s
+        LEFT JOIN subject_offerings so ON so.subject_version_id = s.id
+        WHERE so.id IS NULL AND (s.status = 'Active' OR s.status IS NULL)
+      `);
+    } catch (syncErr) {
+      console.warn('Notice: Auto-sync subject offerings skipped:', syncErr.message);
+    }
+
     let query = `
       SELECT so.id, so.offering_code, so.max_students, so.current_students, so.status,
              so.academic_year_id, so.semester_id, so.regulation_id, so.department_id, so.course_id, so.section_id,
-             sv.subject_code, sv.subject_name, sv.credits, sv.offering_type, sv.is_elective,
-             d.name as department_name, sec.name as section_name, r.name as regulation_name,
+             COALESCE(sv.subject_code, s.code, 'SUB-001') as subject_code,
+             COALESCE(sv.subject_name, s.name, 'Untitled Subject') as subject_name,
+             COALESCE(sv.credits, s.credits, 3.0) as credits,
+             COALESCE(sv.offering_type, s.offering_type, 'Theory') as offering_type,
+             COALESCE(sv.is_elective, 0) as is_elective,
+             COALESCE(d.name, 'General Department') as department_name,
+             COALESCE(sec.name, 'Section A') as section_name,
+             COALESCE(r.name, 'Standard Regulation') as regulation_name,
              GROUP_CONCAT(DISTINCT CONCAT(f.name, ' (', fa.component_type, ')') SEPARATOR ', ') as assigned_faculty
       FROM subject_offerings so
-      JOIN subject_versions sv ON so.subject_version_id = sv.id
-      JOIN departments d ON so.department_id = d.id
-      JOIN sections sec ON so.section_id = sec.id
-      JOIN regulations r ON so.regulation_id = r.id
+      LEFT JOIN subject_versions sv ON so.subject_version_id = sv.id
+      LEFT JOIN subjects s ON (so.subject_version_id = s.id OR (sv.id IS NULL AND s.id = so.subject_version_id))
+      LEFT JOIN departments d ON so.department_id = d.id
+      LEFT JOIN sections sec ON so.section_id = sec.id
+      LEFT JOIN regulations r ON so.regulation_id = r.id
       LEFT JOIN faculty_offering_assignments fa ON (so.id = fa.offering_id AND fa.status = 'ACTIVE')
       LEFT JOIN faculty f ON fa.faculty_id = f.id
       WHERE 1=1
@@ -32,19 +65,19 @@ export const getSubjectOfferings = async (req, res) => {
     const params = [];
 
     if (departmentId) {
-      query += ' AND so.department_id = ?';
-      params.push(departmentId);
+      query += ' AND (so.department_id = ? OR s.department_id = ?)';
+      params.push(departmentId, departmentId);
     }
     if (semesterId) {
-      query += ' AND so.semester_id = ?';
-      params.push(semesterId);
+      query += ' AND (so.semester_id = ? OR s.semester_id = ?)';
+      params.push(semesterId, semesterId);
     }
     if (sectionId) {
       query += ' AND so.section_id = ?';
       params.push(sectionId);
     }
 
-    query += ' GROUP BY so.id ORDER BY sv.subject_code ASC';
+    query += ' GROUP BY so.id ORDER BY subject_code ASC';
 
     const [rows] = await pool.execute(query, params);
     return successResponse(res, 'Subject offerings retrieved successfully', { offerings: rows });

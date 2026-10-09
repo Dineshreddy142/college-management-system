@@ -322,6 +322,29 @@ export const createSubject = async (req, res) => {
       ]).catch(err => console.warn('Notice: program_subjects link skipped:', err.message));
     }
 
+    // Auto-create default subject offering entry for Registration Control
+    try {
+      const offeringCode = `OFF-${cleanCode}-SEC1`;
+      await pool.query(`
+        INSERT INTO subject_offerings (
+          offering_code, academic_year_id, semester_id, regulation_id, department_id, course_id, section_id, subject_version_id, max_students, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN')
+        ON DUPLICATE KEY UPDATE status = 'OPEN'
+      `, [
+        offeringCode,
+        effAyId || 1,
+        effSemId || 1,
+        effRegulationId || 1,
+        effDeptId || 1,
+        effProgramId || 1,
+        1,
+        subjectId,
+        60
+      ]);
+    } catch (offErr) {
+      console.warn('Notice: Auto subject offering creation skipped:', offErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Subject created successfully',
