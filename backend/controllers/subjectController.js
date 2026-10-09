@@ -20,6 +20,7 @@ export const getSubjectCategories = async (req, res) => {
 // GET /api/subjects
 export const getSubjects = async (req, res) => {
   try {
+    await ensureSubjectColumns();
     const { category, category_id, department, department_id, program, program_id, course_id, semester, semester_id, academicYear, academic_year_id, regulation, status, search } = req.query;
 
     let query = `
@@ -164,14 +165,39 @@ async function ensureSubjectColumns() {
   try {
     const [cols] = await pool.query('DESCRIBE subjects');
     const colNames = cols.map(c => c.Field);
-    if (!colNames.includes('theory_hours')) {
-      await pool.query('ALTER TABLE subjects ADD COLUMN theory_hours INT DEFAULT 3').catch(() => {});
-    }
-    if (!colNames.includes('lab_hours')) {
-      await pool.query('ALTER TABLE subjects ADD COLUMN lab_hours INT DEFAULT 0').catch(() => {});
+    const requiredCols = [
+      { name: 'short_name', sql: 'ALTER TABLE subjects ADD COLUMN short_name VARCHAR(50) NULL' },
+      { name: 'category_id', sql: 'ALTER TABLE subjects ADD COLUMN category_id INT NULL' },
+      { name: 'course_id', sql: 'ALTER TABLE subjects ADD COLUMN course_id INT NULL' },
+      { name: 'academic_year_id', sql: 'ALTER TABLE subjects ADD COLUMN academic_year_id INT NULL' },
+      { name: 'regulation_id', sql: 'ALTER TABLE subjects ADD COLUMN regulation_id INT NULL' },
+      { name: 'regulation', sql: 'ALTER TABLE subjects ADD COLUMN regulation VARCHAR(50) NULL' },
+      { name: 'credits', sql: 'ALTER TABLE subjects ADD COLUMN credits DECIMAL(3,1) DEFAULT 3.0' },
+      { name: 'lecture_hours', sql: 'ALTER TABLE subjects ADD COLUMN lecture_hours INT DEFAULT 3' },
+      { name: 'tutorial_hours', sql: 'ALTER TABLE subjects ADD COLUMN tutorial_hours INT DEFAULT 0' },
+      { name: 'practical_hours', sql: 'ALTER TABLE subjects ADD COLUMN practical_hours INT DEFAULT 0' },
+      { name: 'theory_hours', sql: 'ALTER TABLE subjects ADD COLUMN theory_hours INT DEFAULT 3' },
+      { name: 'lab_hours', sql: 'ALTER TABLE subjects ADD COLUMN lab_hours INT DEFAULT 0' },
+      { name: 'total_hours', sql: 'ALTER TABLE subjects ADD COLUMN total_hours INT DEFAULT 3' },
+      { name: 'internal_marks', sql: 'ALTER TABLE subjects ADD COLUMN internal_marks INT DEFAULT 40' },
+      { name: 'external_marks', sql: 'ALTER TABLE subjects ADD COLUMN external_marks INT DEFAULT 60' },
+      { name: 'total_marks', sql: 'ALTER TABLE subjects ADD COLUMN total_marks INT DEFAULT 100' },
+      { name: 'passing_marks', sql: 'ALTER TABLE subjects ADD COLUMN passing_marks INT DEFAULT 40' },
+      { name: 'offering_type', sql: "ALTER TABLE subjects ADD COLUMN offering_type VARCHAR(50) DEFAULT 'Theory'" },
+      { name: 'elective_group', sql: 'ALTER TABLE subjects ADD COLUMN elective_group VARCHAR(100) NULL' },
+      { name: 'prerequisite', sql: 'ALTER TABLE subjects ADD COLUMN prerequisite TEXT NULL' },
+      { name: 'description', sql: 'ALTER TABLE subjects ADD COLUMN description TEXT NULL' },
+      { name: 'status', sql: "ALTER TABLE subjects ADD COLUMN status VARCHAR(20) DEFAULT 'Active'" }
+    ];
+    for (const col of requiredCols) {
+      if (!colNames.includes(col.name)) {
+        await pool.query(col.sql).catch(() => {});
+      }
     }
     subjectColsChecked = true;
-  } catch (e) {}
+  } catch (e) {
+    console.error('Error in ensureSubjectColumns:', e);
+  }
 }
 
 // POST /api/subjects
@@ -310,6 +336,7 @@ export const createSubject = async (req, res) => {
 // PUT /api/subjects/:id
 export const updateSubject = async (req, res) => {
   try {
+    await ensureSubjectColumns();
     const { id } = req.params;
     const {
       code,

@@ -413,6 +413,9 @@ export async function initializeDatabase() {
       if (!sColNames.includes('prerequisite')) {
         await pool.query('ALTER TABLE subjects ADD COLUMN prerequisite TEXT NULL');
       }
+      if (!sColNames.includes('description')) {
+        await pool.query('ALTER TABLE subjects ADD COLUMN description TEXT NULL');
+      }
       if (!sColNames.includes('status')) {
         await pool.query("ALTER TABLE subjects ADD COLUMN status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active'");
       }
