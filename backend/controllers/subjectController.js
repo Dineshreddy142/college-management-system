@@ -517,6 +517,7 @@ export const updateSubjectStatus = async (req, res) => {
 // POST /api/subjects/bulk-import
 export const bulkImportSubjects = async (req, res) => {
   try {
+    await ensureSubjectColumns();
     const { subjects: items } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'An array of subjects is required.' });
@@ -630,8 +631,27 @@ export const bulkImportSubjects = async (req, res) => {
         ]
       );
 
+      const newSubjectId = result.insertId;
+
+      // Auto-create default subject offering entry for Registration Control
+      try {
+        const offeringCode = `OFF-${cleanCode}-SEC1`;
+        await pool.query(`
+          INSERT INTO subject_offerings (
+            offering_code, academic_year_id, semester_id, regulation_id, department_id, course_id, section_id, subject_version_id, max_students, status
+          ) VALUES (?, 1, ?, 1, ?, ?, 1, ?, 60, 'OPEN')
+          ON DUPLICATE KEY UPDATE status = 'OPEN'
+        `, [
+          offeringCode,
+          semester_id || 1,
+          department_id || 1,
+          course_id || 1,
+          newSubjectId
+        ]);
+      } catch (offErr) {}
+
       insertedCount++;
-      insertedRecords.push({ id: result.insertId, code: cleanCode, name });
+      insertedRecords.push({ id: newSubjectId, code: cleanCode, name });
     }
 
     res.json({
