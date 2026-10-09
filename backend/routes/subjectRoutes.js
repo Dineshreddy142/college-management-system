@@ -70,6 +70,7 @@ router.get('/academic/batches', authenticateToken, getBatches);
 router.get('/academic/academic-years', authenticateToken, getAcademicYears);
 router.post('/academic/batches', authenticateToken, authorizeRole(['Admin']), createBatch);
 
+router.get('/academic/subject-versions', authenticateToken, getSubjectVersions);
 router.get('/academic/subject-versions/:regulationId', authenticateToken, getSubjectVersions);
 router.get('/academic/student-backlogs/:studentId', authenticateToken, getStudentBacklogs);
 

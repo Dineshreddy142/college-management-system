@@ -364,17 +364,41 @@ export const createBatch = async (req, res) => {
  */
 export const getSubjectVersions = async (req, res) => {
   try {
-    const { regulationId } = req.params;
-    const [rows] = await pool.execute(
-      `SELECT sv.id, sv.regulation_id, sv.subject_code, sv.subject_name, sv.short_name,
-              sv.credits, sv.offering_type, sv.total_marks, sv.max_attempts_allowed, sv.is_elective,
-              c.name as category_name
-       FROM subject_versions sv
-       LEFT JOIN subject_categories c ON sv.category_id = c.id
-       WHERE sv.regulation_id = ?
-       ORDER BY sv.subject_code ASC`,
-      [regulationId]
-    );
+    const regulationId = req.params.regulationId || req.query.regulationId;
+    let rows = [];
+
+    if (regulationId) {
+      const [vRows] = await pool.execute(
+        `SELECT sv.id, sv.regulation_id, sv.subject_code, sv.subject_name, sv.short_name,
+                sv.credits, sv.offering_type, sv.total_marks, sv.max_attempts_allowed, sv.is_elective,
+                c.name as category_name
+         FROM subject_versions sv
+         LEFT JOIN subject_categories c ON sv.category_id = c.id
+         WHERE sv.regulation_id = ?
+         ORDER BY sv.subject_code ASC`,
+        [regulationId]
+      );
+      rows = vRows;
+    }
+
+    // Fallback: If no subject_versions found, fetch from central subjects catalog table
+    if (rows.length === 0) {
+      const query = (regulationId && regulationId !== '')
+        ? `SELECT s.id, s.code as subject_code, s.name as subject_name, s.short_name,
+                  s.credits, s.offering_type, s.total_marks, sc.name as category_name
+           FROM subjects s
+           LEFT JOIN subject_categories sc ON s.category_id = sc.id
+           WHERE s.regulation_id = ? OR s.regulation_id IS NULL
+           ORDER BY s.code ASC`
+        : `SELECT s.id, s.code as subject_code, s.name as subject_name, s.short_name,
+                  s.credits, s.offering_type, s.total_marks, sc.name as category_name
+           FROM subjects s
+           LEFT JOIN subject_categories sc ON s.category_id = sc.id
+           ORDER BY s.code ASC`;
+      const params = (regulationId && regulationId !== '') ? [regulationId] : [];
+      const [sRows] = await pool.execute(query, params);
+      rows = sRows;
+    }
 
     return successResponse(res, 'Subject versions retrieved', { subjectVersions: rows });
   } catch (err) {
