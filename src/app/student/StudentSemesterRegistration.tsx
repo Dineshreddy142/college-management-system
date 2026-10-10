@@ -169,6 +169,32 @@ export const StudentSemesterRegistration: React.FC = () => {
         </div>
       )}
 
+      {/* Registration Status Banner if exists */}
+      {eligibilityData?.registrationHeader && (
+        <div className={`p-4 rounded-3xl border text-xs sm:text-sm font-semibold flex items-center justify-between shadow-md ${
+          eligibilityData.registrationHeader.status === 'APPROVED' || eligibilityData.registrationHeader.status === 'LOCKED'
+            ? 'bg-emerald-950/80 text-emerald-200 border-emerald-500/40'
+            : eligibilityData.registrationHeader.status === 'REJECTED'
+            ? 'bg-red-950/80 text-red-200 border-red-500/40'
+            : 'bg-indigo-950/80 text-indigo-200 border-indigo-500/40'
+        }`}>
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-extrabold text-sm">
+                Semester Registration Status: {eligibilityData.registrationHeader.status}
+              </p>
+              <p className="text-xs opacity-80 mt-0.5">
+                Total Credits Registered: {eligibilityData.registrationHeader.total_credits} • Submitted: {new Date(eligibilityData.registrationHeader.submitted_at).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/10 border border-white/20">
+            {eligibilityData.registrationHeader.status}
+          </span>
+        </div>
+      )}
+
       {/* Header Profile Summary */}
       <div className="bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />

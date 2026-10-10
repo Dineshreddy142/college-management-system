@@ -59,6 +59,49 @@ export async function evaluateOfferingRegistrationEligibility(studentId, targetO
 
     const currentSemId = semesterId || student.current_semester_id || 1;
 
+    // Check Existing Registration Header Status
+    const [existingHeader] = await pool.execute(
+      `SELECT id, status, total_credits, submitted_at, approved_at, remarks
+       FROM student_semester_registrations
+       WHERE student_id = ? AND semester_id = ?`,
+      [studentId, currentSemId]
+    );
+    if (existingHeader.length > 0) {
+      results.registrationHeader = existingHeader[0];
+    }
+
+    // Auto-sync baseline subjects to subject_versions & subject_offerings
+    try {
+      await pool.execute(`
+        INSERT IGNORE INTO subject_versions (id, regulation_id, subject_code, subject_name, credits, offering_type, internal_marks, external_marks, total_marks, status)
+        SELECT id, COALESCE(regulation_id, 1), code, name, COALESCE(credits, 3.0), COALESCE(offering_type, 'Theory'), COALESCE(internal_marks, 40), COALESCE(external_marks, 60), COALESCE(total_marks, 100), 'ACTIVE'
+        FROM subjects
+        ON DUPLICATE KEY UPDATE subject_code = VALUES(subject_code), subject_name = VALUES(subject_name)
+      `);
+
+      await pool.execute(`
+        INSERT IGNORE INTO subject_offerings (
+          offering_code, academic_year_id, semester_id, regulation_id, department_id, course_id, section_id, subject_version_id, max_students, status
+        )
+        SELECT
+          CONCAT('OFF-', s.code, '-SEC1'),
+          COALESCE(s.academic_year_id, 1),
+          COALESCE(s.semester_id, 1),
+          COALESCE(s.regulation_id, 1),
+          COALESCE(s.department_id, 1),
+          COALESCE(s.course_id, 1),
+          1,
+          s.id,
+          60,
+          'OPEN'
+        FROM subjects s
+        LEFT JOIN subject_offerings so ON so.subject_version_id = s.id
+        WHERE so.id IS NULL AND (s.status = 'Active' OR s.status IS NULL)
+      `);
+    } catch (syncErr) {
+      console.warn('Notice: Auto-sync offerings skipped:', syncErr.message);
+    }
+
     // Fetch Regulation credit limits
     if (student.regulation_id) {
       const [regRows] = await pool.execute(
@@ -95,19 +138,28 @@ export async function evaluateOfferingRegistrationEligibility(studentId, targetO
     const [offerings] = await pool.execute(
       `SELECT so.id as offering_id, so.offering_code, so.max_students, so.current_students,
               so.status as offering_status, so.registration_start, so.registration_end,
-              sv.id as subject_version_id, sv.subject_code, sv.subject_name, sv.credits,
-              sv.offering_type, sv.is_elective, sv.elective_group_id, sv.max_attempts_allowed,
+              COALESCE(sv.id, s.id) as subject_version_id,
+              COALESCE(sv.subject_code, s.code, 'SUB-001') as subject_code,
+              COALESCE(sv.subject_name, s.name, 'Untitled Subject') as subject_name,
+              COALESCE(sv.credits, s.credits, 3.0) as credits,
+              COALESCE(sv.offering_type, s.offering_type, 'Theory') as offering_type,
+              COALESCE(sv.is_elective, 0) as is_elective,
+              sv.elective_group_id,
+              COALESCE(sv.max_attempts_allowed, 5) as max_attempts_allowed,
               GROUP_CONCAT(CONCAT(f.name, ' (', fa.component_type, ')') SEPARATOR ', ') as assigned_faculty
        FROM subject_offerings so
-       JOIN subject_versions sv ON so.subject_version_id = sv.id
+       LEFT JOIN subject_versions sv ON so.subject_version_id = sv.id
+       LEFT JOIN subjects s ON (so.subject_version_id = s.id OR (sv.id IS NULL AND s.id = so.subject_version_id))
        LEFT JOIN faculty_offering_assignments fa ON (so.id = fa.offering_id AND fa.status = 'ACTIVE')
        LEFT JOIN faculty f ON fa.faculty_id = f.id
-       WHERE (so.department_id = ? OR so.department_id IS NULL)
-         AND (so.regulation_id = ? OR so.regulation_id IS NULL)
-         AND so.semester_id = ?
-         AND so.status = 'OPEN'
+       WHERE (so.department_id = ? OR so.department_id IS NULL OR s.department_id = ? OR s.department_id IS NULL)
+         AND (so.semester_id = ? OR s.semester_id = ? OR s.semester_id IS NULL)
+         AND (so.status = 'OPEN' OR so.status IS NULL)
        GROUP BY so.id`,
-      [student.department_id || 1, student.regulation_id || 1, currentSemId]
+      [
+        student.department_id || 1, student.department_id || 1,
+        currentSemId, currentSemId
+      ]
     );
 
     // Evaluate each offering for student eligibility
@@ -218,7 +270,7 @@ export async function evaluateOfferingRegistrationEligibility(studentId, targetO
 }
 
 /**
- * Transactional Semester Registration Submission with FOR UPDATE Capacity Locking
+ * Transactional Semester Registration Submission with FOR UPDATE Capacity Locking & Dual-Table Sync
  */
 export async function submitSemesterRegistrationTransactional({
   studentId,
@@ -253,9 +305,12 @@ export async function submitSemesterRegistrationTransactional({
     const placeholders = uniqueOfferingIds.map(() => '?').join(',');
     const [offerings] = await connection.execute(
       `SELECT so.id, so.subject_version_id, so.max_students, so.current_students, so.status,
-              sv.credits, sv.subject_code, sv.subject_name
+              COALESCE(sv.credits, s.credits, 3.0) as credits,
+              COALESCE(sv.subject_code, s.code, 'SUB-001') as subject_code,
+              COALESCE(sv.subject_name, s.name, 'Untitled Subject') as subject_name
        FROM subject_offerings so
-       JOIN subject_versions sv ON so.subject_version_id = sv.id
+       LEFT JOIN subject_versions sv ON so.subject_version_id = sv.id
+       LEFT JOIN subjects s ON (so.subject_version_id = s.id OR (sv.id IS NULL AND s.id = so.subject_version_id))
        WHERE so.id IN (${placeholders}) FOR UPDATE`,
       uniqueOfferingIds
     );
@@ -303,7 +358,7 @@ export async function submitSemesterRegistrationTransactional({
       [registrationId]
     );
 
-    // 4. Insert enrollment detail items & update current_students counters
+    // 4. Insert enrollment detail items & update current_students counters & DUAL-TABLE SYNC TO student_subject_registrations
     for (const off of offerings) {
       await connection.execute(
         `INSERT INTO student_offering_enrollments
@@ -316,6 +371,26 @@ export async function submitSemesterRegistrationTransactional({
         `UPDATE subject_offerings SET current_students = current_students + 1 WHERE id = ?`,
         [off.id]
       );
+
+      // 🔥 DUAL-TABLE SYNC TO student_subject_registrations FOR ATTENDANCE & TELEMETRY
+      const [subRows] = await connection.execute(
+        'SELECT id FROM subjects WHERE id = ? OR code = ?',
+        [off.subject_version_id, off.subject_code]
+      );
+      const realSubjectId = subRows.length > 0 ? subRows[0].id : off.subject_version_id;
+
+      await connection.execute(`
+        INSERT INTO student_subject_registrations
+          (student_id, subject_id, semester_id, academic_year_id, section_id, registration_type, status)
+        VALUES (?, ?, ?, ?, ?, 'MANDATORY', 'REGISTERED')
+        ON DUPLICATE KEY UPDATE status = 'REGISTERED', updated_at = CURRENT_TIMESTAMP
+      `, [
+        studentId,
+        realSubjectId,
+        semesterId,
+        academicYearId,
+        student.section_id || 1
+      ]);
     }
 
     // 5. Write to Enterprise Academic Audit Logs
@@ -351,7 +426,7 @@ async function getRegistrationHeaderId(conn, studentId, semesterId, academicYear
 }
 
 /**
- * Approve or Reject Semester Registration Workflow
+ * Approve or Reject Semester Registration Workflow with DUAL-TABLE SYNC
  */
 export async function approveOrRejectRegistration(registrationId, approvedByUserId, action, remarks = '') {
   const status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
@@ -373,6 +448,36 @@ export async function approveOrRejectRegistration(registrationId, approvedByUser
         `UPDATE student_semester_registrations SET status = 'LOCKED', locked_at = CURRENT_TIMESTAMP WHERE id = ?`,
         [registrationId]
       );
+
+      // 🔥 Sync all enrollments to student_subject_registrations for Attendance Roster & Faculty Class marking
+      const [enrollments] = await connection.execute(
+        `SELECT soe.student_id, soe.offering_id, soe.subject_version_id, ssr.semester_id, ssr.academic_year_id, ssr.section_id
+         FROM student_offering_enrollments soe
+         JOIN student_semester_registrations ssr ON soe.semester_registration_id = ssr.id
+         WHERE soe.semester_registration_id = ?`,
+        [registrationId]
+      );
+
+      for (const item of enrollments) {
+        const [subRows] = await connection.execute(
+          'SELECT id FROM subjects WHERE id = ?',
+          [item.subject_version_id]
+        );
+        const targetSubId = subRows.length > 0 ? subRows[0].id : item.subject_version_id;
+
+        await connection.execute(`
+          INSERT INTO student_subject_registrations
+            (student_id, subject_id, semester_id, academic_year_id, section_id, registration_type, status)
+          VALUES (?, ?, ?, ?, ?, 'MANDATORY', 'REGISTERED')
+          ON DUPLICATE KEY UPDATE status = 'REGISTERED', updated_at = CURRENT_TIMESTAMP
+        `, [
+          item.student_id,
+          targetSubId,
+          item.semester_id,
+          item.academic_year_id,
+          item.section_id
+        ]);
+      }
     }
 
     await connection.execute(
