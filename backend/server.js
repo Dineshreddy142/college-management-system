@@ -38,6 +38,7 @@ import feeRoutes from './routes/feeRoutes.js';
 import libraryRoutes from './routes/libraryRoutes.js';
 import admissionRoutes from './routes/admissionRoutes.js';
 import cbcsRoutes from './routes/cbcsRoutes.js';
+import mcqRoutes from './routes/mcqRoutes.js';
 import { initializeDatabase } from './init_db.js';
 import { getAnalyticsSummary } from './controllers/dashboardController.js';
 
@@ -124,6 +125,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/bulk', bulkUploadRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/mcq', mcqRoutes);
 app.use('/api/chancellor', chancellorRoutes);
 app.use('/api/admission', admissionRoutes);
 

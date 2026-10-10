@@ -12,6 +12,12 @@ export const FacultyAttendanceMarking: React.FC = () => {
   const [isLoadingRoster, setIsLoadingRoster] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Topic covered for Gemini 10-MCQ Quiz generation
+  const [topicCovered, setTopicCovered] = useState('');
+  const [activeAnalyticsSession, setActiveAnalyticsSession] = useState<any | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<any | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
   // Toast
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -41,6 +47,7 @@ export const FacultyAttendanceMarking: React.FC = () => {
 
   const handleOpenRosterModal = async (classItem: any) => {
     setActiveSession(classItem);
+    setTopicCovered(classItem.topic_covered || '');
     setIsLoadingRoster(true);
     try {
       const res = await client.get(`/attendance/session/${classItem.session_id}/roster`);
@@ -55,6 +62,21 @@ export const FacultyAttendanceMarking: React.FC = () => {
     }
   };
 
+  const handleFetchTopicAnalytics = async (sessionId: number) => {
+    setActiveAnalyticsSession(sessionId);
+    setIsLoadingAnalytics(true);
+    try {
+      const res = await client.get(`/mcq/faculty/topic-analytics/${sessionId}`);
+      if (res.data && res.data.success) {
+        setAnalyticsData(res.data);
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to load topic analytics.', 'error');
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
   const handleMarkAllPresent = () => {
     setRosterStudents(prev => prev.map(s => ({ ...s, current_status: 'PRESENT' })));
     showToast('All registered students marked PRESENT.');
@@ -66,6 +88,10 @@ export const FacultyAttendanceMarking: React.FC = () => {
 
   const handleSubmitAttendance = async () => {
     if (!activeSession) return;
+    if (!topicCovered.trim()) {
+      showToast('Please enter the topic covered in today\'s class to generate MCQs.', 'error');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -75,11 +101,12 @@ export const FacultyAttendanceMarking: React.FC = () => {
       }));
 
       const res = await client.post(`/attendance/session/${activeSession.session_id}/submit`, {
+        topic_covered: topicCovered.trim(),
         records: recordsPayload
       });
 
       if (res.data && res.data.success) {
-        showToast(res.data.message || 'Attendance submitted successfully!');
+        showToast(res.data.message || 'Attendance & 10 Topic MCQs dispatched successfully!');
         setActiveSession(null);
         fetchTodaysClasses();
       }
@@ -192,7 +219,7 @@ export const FacultyAttendanceMarking: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-2">
                     <button
                       onClick={() => handleOpenRosterModal(item)}
                       className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md ${
@@ -204,6 +231,15 @@ export const FacultyAttendanceMarking: React.FC = () => {
                       <UserCheck className="w-4 h-4" />
                       <span>{isSubmitted ? 'Edit Attendance Roster' : 'Mark Attendance'}</span>
                     </button>
+                    {isSubmitted && (
+                      <button
+                        onClick={() => handleFetchTopicAnalytics(item.session_id)}
+                        className="w-full py-1.5 rounded-xl text-xs font-bold border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 flex items-center justify-center gap-1.5"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>View Topic Quiz Analytics</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -248,15 +284,32 @@ export const FacultyAttendanceMarking: React.FC = () => {
               </div>
             </div>
 
+            {/* Topic Covered Input Field for Gemini AI MCQs */}
+            <div className="px-6 py-3 bg-purple-900/10 border-b border-purple-100 dark:border-purple-900/40 space-y-1.5">
+              <label className="block text-xs font-bold text-purple-900 dark:text-purple-300">
+                Topic Covered in Today's Class <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={topicCovered}
+                onChange={(e) => setTopicCovered(e.target.value)}
+                placeholder="e.g., Binary Search Trees, Process Scheduling, Photosynthesis"
+                className="w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+                ✨ Gemini AI will generate 10 topic MCQs based on this input. Present students must complete them before 11:59 PM to confirm attendance.
+              </p>
+            </div>
+
             {/* Roster Live Stats Bar */}
             <div className="px-6 py-2.5 bg-purple-50/50 dark:bg-purple-950/30 border-b border-purple-100 dark:border-purple-900/40 grid grid-cols-4 gap-2 text-center text-xs">
               <div>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{presentCount}</span>
-                <p className="text-[10px] text-slate-500">Present</p>
+                <p className="text-[10px] text-slate-500">Present (Assigned Quiz)</p>
               </div>
               <div>
                 <span className="font-bold text-red-600 dark:text-red-400">{absentCount}</span>
-                <p className="text-[10px] text-slate-500">Absent</p>
+                <p className="text-[10px] text-slate-500">Absent (No Quiz)</p>
               </div>
               <div>
                 <span className="font-bold text-amber-600 dark:text-amber-400">{lateCount}</span>
@@ -346,12 +399,74 @@ export const FacultyAttendanceMarking: React.FC = () => {
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Save & Submit Attendance</span>
+                    <span>Save & Dispatch 10 MCQs</span>
                   </>
                 )}
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Faculty Topic Quiz Analytics Modal */}
+      {activeAnalyticsSession && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-purple-900/10">
+              <div>
+                <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
+                  Topic Comprehension Telemetry
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Topic: {analyticsData?.session_summary?.topic_covered || 'General Topic'}
+                </h3>
+              </div>
+              <button onClick={() => { setActiveAnalyticsSession(null); setAnalyticsData(null); }} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600">
+                &times;
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {isLoadingAnalytics ? (
+                <div className="p-8 text-center text-xs text-slate-400">Loading topic quiz analytics...</div>
+              ) : analyticsData ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-100 dark:border-purple-900">
+                      <span className="text-lg font-extrabold text-purple-600">{analyticsData.session_summary.completed_count} / {analyticsData.session_summary.total_assigned}</span>
+                      <p className="text-[10px] text-slate-500 font-semibold">Completed</p>
+                    </div>
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-100 dark:border-emerald-900">
+                      <span className="text-lg font-extrabold text-emerald-600">{analyticsData.session_summary.class_comprehension_avg_score}%</span>
+                      <p className="text-[10px] text-slate-500 font-semibold">Avg Class Comprehension</p>
+                    </div>
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-100 dark:border-amber-900">
+                      <span className="text-lg font-extrabold text-amber-600">{analyticsData.session_summary.pending_count}</span>
+                      <p className="text-[10px] text-slate-500 font-semibold">Pending Quiz</p>
+                    </div>
+                    <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-100 dark:border-red-900">
+                      <span className="text-lg font-extrabold text-red-600">{analyticsData.session_summary.expired_count}</span>
+                      <p className="text-[10px] text-slate-500 font-semibold">Expired/Unverified</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Question Accuracy Breakdown</h4>
+                    <div className="space-y-2">
+                      {analyticsData.question_breakdown.map((q: any) => (
+                        <div key={q.question_number} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs">
+                          <div className="flex justify-between font-semibold text-slate-800 dark:text-slate-200">
+                            <span>Q{q.question_number}: {q.question_text}</span>
+                            <span className="font-extrabold text-purple-600">{q.accuracy_percentage}% Accuracy</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       )}

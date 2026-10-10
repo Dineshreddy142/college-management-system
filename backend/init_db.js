@@ -1144,13 +1144,37 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Ensure topic_covered and total_present_students columns exist on attendance_sessions
+    try {
+      const [sessionCols] = await pool.query('DESCRIBE attendance_sessions');
+      const sessionColNames = sessionCols.map(c => c.Field);
+      if (!sessionColNames.includes('topic_covered')) {
+        await pool.query('ALTER TABLE attendance_sessions ADD COLUMN topic_covered VARCHAR(255) NULL AFTER status');
+      }
+      if (!sessionColNames.includes('total_present_students')) {
+        await pool.query('ALTER TABLE attendance_sessions ADD COLUMN total_present_students INT DEFAULT 0 AFTER topic_covered');
+      }
+    } catch (colErr) {
+      console.warn('[DATABASE INIT] Note on attendance_sessions columns:', colErr.message);
+    }
+
+    // Ensure status enum on attendance_records supports PENDING_MCQ and MCQ_EXPIRED
+    try {
+      await pool.query(`
+        ALTER TABLE attendance_records 
+        MODIFY COLUMN status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'PENDING_MCQ', 'MCQ_EXPIRED') DEFAULT 'PENDING_MCQ'
+      `);
+    } catch (enumErr) {
+      console.warn('[DATABASE INIT] Note on attendance_records status enum:', enumErr.message);
+    }
+
     // 14.b Attendance Records Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance_records (
         id INT AUTO_INCREMENT PRIMARY KEY,
         attendance_session_id INT NOT NULL,
         student_id INT NOT NULL,
-        status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED') DEFAULT 'PRESENT',
+        status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'PENDING_MCQ', 'MCQ_EXPIRED') DEFAULT 'PENDING_MCQ',
         verification_method ENUM('MANUAL', 'FACE', 'QR', 'OTHER') DEFAULT 'MANUAL',
         marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         marked_by INT NULL,
@@ -1160,13 +1184,68 @@ export async function initializeDatabase() {
       )
     `);
 
-    // 14.c Attendance Corrections Table
+    // 14.c Daily MCQ Assignments Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_mcq_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        attendance_session_id INT NOT NULL,
+        student_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        topic_covered VARCHAR(255) NOT NULL,
+        assigned_date DATE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        status ENUM('PENDING', 'COMPLETED', 'EXPIRED') DEFAULT 'PENDING',
+        total_questions INT DEFAULT 10,
+        score INT DEFAULT 0,
+        percentage DECIMAL(5,2) DEFAULT 0.00,
+        submitted_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_student_session_mcq (attendance_session_id, student_id),
+        FOREIGN KEY (attendance_session_id) REFERENCES attendance_sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 14.d Daily MCQ Questions Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_mcq_questions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        attendance_session_id INT NOT NULL,
+        question_number INT NOT NULL,
+        question_text TEXT NOT NULL,
+        option_a VARCHAR(255) NOT NULL,
+        option_b VARCHAR(255) NOT NULL,
+        option_c VARCHAR(255) NOT NULL,
+        option_d VARCHAR(255) NOT NULL,
+        correct_option ENUM('A', 'B', 'C', 'D') NOT NULL,
+        explanation TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (attendance_session_id) REFERENCES attendance_sessions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 14.e Daily MCQ Responses Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_mcq_responses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        assignment_id INT NOT NULL,
+        question_id INT NOT NULL,
+        selected_option ENUM('A', 'B', 'C', 'D') NOT NULL,
+        is_correct TINYINT(1) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (assignment_id) REFERENCES daily_mcq_assignments(id) ON DELETE CASCADE,
+        FOREIGN KEY (question_id) REFERENCES daily_mcq_questions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 14.f Attendance Corrections Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS attendance_corrections (
         id INT AUTO_INCREMENT PRIMARY KEY,
         attendance_record_id INT NOT NULL,
-        old_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED'),
-        new_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED'),
+        old_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'PENDING_MCQ', 'MCQ_EXPIRED'),
+        new_status ENUM('PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'PENDING_MCQ', 'MCQ_EXPIRED'),
         reason TEXT NOT NULL,
         changed_by INT NOT NULL,
         changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

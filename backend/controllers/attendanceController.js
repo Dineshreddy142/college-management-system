@@ -1,4 +1,7 @@
 import pool from '../db.js';
+import { GeminiAdapter } from '../services/ai/geminiAdapter.js';
+
+const geminiAdapter = new GeminiAdapter();
 
 // Helper to resolve Faculty ID from authenticated user
 const resolveFacultyId = async (userId) => {
@@ -163,7 +166,7 @@ export const getAttendanceSessionRoster = async (req, res) => {
 export const submitAttendanceSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const { records } = req.body;
+    const { records, topic_covered } = req.body;
     const facultyId = await resolveFacultyId(req.user.id);
 
     const [sessions] = await pool.query('SELECT * FROM attendance_sessions WHERE id = ?', [id]);
@@ -187,9 +190,24 @@ export const submitAttendanceSession = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Attendance roster records are required.' });
     }
 
+    const topicName = (topic_covered && topic_covered.trim().length > 0) ? topic_covered.trim() : 'General Subject Overview';
+
+    const presentStudentIds = [];
+
     // Save attendance records
     for (const item of recordItems) {
-      const statusVal = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'].includes(item.status) ? item.status : 'PRESENT';
+      // If student is present or late -> set status to PENDING_MCQ until student completes 10 MCQs
+      let statusVal = 'PENDING_MCQ';
+      if (item.status === 'ABSENT') {
+        statusVal = 'ABSENT';
+      } else if (item.status === 'EXCUSED') {
+        statusVal = 'EXCUSED';
+      } else {
+        // PRESENT or LATE
+        statusVal = 'PENDING_MCQ';
+        presentStudentIds.push(item.student_id);
+      }
+
       await pool.query(`
         INSERT INTO attendance_records (attendance_session_id, student_id, status, verification_method, marked_by)
         VALUES (?, ?, ?, 'MANUAL', ?)
@@ -197,17 +215,67 @@ export const submitAttendanceSession = async (req, res) => {
       `, [id, item.student_id, statusVal, req.user.id]);
     }
 
-    // Update session status to SUBMITTED
+    // Update session status to SUBMITTED and record topic_covered
     await pool.query(`
       UPDATE attendance_sessions
-      SET status = 'SUBMITTED', submitted_at = CURRENT_TIMESTAMP
+      SET status = 'SUBMITTED', topic_covered = ?, total_present_students = ?, submitted_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [id]);
+    `, [topicName, presentStudentIds.length, id]);
+
+    // If there are present students, generate 10 topic MCQs via Gemini AI & assign them
+    if (presentStudentIds.length > 0) {
+      // Fetch Subject name
+      const [subjects] = await pool.query('SELECT name, code FROM subjects WHERE id = ?', [session.subject_id]);
+      const subjectName = subjects.length > 0 ? `${subjects[0].code} - ${subjects[0].name}` : 'Subject Core';
+
+      // Generate 10 MCQs using Gemini AI Adapter
+      const generatedQuestions = await geminiAdapter.generateTopicMcqs(subjectName, topicName);
+
+      // Clean existing questions for this session if any, and insert fresh 10 questions
+      await pool.query('DELETE FROM daily_mcq_questions WHERE attendance_session_id = ?', [id]);
+
+      for (const q of generatedQuestions) {
+        await pool.query(`
+          INSERT INTO daily_mcq_questions
+          (attendance_session_id, question_number, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          id,
+          q.question_number,
+          q.question_text,
+          q.option_a,
+          q.option_b,
+          q.option_c,
+          q.option_d,
+          q.correct_option,
+          q.explanation || ''
+        ]);
+      }
+
+      // Calculate expiry date: Today 23:59:59
+      const todayDateStr = new Date(session.date).toISOString().slice(0, 10);
+      const expiresAtStr = `${todayDateStr} 23:59:59`;
+
+      // Assign to all present students
+      for (const studentId of presentStudentIds) {
+        await pool.query(`
+          INSERT INTO daily_mcq_assignments
+          (attendance_session_id, student_id, subject_id, topic_covered, assigned_date, expires_at, status, total_questions)
+          VALUES (?, ?, ?, ?, ?, ?, 'PENDING', 10)
+          ON DUPLICATE KEY UPDATE topic_covered = VALUES(topic_covered), expires_at = VALUES(expires_at), status = 'PENDING'
+        `, [id, studentId, session.subject_id, topicName, todayDateStr, expiresAtStr]);
+      }
+    }
 
     res.json({
       success: true,
-      message: `Attendance marked successfully for ${recordItems.length} students!`,
-      data: { session_id: id, count: recordItems.length }
+      message: `Attendance submitted for ${recordItems.length} students! ${presentStudentIds.length} present student(s) assigned 10 Topic MCQs ("${topicName}").`,
+      data: {
+        session_id: id,
+        total_students: recordItems.length,
+        present_count: presentStudentIds.length,
+        topic_covered: topicName
+      }
     });
   } catch (error) {
     console.error('Error submitting attendance session:', error);
