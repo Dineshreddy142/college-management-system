@@ -203,7 +203,7 @@ export const StudentSemesterRegistration: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs uppercase tracking-wider mb-1">
               <Award className="w-4 h-4" />
-              <span>Choice-Based Credit System (CBCS) Student Portal</span>
+              <span>Standard Academic Semester Course Registration</span>
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">
               {student.name || 'Student Portal'} ({student.roll_number || 'STU-ID'})
@@ -211,7 +211,7 @@ export const StudentSemesterRegistration: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-3">
               <span>Department: <strong className="text-slate-200">{student.department_name || 'CSE'}</strong></span>
               <span>•</span>
-              <span>Regulation: <strong className="text-slate-200">{student.regulation_name || 'R25'}</strong></span>
+              <span>Regulation: <strong className="text-slate-200">{student.regulation_name || 'R23'}</strong></span>
               <span>•</span>
               <span>CGPA: <strong className="text-emerald-400">{student.cgpa || '8.50'}</strong></span>
             </p>
@@ -219,7 +219,7 @@ export const StudentSemesterRegistration: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-right">
-              <p className="text-[10px] text-slate-400 uppercase font-bold">Selected Credits</p>
+              <p className="text-[10px] text-slate-400 uppercase font-bold">Enrolled Semester Credits</p>
               <p className={`text-xl font-black ${isCreditValid ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {credits.totalCredits} / {credits.maxAllowed} Credits
               </p>

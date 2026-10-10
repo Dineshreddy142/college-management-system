@@ -339,7 +339,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
               <Award className="w-3.5 h-3.5" /> Academic Structure Alignment
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Department
@@ -347,7 +347,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                 <select
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
                 >
                   <option value="">All / Interdepartmental</option>
                   {(Array.isArray(departments) ? departments : []).map((dept) => (
@@ -365,7 +365,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                 <select
                   value={courseId}
                   onChange={(e) => setCourseId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
                 >
                   <option value="">All Programs</option>
                   {(Array.isArray(programs) ? programs : []).map((prog) => (
@@ -383,7 +383,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                 <select
                   value={semesterId}
                   onChange={(e) => setSemesterId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
                 >
                   <option value="">Select Semester</option>
                   {(Array.isArray(semesters) ? semesters : []).map((sem) => (
@@ -396,14 +396,14 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Academic Year Level
+                  Academic Year Level / Batch
                 </label>
                 <select
                   value={academicYearId}
                   onChange={(e) => setAcademicYearId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
                 >
-                  <option value="">Select Year Level</option>
+                  <option value="">Select Year Level / Batch</option>
                   {(Array.isArray(academicYears) ? academicYears : []).map((ay) => (
                     <option key={ay.id} value={ay.id}>
                       {ay.name || `Year ${ay.year_level}`}
@@ -411,9 +411,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Regulation / Curriculum Code
@@ -422,8 +420,8 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   type="text"
                   value={regulation}
                   onChange={(e) => setRegulation(e.target.value)}
-                  placeholder="e.g. R23"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. R23 / R25"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -436,7 +434,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
                   value={electiveGroup}
                   onChange={(e) => setElectiveGroup(e.target.value)}
                   placeholder="e.g. PE-1 / Group A"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
