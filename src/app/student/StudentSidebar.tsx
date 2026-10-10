@@ -13,8 +13,6 @@ export const STUDENT_SIDEBAR_ITEMS = [
   { id: "profile", label: "My Profile", icon: User, badge: null },
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "88%" },
   { id: "daily-mcqs", label: "Daily Topic MCQs", icon: Sparkles, badge: "Daily" },
-  { id: "semester-registration", label: "Semester Registration", icon: Sparkles, badge: "Open" },
-  { id: "my-subjects", label: "My Subjects", icon: BookOpen, badge: null },
 
   { id: "timetable", label: "Timetable", icon: Clock, badge: null },
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3 Due" },

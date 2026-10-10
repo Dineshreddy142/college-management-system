@@ -17,7 +17,6 @@ import { LeavesModule } from "../shared/LeavesModule";
 import { CommunicationModule } from "../shared/CommunicationModule";
 import { DocumentsModule } from "./DocumentsModule";
 import { ComplaintsModule } from "./ComplaintsModule";
-import { StudentSemesterRegistration } from "./StudentSemesterRegistration";
 import { StudentDailyMcqModule } from "./StudentDailyMcqModule";
 import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { AnalyticsModule } from "./AnalyticsModule";
@@ -33,8 +32,6 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "profile": return <ProfileModule />;
       case "attendance": return <AttendanceModule />;
       case "daily-mcqs": return <StudentDailyMcqModule />;
-      case "semester-registration": return <StudentSemesterRegistration />;
-      case "my-subjects": return <AcademicsModule />;
       case "timetable": return <TimetableModule />;
       case "assignments": return <AssignmentsModule />;
       case "examination": return <ExaminationModule />;
