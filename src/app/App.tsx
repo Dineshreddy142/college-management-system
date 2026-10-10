@@ -214,7 +214,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
   { id: "registration-control", label: "Registration Windows", icon: UserCheck, badge: "Live" },
   { id: "bulk-data", label: "Bulk Data Hub", icon: FileSpreadsheet, badge: "AI Sync" },
-  { id: "academic", label: "Academics & Curriculums", icon: BookOpen, badge: null },
   { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
   { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
@@ -243,13 +242,13 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (normRole === 'chancellor' || normRole === 'vicechancellor') {
-      return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'profile', 'settings'].includes(item.id);
+      return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'profile', 'settings'].includes(item.id);
     }
     if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin') return true;
-    if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'academic', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
+    if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'coe' || normRole === 'controllerofexaminations') return ['dashboard', 'exams', 'students', 'faculty', 'reports', 'settings', 'audit-logs'].includes(item.id);
-    if (normRole === 'dean') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
-    if (normRole === 'hod') return ['dashboard', 'users', 'academic', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'registration-control', 'audit-logs'].includes(item.id);
+    if (normRole === 'dean') return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
+    if (normRole === 'hod') return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'timetable', 'reports', 'settings', 'registration-control', 'audit-logs'].includes(item.id);
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement' || normRole === 'placementofficer') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);

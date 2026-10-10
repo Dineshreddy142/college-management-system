@@ -1092,8 +1092,8 @@ export async function initializeDatabase() {
       )
     `);
 
-    // Remove Campus Block Twin and Obsolete CBCS / Semester Registration database tables
-    await pool.query(`DROP TABLE IF EXISTS student_cbcs_preferences, cbcs_allocation_logs, cbcs_registration_windows, student_offering_enrollments, student_semester_registrations, floor_rooms, floor_corridors, block_floors, campus_blocks`);
+    // Remove Campus Block Twin, Obsolete CBCS / Semester Registration, and Obsolete Curriculum database tables
+    await pool.query(`DROP TABLE IF EXISTS curriculum_subjects, curriculums, student_cbcs_preferences, cbcs_allocation_logs, cbcs_registration_windows, student_offering_enrollments, student_semester_registrations, floor_rooms, floor_corridors, block_floors, campus_blocks`);
 
     // 13. Attendance header table
     await pool.query(`
