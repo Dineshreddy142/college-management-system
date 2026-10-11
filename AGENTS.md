@@ -77,3 +77,31 @@ Before implementing, altering, or deleting ANY feature, table, or component:
   - Database foreign keys and zero orphan records.
   - Zero dead or un-wired buttons in frontend.
   - Zero compile errors across TypeScript and Vite production bundles.
+
+---
+
+## Rule 7: Mandatory Error Diagnosis & Cause Report Protocol (Never Implement Directly)
+
+Whenever the user reports ANY error (runtime exception, build failure, IDE diagnostic, or broken interaction):
+
+1. **NEVER Directly Modify Code:**
+   - Antigravity MUST NEVER immediately edit, patch, or rewrite code upon receiving an error report.
+
+2. **Diagnose First & Identify Root Cause:**
+   - Trace the exact line, stack frame, minified bundle symbol, SQL query, or API contract that triggered the failure.
+   - Determine the fundamental reason why it failed (type mismatch, missing endpoint, schema divergence, null pointer, etc.).
+
+3. **Deliver the Cause & Impact Report to User:**
+   - Antigravity MUST present a structured **Cause & Impact Report** to the user first:
+     * **Error Telemetry:** Exact file, line, and runtime context.
+     * **Root Cause & Reason:** Why the failure occurred.
+     * **3-Layer Impact Analysis:**
+       - Database: Affected tables/columns (or confirm 0 impact).
+       - Backend API: Affected endpoints/controllers (or confirm 0 impact).
+       - Frontend UI: Affected components, state, or hooks.
+     * **Proposed Fullstack Fix:** Step-by-step resolution plan.
+
+4. **Explicit User Confirmation Required:**
+   - Explicitly request the user's approval before modifying any files or databases.
+   - Only execute the fix after receiving explicit user consent.
+

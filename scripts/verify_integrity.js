@@ -158,6 +158,11 @@ function verifyFullstackSynchronicity() {
 async function run() {
   console.log('\n============================================================');
   console.log('         COLLEGE MANAGEMENT SYSTEM INTEGRITY AUDIT          ');
+  console.log('============================================================');
+  console.log('  PROTOCOL ENFORCEMENT: AGENTS.md Rules 1-7 Active');
+  console.log('  Rule 7: In case of error, NEVER directly implement fixes.');
+  console.log('  Always diagnose root cause, deliver 3-layer report, and');
+  console.log('  wait for explicit user confirmation before modifying code.');
   console.log('============================================================\n');
 
   const dbResult = await verifyDatabaseIntegrity();
@@ -173,9 +178,12 @@ async function run() {
     process.exit(0);
   } else {
     console.error('  STATUS: INTEGRITY AUDIT FAILED ❌');
+    console.error('  ⚠️ MANDATORY RULE 7: Do NOT directly apply blind fixes.');
+    console.error('  First formulate the exact reason & deliver the Cause Report to user.');
     console.log('============================================================\n');
     process.exit(1);
   }
 }
+
 
 run();
