@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, FC } from 'react';
 import { BookOpen, CheckCircle2, AlertCircle, RefreshCw, Award, AlertTriangle, Sparkles } from 'lucide-react';
 import client from '../../api/client';
 
