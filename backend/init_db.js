@@ -201,6 +201,19 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Note on faculties compatibility view:', vErr.message);
     }
 
+    // Ensure backlogs compatibility view exists so queries link to student_backlogs
+    try {
+      await pool.query(`
+        CREATE OR REPLACE VIEW backlogs AS 
+        SELECT id, student_id, subject_version_id as subject_id, 
+               NULL as original_exam_id, status, NULL as cleared_exam_id, 
+               created_at, cleared_at 
+        FROM student_backlogs
+      `);
+    } catch (bErr) {
+      console.warn('[DATABASE INIT] Note on backlogs compatibility view:', bErr.message);
+    }
+
     // 7. Departments table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS departments (
