@@ -58,6 +58,22 @@ export const AdminOfferingRegistrationControl: React.FC = () => {
     }
   }, []);
 
+const unwrapList = (resValue: any, key?: string): any[] => {
+  if (!resValue) return [];
+  const payload = resValue.data !== undefined ? resValue.data : resValue;
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    if (Array.isArray(payload.data)) return payload.data;
+    if (key && Array.isArray(payload.data?.[key])) return payload.data[key];
+    if (key && Array.isArray(payload[key])) return payload[key];
+    for (const k of ['departments', 'semesters', 'sections', 'courses', 'regulations', 'items', 'rows', 'list']) {
+      if (Array.isArray(payload.data?.[k])) return payload.data?.[k];
+      if (Array.isArray(payload[k])) return payload[k];
+    }
+  }
+  return [];
+};
+
   const fetchMetadata = useCallback(async () => {
     try {
       const [dRes, semRes, secRes, regRes, facRes] = await Promise.allSettled([
@@ -68,30 +84,26 @@ export const AdminOfferingRegistrationControl: React.FC = () => {
         client.get('/academic/available-faculty')
       ]);
 
-      if (dRes.status === 'fulfilled' && dRes.value.data) {
-        const raw = dRes.value.data;
-        setDepartments(Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []));
+      if (dRes.status === 'fulfilled' && dRes.value) {
+        setDepartments(unwrapList(dRes.value, 'departments'));
       }
-      if (semRes.status === 'fulfilled' && semRes.value.data) {
-        const raw = semRes.value.data;
-        setSemesters(Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []));
+      if (semRes.status === 'fulfilled' && semRes.value) {
+        setSemesters(unwrapList(semRes.value, 'semesters'));
       }
-      if (secRes.status === 'fulfilled' && secRes.value.data) {
-        const raw = secRes.value.data;
-        setSections(Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []));
+      if (secRes.status === 'fulfilled' && secRes.value) {
+        setSections(unwrapList(secRes.value, 'sections'));
       }
-      if (regRes.status === 'fulfilled' && regRes.value.data) {
-        const raw = regRes.value.data;
-        setRegulations(Array.isArray(raw?.data?.regulations) ? raw.data.regulations : (Array.isArray(raw?.regulations) ? raw.regulations : []));
+      if (regRes.status === 'fulfilled' && regRes.value) {
+        setRegulations(unwrapList(regRes.value, 'regulations'));
       }
-      if (facRes.status === 'fulfilled' && facRes.value.data) {
-        const raw = facRes.value.data;
-        setFaculties(Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []));
+      if (facRes.status === 'fulfilled' && facRes.value) {
+        setFaculties(unwrapList(facRes.value, 'faculty'));
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);
     }
   }, []);
+
 
   const fetchSubjectVersions = useCallback(async (regId: string) => {
     if (!regId) return;

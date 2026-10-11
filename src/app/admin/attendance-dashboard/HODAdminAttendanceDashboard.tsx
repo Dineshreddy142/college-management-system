@@ -2,6 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { UserCheck, AlertTriangle, ShieldCheck, Download, Filter, Search, Edit3, XCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import client from '../../../api/client';
 
+const unwrapList = (resValue: any, key?: string): any[] => {
+  if (!resValue) return [];
+  const payload = resValue.data !== undefined ? resValue.data : resValue;
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    if (Array.isArray(payload.data)) return payload.data;
+    if (key && Array.isArray(payload.data?.[key])) return payload.data[key];
+    if (key && Array.isArray(payload[key])) return payload[key];
+    for (const k of ['departments', 'semesters', 'sections', 'courses', 'items', 'rows', 'list']) {
+      if (Array.isArray(payload.data?.[k])) return payload.data[k];
+      if (Array.isArray(payload[k])) return payload[k];
+    }
+  }
+  return [];
+};
+
 export const HODAdminAttendanceDashboard: React.FC = () => {
   const [shortageStudents, setShortageStudents] = useState<any[]>([]);
   const [adminOverview, setAdminOverview] = useState<any | null>(null);
@@ -47,11 +63,13 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
       if (filterSec !== 'all') params.section_id = filterSec;
 
       const res = await client.get('/attendance/hod/overview', { params });
-      if (res.data && res.data.shortage_students) {
-        setShortageStudents(res.data.shortage_students);
+      if (res.data) {
+        const raw = res.data.shortage_students || (Array.isArray(res.data) ? res.data : res.data.data);
+        setShortageStudents(Array.isArray(raw) ? raw : []);
       }
     } catch (err) {
       console.error('Error fetching HOD shortage students:', err);
+      setShortageStudents([]);
     } finally {
       setIsLoading(false);
     }
@@ -76,19 +94,20 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
         client.get('/academic/sections')
       ]);
 
-      if (dRes.status === 'fulfilled' && dRes.value.data) {
-        setDepartments(Array.isArray(dRes.value.data) ? dRes.value.data : dRes.value.data.data || []);
+      if (dRes.status === 'fulfilled' && dRes.value) {
+        setDepartments(unwrapList(dRes.value, 'departments'));
       }
-      if (semRes.status === 'fulfilled' && semRes.value.data) {
-        setSemesters(Array.isArray(semRes.value.data) ? semRes.value.data : semRes.value.data.data || []);
+      if (semRes.status === 'fulfilled' && semRes.value) {
+        setSemesters(unwrapList(semRes.value, 'semesters'));
       }
-      if (secRes.status === 'fulfilled' && secRes.value.data) {
-        setSections(Array.isArray(secRes.value.data) ? secRes.value.data : secRes.value.data.data || []);
+      if (secRes.status === 'fulfilled' && secRes.value) {
+        setSections(unwrapList(secRes.value, 'sections'));
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);
     }
   }, []);
+
 
   useEffect(() => {
     fetchMetadata();
@@ -249,7 +268,7 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
               className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
             >
               <option value="all">All Departments</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              {Array.isArray(departments) && departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
 
             <select
@@ -258,7 +277,7 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
               className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
             >
               <option value="all">All Sections</option>
-              {sections.map(sec => <option key={sec.id} value={sec.id}>Section {sec.name}</option>)}
+              {Array.isArray(sections) && sections.map(sec => <option key={sec.id} value={sec.id}>Section {sec.name}</option>)}
             </select>
           </div>
         </div>
@@ -266,7 +285,7 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="p-8 text-center text-xs text-slate-400">Calculating department shortage roster...</div>
-          ) : filteredShortage.length === 0 ? (
+          ) : !Array.isArray(filteredShortage) || filteredShortage.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400">No students currently fall below the 75% attendance threshold.</div>
           ) : (
             <table className="w-full text-left text-xs">
@@ -281,7 +300,8 @@ export const HODAdminAttendanceDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredShortage.map((st) => (
+                {Array.isArray(filteredShortage) && filteredShortage.map((st) => (
+
                   <tr key={st.student_id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/40">
                     <td className="px-4 py-3 font-mono font-bold text-red-600 dark:text-red-400">
                       {st.roll_number || st.admission_number || 'N/A'}

@@ -23,6 +23,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import semesterRoutes from './routes/semesterRoutes.js';
+import sectionRoutes from './routes/sectionRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import webauthnRoutes from './routes/webauthnRoutes.js';
 import faceAuthRoutes from './routes/faceAuthRoutes.js';
@@ -86,6 +87,8 @@ app.use('/api/admin/email', emailRoutes);
 app.use('/api/v1/academic/departments', departmentRoutes);
 app.use('/api/v1/academic/courses', courseRoutes);
 app.use('/api/v1/academic/semesters', semesterRoutes);
+app.use('/api/v1/academic/sections', sectionRoutes);
+app.use('/api/academic/sections', sectionRoutes);
 
 // --- FACULTY & MENTOR ROUTES ---
 app.use('/api/faculty', authenticateToken, authorizeRole(['Admin', 'Faculty', 'HOD']), facultyRoutes);

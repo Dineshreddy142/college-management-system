@@ -67,7 +67,10 @@ export const getSemesters = async (req, res, next) => {
         }
         const [countResult] = await pool.query(countQuery, countParams);
 
-        return successResponse(res, 'Semesters retrieved successfully', {
+        return res.status(200).json({
+            success: true,
+            message: 'Semesters retrieved successfully',
+            data: rows,
             semesters: rows,
             pagination: {
                 total: countResult[0].total,
@@ -75,6 +78,7 @@ export const getSemesters = async (req, res, next) => {
                 limit: Number(limit)
             }
         });
+
     } catch (error) {
         next(error);
     }

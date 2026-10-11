@@ -2,6 +2,7 @@ import express from 'express';
 import { getSubjects, createSubject, updateSubject } from '../controllers/subjectController.js';
 import { getSubjectOfferings, createSubjectOffering } from '../controllers/offeringRegistrationController.js';
 import { getRegulations } from '../controllers/academicRuleController.js';
+import { getSections } from '../controllers/sectionController.js';
 
 const router = express.Router();
 
@@ -17,4 +18,8 @@ router.post('/allocations', createSubjectOffering);
 // Academic Regulations (Delegated to primary academicRuleController)
 router.get('/regulations', getRegulations);
 
+// Sections
+router.get('/sections', getSections);
+
 export default router;
+

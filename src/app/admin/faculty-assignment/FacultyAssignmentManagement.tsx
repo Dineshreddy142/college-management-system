@@ -78,6 +78,22 @@ export const FacultyAssignmentManagement: React.FC = () => {
     }
   }, []);
 
+const unwrapList = (resValue: any, key?: string): any[] => {
+  if (!resValue) return [];
+  const payload = resValue.data !== undefined ? resValue.data : resValue;
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    if (Array.isArray(payload.data)) return payload.data;
+    if (key && Array.isArray(payload.data?.[key])) return payload.data[key];
+    if (key && Array.isArray(payload[key])) return payload[key];
+    for (const k of ['departments', 'semesters', 'sections', 'courses', 'regulations', 'items', 'rows', 'list']) {
+      if (Array.isArray(payload.data?.[k])) return payload.data?.[k];
+      if (Array.isArray(payload[k])) return payload[k];
+    }
+  }
+  return [];
+};
+
   const fetchAcademicMetadata = useCallback(async () => {
     try {
       const [deptRes, progRes, regRes, semRes, secRes] = await Promise.allSettled([
@@ -88,20 +104,21 @@ export const FacultyAssignmentManagement: React.FC = () => {
         client.get('/academic/sections')
       ]);
 
-      if (deptRes.status === 'fulfilled' && deptRes.value.data) {
-        setDepartments(Array.isArray(deptRes.value.data) ? deptRes.value.data : deptRes.value.data.data || []);
+      if (deptRes.status === 'fulfilled' && deptRes.value) {
+        setDepartments(unwrapList(deptRes.value, 'departments'));
       }
-      if (progRes.status === 'fulfilled' && progRes.value.data) {
-        setPrograms(Array.isArray(progRes.value.data) ? progRes.value.data : progRes.value.data.data || []);
+      if (progRes.status === 'fulfilled' && progRes.value) {
+        setPrograms(unwrapList(progRes.value, 'courses'));
       }
-      if (regRes.status === 'fulfilled' && regRes.value.data) {
-        setRegulations(Array.isArray(regRes.value.data) ? regRes.value.data : regRes.value.data.data || []);
+      if (regRes.status === 'fulfilled' && regRes.value) {
+        setRegulations(unwrapList(regRes.value, 'regulations'));
       }
-      if (semRes.status === 'fulfilled' && semRes.value.data) {
-        setSemesters(Array.isArray(semRes.value.data) ? semRes.value.data : semRes.value.data.data || []);
+      if (semRes.status === 'fulfilled' && semRes.value) {
+        setSemesters(unwrapList(semRes.value, 'semesters'));
       }
-      if (secRes.status === 'fulfilled' && secRes.value.data) {
-        setSections(Array.isArray(secRes.value.data) ? secRes.value.data : secRes.value.data.data || []);
+      if (secRes.status === 'fulfilled' && secRes.value) {
+        const parsedSec = unwrapList(secRes.value, 'sections');
+        setSections(parsedSec.length > 0 ? parsedSec : [{ id: 1, name: 'A' }, { id: 2, name: 'B' }, { id: 3, name: 'C' }]);
       } else {
         setSections([{ id: 1, name: 'A' }, { id: 2, name: 'B' }, { id: 3, name: 'C' }]);
       }
@@ -109,6 +126,7 @@ export const FacultyAssignmentManagement: React.FC = () => {
       console.error('Error fetching metadata:', err);
     }
   }, []);
+
 
   useEffect(() => {
     fetchAvailableFaculty();
