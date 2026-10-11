@@ -45,32 +45,35 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-20">
+    <div className="h-16 border-b border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className={`p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${collapsed ? 'block' : 'block lg:hidden'}`}
+          className="p-2 -ml-2 rounded-lg text-[#243B53] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white capitalize">{module.replace('-', ' ')}</h2>
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white capitalize tracking-tight leading-tight">{getTitle()}</h2>
+          <p className="text-[11px] text-[#64748B] dark:text-slate-400">Student Guardian Portal</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-100 dark:border-emerald-900/50">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Parent Portal</span>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-[#E2E8F0] dark:border-slate-700">
+          <div className="w-1.5 h-1.5 bg-[#15803D] rounded-full" />
+          <span className="text-[11px] font-semibold text-[#0F172A] dark:text-slate-300">Parent Portal</span>
         </div>
 
-        <button onClick={toggleTheme} className="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors">
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        <button onClick={toggleTheme} className="p-2 text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Toggle Theme">
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
         <div className="relative">
-          <button onClick={() => setShowNotifs(!showNotifs)} className="p-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors relative">
-            <Bell size={18} />
-            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />}
+          <button onClick={() => setShowNotifs(!showNotifs)} className="p-2 text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative" title="Notifications">
+            <Bell size={17} />
+            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#B91C1C] rounded-full ring-2 ring-white dark:ring-slate-900" />}
           </button>
           {showNotifs && (
             <>

@@ -181,26 +181,26 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* TOP EXECUTIVE HEADER & SELECTORS */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-[#E2E8F0] dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-600/30 font-extrabold flex-shrink-0">
-              🏛️
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-lg bg-[#102A43] text-white flex items-center justify-center shadow-xs flex-shrink-0">
+              <Shield size={22} className="text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 tracking-wider">
-                  CHANCELLOR PORTAL
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-[#102A43] dark:bg-slate-800 dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 tracking-wider">
+                  CHANCELLOR CONSOLE
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  {lastUpdated ? `Last updated: ${lastUpdated}` : 'Live System Feed'}
+                <span className="text-xs text-[#64748B] font-mono">
+                  {lastUpdated ? `Updated: ${lastUpdated}` : 'Live Institutional Feed'}
                 </span>
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#102A43] dark:text-white mt-1 tracking-tight">
                 Executive Governance & Convocation Dashboard
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Supreme Institutional Oversight, Convocation Approvals, Financial Governance, & Audit Controls.
+              <p className="text-xs text-[#64748B] dark:text-slate-400 mt-0.5">
+                Supreme Institutional Oversight, Academic Approvals, Financial Governance & Audit Telemetry.
               </p>
             </div>
           </div>
@@ -208,29 +208,29 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => onNav('users')}
-              className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-indigo-200 dark:border-indigo-800/50 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[#0F172A] dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors border border-[#E2E8F0] dark:border-slate-700 cursor-pointer"
             >
-              <Shield size={14} />
+              <Users size={14} className="text-[#2563EB]" />
               <span>User Control</span>
             </button>
             <button
               onClick={() => onNav('fees')}
-              className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-200 dark:border-amber-800/50 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[#0F172A] dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors border border-[#E2E8F0] dark:border-slate-700 cursor-pointer"
             >
-              <DollarSign size={14} />
+              <DollarSign size={14} className="text-[#15803D]" />
               <span>Fee Governance</span>
             </button>
             <button
               onClick={() => onNav('audit-logs')}
-              className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-purple-200 dark:border-purple-800/50 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[#0F172A] dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors border border-[#E2E8F0] dark:border-slate-700 cursor-pointer"
             >
-              <ShieldAlert size={14} />
+              <ShieldAlert size={14} className="text-[#B91C1C]" />
               <span>Audit Logs</span>
             </button>
             <button
               onClick={fetchDashboardData}
               disabled={refreshing}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer disabled:opacity-60"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               <span>Refresh</span>
@@ -786,17 +786,17 @@ function KpiCard({ title, value, subtitle, icon, color, highlight }: {
   title: string; value: string | number; subtitle: string; icon: React.ReactNode; color: string; highlight?: boolean;
 }) {
   return (
-    <div className={`p-4 rounded-2xl bg-white dark:bg-slate-900 border transition-all ${
-      highlight ? 'border-amber-500/50 shadow-md ring-1 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 shadow-xs'
+    <div className={`p-3.5 rounded-lg bg-white dark:bg-slate-900 border transition-colors ${
+      highlight ? 'border-[#B45309] shadow-xs ring-1 ring-amber-500/20' : 'border-[#E2E8F0] dark:border-slate-800 shadow-xs'
     }`}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{title}</span>
-        <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+        <span className="text-[11px] font-medium text-[#64748B] dark:text-slate-400 truncate">{title}</span>
+        <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#243B53] dark:text-slate-300">
           {icon}
         </div>
       </div>
-      <p className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">{value}</p>
-      <p className="text-[10px] text-slate-400 mt-1 truncate">{subtitle}</p>
+      <p className="text-lg sm:text-xl font-bold text-[#0F172A] dark:text-white tracking-tight">{value}</p>
+      <p className="text-[10px] text-[#64748B] dark:text-slate-400 mt-1 truncate">{subtitle}</p>
     </div>
   );
 }
@@ -807,16 +807,16 @@ function TabButton({ label, active, onClick, icon, badge }: {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
         active
-          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+          ? 'bg-[#2563EB] text-white shadow-xs font-semibold'
+          : 'bg-slate-100 dark:bg-slate-800 text-[#0F172A] dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
       }`}
     >
       <span>{icon}</span>
       <span>{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-mono font-bold">
+        <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#B45309] text-white font-bold">
           {badge}
         </span>
       )}

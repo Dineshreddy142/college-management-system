@@ -357,35 +357,35 @@ export const UserControlModule: React.FC = () => {
   const blockedCount = safeUsers.filter(u => u.status === 'blocked').length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 animate-in fade-in duration-300">
       {/* Module Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-lg border border-[#E2E8F0] dark:border-slate-800 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold text-xs tracking-wider uppercase mb-1">
-            <Shield size={16} />
+          <div className="flex items-center gap-2 text-[#2563EB] font-semibold text-xs tracking-wider uppercase mb-1">
+            <Shield size={15} />
             <span>Security & Access Control</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Access Control</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Control user login permissions, create faculty & student login credentials, and manage institutional user security.
+          <h1 className="text-xl font-bold text-[#0F172A] dark:text-white">User Access Control</h1>
+          <p className="text-xs text-[#64748B] dark:text-slate-400 mt-0.5">
+            Manage institutional user authentication, roles, biometrics, and login access permissions.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
           >
-            <Sparkles size={16} />
+            <Sparkles size={15} />
             <span>Create User Credentials</span>
           </button>
 
           <button
             onClick={fetchUsers}
             disabled={loading}
-            className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-md bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0] text-xs font-medium flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh List</span>
           </button>
         </div>
@@ -393,43 +393,43 @@ export const UserControlModule: React.FC = () => {
 
       {/* Quick Summary Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Accounts</p>
-            <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">{totalUsers}</p>
+            <p className="text-xs text-[#64748B] font-medium">Total Accounts</p>
+            <p className="text-2xl font-bold text-[#0F172A] dark:text-white mt-1">{totalUsers}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            <Users size={20} />
+          <div className="w-10 h-10 rounded-md bg-blue-50 text-[#2563EB] flex items-center justify-center">
+            <Users size={19} />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Active Accounts</p>
-            <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{activeCount}</p>
+            <p className="text-xs text-[#64748B] font-medium">Active Accounts</p>
+            <p className="text-2xl font-bold text-[#15803D] mt-1">{activeCount}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <UserCheck size={20} />
+          <div className="w-10 h-10 rounded-md bg-emerald-50 text-[#15803D] flex items-center justify-center">
+            <UserCheck size={19} />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Blocked Accounts</p>
-            <p className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 mt-1">{blockedCount}</p>
+            <p className="text-xs text-[#64748B] font-medium">Blocked Accounts</p>
+            <p className="text-2xl font-bold text-[#B91C1C] mt-1">{blockedCount}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-            <UserX size={20} />
+          <div className="w-10 h-10 rounded-md bg-rose-50 text-[#B91C1C] flex items-center justify-center">
+            <UserX size={19} />
           </div>
         </div>
       </div>
 
       {/* Feedback Banner */}
       {feedbackMsg && (
-        <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between ${
+        <div className={`p-3.5 rounded-lg border text-xs font-semibold flex items-center justify-between shadow-sm ${
           feedbackMsg.type === 'success'
-            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50'
-            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/50'
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : 'bg-rose-50 text-rose-800 border-rose-200'
         }`}>
           <div className="flex items-center gap-2">
             {feedbackMsg.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
@@ -442,15 +442,15 @@ export const UserControlModule: React.FC = () => {
       )}
 
       {/* Search & Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-lg border border-[#E2E8F0] dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-80">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
           <input
             type="text"
             placeholder="Search name, email, roll no..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs text-[#0F172A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           />
         </div>
 
@@ -459,7 +459,7 @@ export const UserControlModule: React.FC = () => {
           <select
             value={roleFilter}
             onChange={e => setRoleFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-medium text-[#0F172A] dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           >
             <option value="all">All Roles</option>
             <option value="student">Students</option>
@@ -476,7 +476,7 @@ export const UserControlModule: React.FC = () => {
           <select
             value={departmentFilter}
             onChange={e => setDepartmentFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-medium text-[#0F172A] dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           >
             <option value="all">All Departments</option>
             <option value="Executive Secretariat">Executive Secretariat</option>
@@ -494,7 +494,7 @@ export const UserControlModule: React.FC = () => {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-medium text-[#0F172A] dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           >
             <option value="all">All Login Statuses</option>
             <option value="active">Active Only</option>
@@ -504,11 +504,11 @@ export const UserControlModule: React.FC = () => {
       </div>
 
       {/* User Records Table Container */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-[#E2E8F0] dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto min-w-[750px]">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">
+              <tr className="bg-[#F1F5F9] dark:bg-slate-800/50 border-b border-[#E2E8F0] dark:border-slate-800 text-[#64748B] dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">
                 <th className="py-3.5 px-5">ID</th>
                 <th className="py-3.5 px-5">User / Account</th>
                 <th className="py-3.5 px-5">Role</th>
@@ -549,19 +549,19 @@ export const UserControlModule: React.FC = () => {
                         <div className="text-slate-400 text-[11px]">{u.email}</div>
                       </td>
 
-                      <td className="py-4 px-5">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize">
+                      <td className="py-3.5 px-5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize">
                           {u.role_name || 'User'}
                         </span>
                       </td>
 
                       {/* Department Editor */}
-                      <td className="py-4 px-5">
+                      <td className="py-3.5 px-5">
                         <select
                           value={u.department || 'General Administration'}
                           onChange={e => handleUpdateUserDepartment(u, e.target.value)}
                           disabled={isProcessingThis}
-                          className="px-2.5 py-1 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                          className="px-2.5 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40 cursor-pointer disabled:opacity-50"
                         >
                           <option value="Executive Secretariat">Executive Secretariat</option>
                           <option value="Computer Science & Engineering">Computer Science</option>
@@ -578,51 +578,51 @@ export const UserControlModule: React.FC = () => {
                       </td>
 
                       {/* Face Biometrics Status */}
-                      <td className="py-4 px-5">
+                      <td className="py-3.5 px-5">
                         {hasFace ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
-                            <Sparkles size={12} />
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-[#2563EB] border border-blue-200">
+                            <Sparkles size={11} />
                             <span>Enrolled</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium text-[#64748B] bg-slate-100 border border-slate-200">
                             <span>Not Enrolled</span>
                           </span>
                         )}
                       </td>
 
                       {/* Login Status Badge */}
-                      <td className="py-4 px-5">
+                      <td className="py-3.5 px-5">
                         {isBlocked ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
-                            <Lock size={12} />
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-[#B91C1C] border border-rose-200">
+                            <Lock size={11} />
                             <span>BLOCKED</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">
-                            <CheckCircle2 size={12} />
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-[#15803D] border border-emerald-200">
+                            <CheckCircle2 size={11} />
                             <span>ACTIVE</span>
                           </span>
                         )}
                       </td>
 
                       {/* Admin Action Buttons */}
-                      <td className="py-4 px-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="py-3.5 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           {/* Delete Face Biometrics Button */}
                           {hasFace && (
                             <button
                               onClick={() => handleDeleteFaceBiometrics(u)}
                               disabled={isProcessingThis}
-                              className="px-3 py-1.5 rounded-xl font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-2.5 py-1 rounded-md font-medium text-xs bg-amber-50 hover:bg-amber-100 text-[#B45309] border border-amber-200 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
                               title="Delete user registered face biometrics"
                             >
                               {isProcessingThis && actionType === 'delete_face' ? (
-                                <Loader2 size={13} className="animate-spin" />
+                                <Loader2 size={12} className="animate-spin" />
                               ) : (
                                 <>
-                                  <UserX size={13} />
-                                  <span>Reset Face ID</span>
+                                  <UserX size={12} />
+                                  <span>Reset Face</span>
                                 </>
                               )}
                             </button>
@@ -632,23 +632,23 @@ export const UserControlModule: React.FC = () => {
                           <button
                             onClick={() => handleToggleBlockStatus(u)}
                             disabled={isProcessingThis}
-                            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                            className={`px-2.5 py-1 rounded-md font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
                               isBlocked
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                                : 'bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50'
+                                ? 'bg-[#15803D] hover:bg-emerald-700 text-white shadow-xs'
+                                : 'bg-rose-50 hover:bg-rose-100 text-[#B91C1C] border border-rose-200'
                             }`}
                             title={isBlocked ? 'Unblock user login' : 'Block user login'}
                           >
                             {isProcessingThis && actionType === 'status' ? (
-                              <Loader2 size={13} className="animate-spin" />
+                              <Loader2 size={12} className="animate-spin" />
                             ) : isBlocked ? (
                               <>
-                                <Unlock size={13} />
+                                <Unlock size={12} />
                                 <span>Unblock</span>
                               </>
                             ) : (
                               <>
-                                <Lock size={13} />
+                                <Lock size={12} />
                                 <span>Block User</span>
                               </>
                             )}
@@ -658,14 +658,14 @@ export const UserControlModule: React.FC = () => {
                           <button
                             onClick={() => handleDeleteUser(u)}
                             disabled={isProcessingThis || u.role_name?.toLowerCase() === 'admin'}
-                            className="px-3 py-1.5 rounded-xl font-bold text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="px-2.5 py-1 rounded-md font-medium text-xs bg-white hover:bg-rose-50 text-[#B91C1C] border border-slate-200 hover:border-rose-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1 cursor-pointer"
                             title={u.role_name?.toLowerCase() === 'admin' ? 'Admin accounts cannot be deleted' : 'Permanently delete user account'}
                           >
                             {isProcessingThis && actionType === 'delete' ? (
-                              <Loader2 size={13} className="animate-spin" />
+                              <Loader2 size={12} className="animate-spin" />
                             ) : (
                               <>
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                                 <span>Delete</span>
                               </>
                             )}
@@ -683,22 +683,22 @@ export const UserControlModule: React.FC = () => {
 
       {/* Create User Credentials Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102A43]/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-xl overflow-hidden my-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-800 bg-[#F1F5F9] dark:bg-slate-900/50">
               <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                  <Sparkles size={20} />
+                <div className="p-2 bg-blue-50 text-[#2563EB] rounded-md">
+                  <Sparkles size={18} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Create Login Credentials</h3>
-                  <p className="text-[11px] text-slate-500">Generate new login access for Faculty, Students, or Staff</p>
+                  <h3 className="font-bold text-[#0F172A] dark:text-white text-base">Create Login Credentials</h3>
+                  <p className="text-[11px] text-[#64748B]">Generate authenticated system credentials for university roles</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md transition-colors cursor-pointer text-lg font-bold"
               >
                 ✕
               </button>
@@ -729,7 +729,7 @@ export const UserControlModule: React.FC = () => {
                       designation: newRole
                     });
                   }}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-semibold text-[#0F172A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
                 >
                   <option value="Chancellor">Chancellor (Chief Governance)</option>
                   <option value="Vice Chancellor">Vice Chancellor (Executive Head)</option>
@@ -877,7 +877,7 @@ export const UserControlModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleGeneratePassword()}
-                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
+                    className="text-[11px] font-semibold text-[#2563EB] hover:underline cursor-pointer flex items-center gap-1"
                   >
                     ⚡ Generate Password
                   </button>
@@ -888,18 +888,18 @@ export const UserControlModule: React.FC = () => {
                   value={createForm.password}
                   onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
                   placeholder="Password for initial login"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs font-mono text-[#0F172A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
                 />
               </div>
 
               {/* Success Credential Display Banner */}
               {createdUserCredentials && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl space-y-2 text-xs">
-                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold">
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-800 font-bold">
                     <CheckCircle2 size={16} />
                     <span>Credentials Ready — Share with user:</span>
                   </div>
-                  <div className="bg-white dark:bg-slate-950 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50 space-y-1 font-mono text-[11px] text-slate-800 dark:text-slate-200 select-all">
+                  <div className="bg-white p-3 rounded-md border border-emerald-200 space-y-1 font-mono text-[11px] text-slate-800 select-all">
                     <div><strong className="text-slate-500">Role:</strong> {createdUserCredentials.role}</div>
                     <div><strong className="text-slate-500">Username:</strong> {createdUserCredentials.username}</div>
                     <div><strong className="text-slate-500">Email:</strong> {createdUserCredentials.email}</div>
@@ -909,11 +909,11 @@ export const UserControlModule: React.FC = () => {
               )}
 
               {/* Form Buttons */}
-              <div className="flex items-center gap-3 pt-3">
+              <div className="flex items-center gap-2.5 pt-3 border-t border-[#E2E8F0]">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-[#E2E8F0] rounded-md text-xs font-medium cursor-pointer transition-colors"
                 >
                   Close
                 </button>
@@ -921,9 +921,9 @@ export const UserControlModule: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creatingUser}
-                  className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2 px-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-md text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {creatingUser ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  {creatingUser ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                   <span>{creatingUser ? 'Creating Credentials...' : 'Create Account'}</span>
                 </button>
               </div>

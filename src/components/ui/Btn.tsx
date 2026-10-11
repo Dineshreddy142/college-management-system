@@ -29,17 +29,17 @@ export function Btn({
   title?: string;
 }) {
   const v = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-blue-900/20",
-    secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
-    ghost: "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-    success: "bg-green-600 text-white hover:bg-green-700",
-    outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/60",
+    primary: "bg-[#2563EB] text-white hover:bg-[#1D4ED8] active:bg-[#1E40AF] shadow-xs",
+    secondary: "bg-slate-100 text-[#0F172A] hover:bg-slate-200 border border-[#E2E8F0] dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700",
+    ghost: "text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
+    danger: "bg-[#B91C1C] text-white hover:bg-red-800 active:bg-red-900 shadow-xs",
+    success: "bg-[#15803D] text-white hover:bg-emerald-800 active:bg-emerald-900 shadow-xs",
+    outline: "border border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
   };
   const s = {
-    sm: "px-3 py-1.5 text-xs rounded-xl gap-1.5",
-    md: "px-4 py-2 text-sm rounded-xl gap-2",
-    lg: "px-6 py-3 text-base rounded-2xl gap-2",
+    sm: "px-2.5 py-1 text-xs rounded-md gap-1.5",
+    md: "px-3.5 py-2 text-sm rounded-lg gap-2",
+    lg: "px-5 py-2.5 text-sm font-semibold rounded-lg gap-2.5",
   };
 
   return (
@@ -49,7 +49,7 @@ export function Btn({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed",
         v[variant],
         s[size],
         className

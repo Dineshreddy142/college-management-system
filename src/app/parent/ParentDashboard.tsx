@@ -46,7 +46,7 @@ export function ParentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: stri
   };
 
   return (
-    <div className={`flex h-screen overflow-hidden relative ${theme === 'dark' ? 'dark bg-slate-950' : 'bg-slate-50'}`}>
+    <div className={`flex h-screen overflow-hidden relative ${theme === 'dark' ? 'dark bg-slate-950' : 'bg-[#F1F5F9]'}`}>
       <ParentSidebar 
         active={activeModule} 
         onChange={setActiveModule} 
@@ -71,8 +71,8 @@ export function ParentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: stri
           }}
           onNav={onNav}
         />
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 scrollbar-thin min-w-0">
-          <div className="max-w-7xl mx-auto pb-20">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin min-w-0">
+          <div className="max-w-7xl mx-auto pb-16">
             {renderModule()}
           </div>
         </main>
@@ -81,13 +81,10 @@ export function ParentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: stri
         {activeModule !== "ai" && (
           <button 
             onClick={() => setActiveModule("ai")}
-            className="absolute bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-transform hover:scale-110 z-50 group"
+            className="absolute bottom-6 right-6 w-12 h-12 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-105 z-50 group"
+            title="Open AI Assistant"
           >
-            <Bot size={24} className="group-hover:animate-bounce" />
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-white border-2 border-emerald-500"></span>
-            </span>
+            <Bot size={22} />
           </button>
         )}
       </div>

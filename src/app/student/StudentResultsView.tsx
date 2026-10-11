@@ -142,7 +142,7 @@ export const StudentResultsView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleOpenOfficialMarksheet}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-500/20"
+            className="px-4 py-2 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
             <FileText className="w-4 h-4" />
             <span>View Official Marksheet</span>
@@ -154,50 +154,50 @@ export const StudentResultsView: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         
         {/* CGPA */}
-        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <BarChart3 className="w-6 h-6" />
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 p-4 shadow-sm flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] flex items-center justify-center shrink-0">
+            <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cumulative CGPA</p>
-            <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">{cgpa}</p>
+            <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">Cumulative CGPA</p>
+            <p className="text-xl font-bold text-[#0F172A] dark:text-white mt-0.5">{cgpa}</p>
           </div>
         </div>
 
         {/* SGPA */}
-        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <TrendingUp className="w-6 h-6" />
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 p-4 shadow-sm flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-600 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Latest SGPA</p>
-            <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">{sgpa}</p>
+            <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">Latest SGPA</p>
+            <p className="text-xl font-bold text-[#0F172A] dark:text-white mt-0.5">{sgpa}</p>
           </div>
         </div>
 
         {/* Total Credits */}
-        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Award className="w-6 h-6" />
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 p-4 shadow-sm flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
+            <Award className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Credits Earned</p>
-            <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">{totalCredits}</p>
+            <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">Credits Earned</p>
+            <p className="text-xl font-bold text-[#0F172A] dark:text-white mt-0.5">{totalCredits}</p>
           </div>
         </div>
 
         {/* Backlogs */}
-        <div className={`rounded-2xl border p-5 shadow-xs flex items-center gap-4 ${
+        <div className={`rounded-lg border p-4 shadow-sm flex items-center gap-3.5 ${
           backlogsCount > 0 ? 'bg-red-50/50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40' : 'bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40'
         }`}>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+          <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
             backlogsCount > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600'
           }`}>
-            {backlogsCount > 0 ? <AlertCircle className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+            {backlogsCount > 0 ? <AlertCircle className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Backlogs</p>
-            <p className={`text-2xl font-extrabold mt-0.5 ${backlogsCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">Active Backlogs</p>
+            <p className={`text-xl font-bold mt-0.5 ${backlogsCount > 0 ? 'text-[#B91C1C]' : 'text-[#15803D]'}`}>
               {backlogsCount}
             </p>
           </div>
@@ -206,17 +206,17 @@ export const StudentResultsView: React.FC = () => {
       </div>
 
       {/* Published Subject Grades Table */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-6 space-y-4 shadow-xs">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-          <Award className="w-4 h-4 text-purple-500" /> Subject-wise Published Grades
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 p-5 space-y-4 shadow-sm">
+        <h3 className="text-xs font-semibold text-[#0F172A] dark:text-white uppercase tracking-wider flex items-center gap-2">
+          <Award className="w-4 h-4 text-[#2563EB]" /> Subject-wise Published Grades
         </h3>
 
         <div className="overflow-x-auto">
           {marks.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400">No published examination results found for your profile.</div>
+            <div className="p-8 text-center text-xs text-[#64748B]">No published examination results found for your profile.</div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+              <thead className="bg-[#F1F5F9] dark:bg-slate-900/60 text-[#64748B] font-semibold uppercase tracking-wider border-b border-[#E2E8F0] dark:border-slate-700">
                 <tr>
                   <th className="px-4 py-3">Subject</th>
                   <th className="px-4 py-3 text-center">Credits</th>
@@ -228,42 +228,42 @@ export const StudentResultsView: React.FC = () => {
                   <th className="px-4 py-3 text-right">Revaluation</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-[#E2E8F0] dark:divide-slate-800">
                 {marks.map((m: any) => {
                   const isPass = m.result_status === 'PASS';
 
                   return (
-                    <tr key={m.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/40">
+                    <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                       <td className="px-4 py-3">
-                        <p className="font-bold text-slate-900 dark:text-white">{m.subject_name}</p>
-                        <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded">
+                        <p className="font-semibold text-[#0F172A] dark:text-white">{m.subject_name}</p>
+                        <span className="font-mono text-[10px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
                           {m.subject_code}
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 text-center font-bold text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3 text-center font-semibold text-[#0F172A] dark:text-slate-300">
                         {m.credits || 3}
                       </td>
 
-                      <td className="px-4 py-3 text-center font-semibold text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 text-center font-medium text-[#64748B] dark:text-slate-300">
                         {m.internal_marks}
                       </td>
 
-                      <td className="px-4 py-3 text-center font-semibold text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 text-center font-medium text-[#64748B] dark:text-slate-300">
                         {m.external_marks}
                       </td>
 
-                      <td className="px-4 py-3 text-center font-bold text-slate-900 dark:text-white">
+                      <td className="px-4 py-3 text-center font-bold text-[#0F172A] dark:text-white">
                         {m.total_marks}
                       </td>
 
-                      <td className="px-4 py-3 text-center font-extrabold text-purple-600 dark:text-purple-400">
+                      <td className="px-4 py-3 text-center font-bold text-[#2563EB]">
                         {m.grade} ({m.grade_point})
                       </td>
 
                       <td className="px-4 py-3 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          isPass ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300'
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                          isPass ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
                         }`}>
                           {m.result_status}
                         </span>
@@ -273,7 +273,7 @@ export const StudentResultsView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenRevaluationModal(m.id)}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 text-slate-700"
+                          className="px-2.5 py-1 rounded text-[10px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
                         >
                           Request Reval
                         </button>
@@ -289,93 +289,93 @@ export const StudentResultsView: React.FC = () => {
 
       {/* Official Marksheet Modal */}
       {isMarksheetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-[#102A43]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
+            <div className="px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between bg-[#F1F5F9] dark:bg-slate-900/40">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-purple-500" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Official Academic Marksheet Transcript</h3>
+                <FileText className="w-5 h-5 text-[#2563EB]" />
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Official Academic Marksheet Transcript</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-bold flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" /> Print Marksheet
                 </button>
-                <button onClick={() => setIsMarksheetModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                <button onClick={() => setIsMarksheetModalOpen(false)} className="text-[#64748B] hover:text-[#0F172A] text-lg font-bold cursor-pointer">&times;</button>
               </div>
             </div>
 
-            <div className="p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
               {isLoadingMarksheet ? (
-                <div className="p-12 text-center text-xs text-slate-400">Generating official transcript...</div>
+                <div className="p-12 text-center text-xs text-[#64748B]">Generating official transcript...</div>
               ) : officialMarksheet ? (
-                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-6 bg-slate-50/30 dark:bg-slate-900/30">
+                <div className="border border-[#E2E8F0] dark:border-slate-700 rounded-lg p-5 space-y-5 bg-white dark:bg-slate-900/30">
                   
                   {/* Marksheet Institutional Header */}
-                  <div className="text-center pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">College Management ERP Institution</h2>
-                    <p className="text-xs text-slate-500 uppercase mt-0.5 font-bold">Official Grade Card & Academic Marksheet</p>
+                  <div className="text-center pb-4 border-b border-[#E2E8F0] dark:border-slate-700">
+                    <h2 className="text-lg font-bold text-[#102A43] dark:text-white uppercase tracking-tight">University Academic Examination Board</h2>
+                    <p className="text-xs text-[#64748B] uppercase mt-0.5 font-semibold">Official Grade Card & Academic Marksheet</p>
                   </div>
 
                   {/* Student Details Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold">Student Name</span>
-                      <p className="font-bold text-slate-900 dark:text-white">{officialMarksheet.student?.first_name} {officialMarksheet.student?.last_name}</p>
+                      <span className="text-[10px] text-[#64748B] uppercase font-semibold">Student Name</span>
+                      <p className="font-bold text-[#0F172A] dark:text-white">{officialMarksheet.student?.first_name} {officialMarksheet.student?.last_name}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold">Roll / Reg Number</span>
-                      <p className="font-bold font-mono text-purple-600">{officialMarksheet.student?.roll_number || officialMarksheet.student?.admission_number}</p>
+                      <span className="text-[10px] text-[#64748B] uppercase font-semibold">Roll / Reg Number</span>
+                      <p className="font-bold font-mono text-[#2563EB]">{officialMarksheet.student?.roll_number || officialMarksheet.student?.admission_number}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold">Department</span>
-                      <p className="font-bold text-slate-900 dark:text-white">{officialMarksheet.student?.department_name || 'CSE'}</p>
+                      <span className="text-[10px] text-[#64748B] uppercase font-semibold">Department</span>
+                      <p className="font-bold text-[#0F172A] dark:text-white">{officialMarksheet.student?.department_name || 'CSE'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold">Section</span>
-                      <p className="font-bold text-slate-900 dark:text-white">Section {officialMarksheet.student?.section_name || 'A'}</p>
+                      <span className="text-[10px] text-[#64748B] uppercase font-semibold">Section</span>
+                      <p className="font-bold text-[#0F172A] dark:text-white">Section {officialMarksheet.student?.section_name || 'A'}</p>
                     </div>
                   </div>
 
                   {/* Marksheet Table */}
-                  <table className="w-full text-left text-xs border border-slate-200 dark:border-slate-700">
-                    <thead className="bg-slate-100 dark:bg-slate-900 text-slate-600 font-bold uppercase">
+                  <table className="w-full text-left text-xs border border-[#E2E8F0] dark:border-slate-700">
+                    <thead className="bg-[#F1F5F9] dark:bg-slate-900 text-[#64748B] font-semibold uppercase">
                       <tr>
-                        <th className="p-2.5 border-b">Code</th>
-                        <th className="p-2.5 border-b">Subject Name</th>
-                        <th className="p-2.5 border-b text-center">Credits</th>
-                        <th className="p-2.5 border-b text-center">Marks</th>
-                        <th className="p-2.5 border-b text-center">Grade</th>
-                        <th className="p-2.5 border-b text-center">Result</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0]">Code</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0]">Subject Name</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0] text-center">Credits</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0] text-center">Marks</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0] text-center">Grade</th>
+                        <th className="p-2.5 border-b border-[#E2E8F0] text-center">Result</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700 font-medium">
+                    <tbody className="divide-y divide-[#E2E8F0] dark:divide-slate-700 font-medium">
                       {(officialMarksheet.marks || []).map((m: any) => (
                         <tr key={m.id}>
-                          <td className="p-2.5 font-mono font-bold text-purple-600">{m.subject_code}</td>
-                          <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{m.subject_name}</td>
+                          <td className="p-2.5 font-mono font-bold text-slate-700">{m.subject_code}</td>
+                          <td className="p-2.5 font-semibold text-[#0F172A] dark:text-white">{m.subject_name}</td>
                           <td className="p-2.5 text-center">{m.credits}</td>
                           <td className="p-2.5 text-center font-bold">{m.total_marks}</td>
-                          <td className="p-2.5 text-center font-bold text-purple-600">{m.grade}</td>
-                          <td className="p-2.5 text-center font-bold">{m.result_status}</td>
+                          <td className="p-2.5 text-center font-bold text-[#2563EB]">{m.grade}</td>
+                          <td className="p-2.5 text-center font-bold text-emerald-700">{m.result_status}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
 
                   {/* Summary Bar */}
-                  <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                  <div className="pt-3 border-t border-[#E2E8F0] dark:border-slate-700 flex justify-between items-center text-xs">
                     <div>
-                      <span className="font-bold text-slate-500">Cumulative CGPA: </span>
-                      <span className="font-extrabold text-purple-600 text-base">{officialMarksheet.results_summary?.cgpa || cgpa}</span>
+                      <span className="font-semibold text-[#64748B]">Cumulative CGPA: </span>
+                      <span className="font-bold text-[#2563EB] text-sm">{officialMarksheet.results_summary?.cgpa || cgpa}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-slate-500">Overall Result: </span>
-                      <span className="font-extrabold text-emerald-600 text-base">{officialMarksheet.results_summary?.overall_status || 'PASS'}</span>
+                      <span className="font-semibold text-[#64748B]">Overall Result: </span>
+                      <span className="font-bold text-[#15803D] text-sm">{officialMarksheet.results_summary?.overall_status || 'PASS'}</span>
                     </div>
                   </div>
 
@@ -389,38 +389,38 @@ export const StudentResultsView: React.FC = () => {
 
       {/* Revaluation Modal */}
       {isRevaluationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Submit Revaluation Request</h3>
-              <button onClick={() => setIsRevaluationModalOpen(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
+        <div className="fixed inset-0 z-50 bg-[#102A43]/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between bg-[#F1F5F9] dark:bg-slate-900/40">
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Submit Revaluation Request</h3>
+              <button onClick={() => setIsRevaluationModalOpen(false)} className="text-[#64748B] hover:text-[#0F172A] text-lg font-bold cursor-pointer">&times;</button>
             </div>
 
             <form onSubmit={handleSubmitRevaluation} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Reason for Answer Sheet Revaluation *</label>
+                <label className="block font-semibold text-[#0F172A] dark:text-slate-300 mb-1">Reason for Answer Sheet Revaluation *</label>
                 <textarea
                   rows={4}
                   value={revaluationReason}
                   onChange={(e) => setRevaluationReason(e.target.value)}
                   placeholder="Explain why you are requesting revaluation for this subject answer script..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white resize-none"
+                  className="w-full px-3 py-2 rounded-md bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
                   required
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+              <div className="pt-3 border-t border-[#E2E8F0] dark:border-slate-700 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsRevaluationModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-md font-semibold text-[#64748B] hover:bg-slate-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingReval}
-                  className="px-4 py-2 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-md"
+                  className="px-4 py-2 rounded-md font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-sm cursor-pointer transition-colors"
                 >
                   Submit Request
                 </button>

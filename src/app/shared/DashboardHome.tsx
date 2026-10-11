@@ -48,8 +48,8 @@ export function DashboardHome() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Welcome back, {userName} 👋</h2>
-          <p className="text-xs text-slate-400 mt-0.5">{userProgram} • ID: {rollNo}</p>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Welcome, {userName}</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{userProgram} • ID: {rollNo}</p>
         </div>
         <Badge variant="success">Active Session</Badge>
       </div>

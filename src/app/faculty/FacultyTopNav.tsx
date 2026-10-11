@@ -18,34 +18,34 @@ export function FacultyTopNav({ module, theme, toggleTheme, collapsed, onToggleS
   const facultyName = user?.name || user?.full_name || user?.username || "Faculty Member";
   
   return (
-    <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-4 gap-4 flex-shrink-0">
+    <div className="h-16 bg-white dark:bg-slate-900 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 gap-4 flex-shrink-0 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className={`p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${collapsed ? 'block' : 'block lg:hidden'}`}
+          className="p-2 -ml-2 rounded-lg text-[#243B53] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
         <div>
-          <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-none">{labels[module] || "Dashboard"}</h1>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Tech University • AY 2023-24</p>
+          <h1 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white tracking-tight leading-tight">{labels[module] || "Faculty Dashboard"}</h1>
+          <p className="text-[11px] text-[#64748B] dark:text-slate-400">Institutional Faculty Operations</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button onClick={toggleTheme} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <button onClick={toggleTheme} className="p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-2"></div>
-        <div className="flex items-center gap-3">
+        <div className="w-px h-5 bg-[#E2E8F0] dark:bg-slate-700 mx-1"></div>
+        <div className="flex items-center gap-2.5">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-slate-900 dark:text-white leading-none capitalize">{facultyName}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{user?.email || 'Faculty Portal'}</p>
+            <p className="text-xs font-semibold text-[#0F172A] dark:text-white leading-tight capitalize">{facultyName}</p>
+            <p className="text-[11px] text-[#64748B] dark:text-slate-400">{user?.email || 'Faculty'}</p>
           </div>
-          <Avatar name={facultyName} size="md" />
+          <Avatar name={facultyName} size="sm" />
         </div>
-        <button onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("user"); onNav("landing"); }} className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors ml-1" title="Logout">
+        <button onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("user"); onNav("landing"); }} className="p-2 rounded-lg text-[#64748B] hover:text-[#B91C1C] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors" title="Logout">
           <LogOut size={16} />
         </button>
       </div>

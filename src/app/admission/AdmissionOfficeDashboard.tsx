@@ -567,47 +567,47 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F1F5F9] dark:bg-slate-950 text-[#0F172A] dark:text-white flex flex-col font-sans">
       {/* Executive Header Bar */}
-      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 py-3 flex items-center justify-between shadow-md">
+      <header className="bg-white dark:bg-slate-900 border-b border-[#E2E8F0] dark:border-slate-800 sticky top-0 z-30 px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+            className="md:hidden p-2 text-[#243B53] dark:text-slate-300 hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-indigo-600/30 border border-indigo-500/40 rounded-xl text-indigo-400">
-              <Building2 className="w-5 h-5" />
+            <div className="w-8 h-8 bg-[#102A43] text-white rounded-lg flex items-center justify-center shadow-xs">
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white leading-tight">Admission Control Office</h1>
-              <p className="text-[11px] text-slate-400">University Management & Governance ERP</p>
+              <h1 className="text-base font-bold text-[#102A43] dark:text-white leading-tight">Admission Control Office</h1>
+              <p className="text-[11px] text-[#64748B] dark:text-slate-400">Institutional Admissions & Enrollment Portal</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 text-xs font-medium flex items-center space-x-1.5 transition-all"
+            className="px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-indigo-400' : ''}`} />
-            <span className="hidden sm:inline">Refresh Telemetry</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
           {toggleTheme && (
-            <button onClick={toggleTheme} className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300">
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+            <button onClick={toggleTheme} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-[#243B53] dark:text-slate-300 transition-colors">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           )}
 
-          <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs">
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span className="font-semibold text-slate-200">{user?.full_name || user?.username || 'Admission Officer'}</span>
-            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-mono font-bold">OFFICER</span>
+          <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-xs">
+            <UserCheck className="w-4 h-4 text-[#15803D]" />
+            <span className="font-semibold text-[#0F172A] dark:text-slate-200">{user?.full_name || user?.username || 'Admission Officer'}</span>
+            <span className="text-[10px] bg-white dark:bg-slate-700 text-[#2563EB] dark:text-blue-400 border border-[#E2E8F0] dark:border-slate-600 px-1.5 py-0.5 rounded font-bold">OFFICER</span>
           </div>
         </div>
       </header>
@@ -615,7 +615,7 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
       {/* Main Control Room Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Navigation Sidebar */}
-        <aside className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 overflow-y-auto p-3 z-20`}>
+        <aside className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block w-64 bg-[#243B53] text-slate-100 border-r border-[#102A43] flex-shrink-0 overflow-y-auto p-2.5 z-20`}>
           <div className="space-y-1">
             {tabsNav.map((tab) => {
               const Icon = tab.icon;
@@ -627,18 +627,18 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
                     setActiveTab(tab.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                      ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5 truncate">
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <Icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{tab.label}</span>
                   </div>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? 'bg-white text-indigo-700' : 'bg-indigo-500/20 text-indigo-300'}`}>
+                    <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded ${isActive ? 'bg-white/25 text-white' : 'bg-white/15 text-slate-200'}`}>
                       {tab.badge}
                     </span>
                   )}
@@ -649,7 +649,7 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
         </aside>
 
         {/* Content Workspace */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-950">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#F1F5F9] dark:bg-slate-950">
           {error && (
             <div className="mb-6 p-4 bg-red-950/40 border border-red-800/60 rounded-2xl flex items-start space-x-3 text-red-300">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />

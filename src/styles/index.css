@@ -3,3 +3,56 @@
 @import './theme.css';
 @import 'leaflet/dist/leaflet.css';
 
+@layer utilities {
+  .bg-navy-primary {
+    background-color: #102A43;
+  }
+  .bg-navy-secondary {
+    background-color: #243B53;
+  }
+  .text-navy-primary {
+    color: #102A43;
+  }
+  .text-navy-secondary {
+    color: #243B53;
+  }
+  .border-navy-primary {
+    border-color: #102A43;
+  }
+  .border-navy-secondary {
+    border-color: #243B53;
+  }
+  .bg-page-bg {
+    background-color: #F1F5F9;
+  }
+  .bg-surface-white {
+    background-color: #FFFFFF;
+  }
+  .border-erp {
+    border-color: #E2E8F0;
+  }
+  .text-erp-primary {
+    color: #0F172A;
+  }
+  .text-erp-secondary {
+    color: #64748B;
+  }
+}
+
+/* ERP Scrollbar Refinement */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+

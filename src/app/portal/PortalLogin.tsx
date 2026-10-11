@@ -271,86 +271,88 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
-      {/* Left side styling - Illustration / Welcome */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 p-12 flex-col justify-between relative overflow-hidden">
+    <div className="min-h-screen flex bg-[#F1F5F9] dark:bg-slate-950 text-[#0F172A] dark:text-white">
+      {/* Left side branding - Institutional Welcome */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#102A43] text-white p-12 flex-col justify-between relative border-r border-[#243B53]">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 text-white mb-10">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/20 text-2xl">
-              {config.icon}
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-[#2563EB] rounded-lg flex items-center justify-center shadow-xs">
+              <GraduationCap size={22} className="text-white" />
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight block">EduERP</span>
-              <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold">{config.badge}</span>
+              <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">{config.badge}</span>
             </div>
           </div>
 
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
-            Welcome to the <br/> {config.title.replace(' Login', '')} Portal
-          </h1>
+          <div className="max-w-md">
+            <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight mb-4">
+              Integrated University Management ERP
+            </h1>
 
-          <p className="text-blue-100/90 text-base max-w-md leading-relaxed mb-8">
-            Sign in securely with your institutional credentials to access your ERP dashboard, academic records, and portal services.
-          </p>
+            <p className="text-slate-300 text-sm leading-relaxed mb-8">
+              Unified institutional portal for students, faculty, department leadership, and administration. Sign in with your verified credentials.
+            </p>
 
-          <div className="flex flex-col gap-3 max-w-md">
-            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 text-xs text-white">
-              <ShieldCheck size={20} className="text-emerald-300 shrink-0" />
-              <div>
-                <span className="font-semibold block">Secure Enterprise Authentication</span>
-                <span className="text-blue-100 text-[11px]">Protected by encrypted session management and role-based controls</span>
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-lg bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+                <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-semibold block text-white">Enterprise Role-Based Access Control</span>
+                  <span className="text-slate-300 text-[11px]">Strict multi-tier authorization & encrypted telemetry audit logs</span>
+                </div>
+              </div>
+              <div className="p-3.5 rounded-lg bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+                <KeyRound size={18} className="text-sky-400 shrink-0" />
+                <div>
+                  <span className="font-semibold block text-white">Biometric & Multi-Factor Support</span>
+                  <span className="text-slate-300 text-[11px]">Optional WebAuthn passkeys and verified AI facial telemetry</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Abstract decorative shapes */}
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute top-20 -right-20 w-72 h-72 bg-indigo-500/25 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 text-blue-200/70 text-xs">
-          &copy; {new Date().getFullYear()} College Management System. All rights reserved.
+        <div className="relative z-10 text-slate-400 text-xs flex items-center justify-between border-t border-white/10 pt-4">
+          <span>&copy; {new Date().getFullYear()} University Management System</span>
+          <span>Version 2.4 Enterprise</span>
         </div>
       </div>
 
       {/* Right side - Login Form Container */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8 min-h-screen overflow-y-auto">
 
-        <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-5 sm:p-8 my-auto">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-[#E2E8F0] dark:border-slate-800 p-6 sm:p-8 my-auto">
           
           {/* Mobile Branding Header */}
-          <div className="lg:hidden flex items-center justify-between mb-5 pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="lg:hidden flex items-center justify-between mb-6 pb-4 border-b border-[#E2E8F0] dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-md">
-                {config.icon}
+              <div className="w-8 h-8 bg-[#2563EB] text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-xs">
+                <GraduationCap size={18} />
               </div>
               <div>
-                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-none block">EduERP System</span>
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{config.badge}</span>
+                <span className="font-bold text-sm text-[#0F172A] dark:text-white leading-none block">EduERP System</span>
+                <span className="text-[10px] font-semibold text-[#2563EB] dark:text-blue-400 uppercase tracking-wider">{config.badge}</span>
               </div>
             </div>
           </div>
 
           {/* Card Header */}
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <span>🏛️ Institutional Portal Login</span>
-              </h2>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Sign in securely with your email, roll number, or employee ID.
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#102A43] dark:text-white tracking-tight">
+              {config.title}
+            </h2>
+            <p className="text-[#64748B] dark:text-slate-400 text-xs mt-1">
+              Sign in with your institutional email, roll number, or employee ID.
             </p>
           </div>
 
-
-
           {/* Account Locked Banner */}
           {accountLocked && (
-            <div className="mb-4 p-3.5 rounded-xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 text-xs border border-red-200 dark:border-red-900/50 flex items-start gap-2.5">
-              <ShieldAlert className="text-red-600 shrink-0 mt-0.5" size={16} />
+            <div className="mb-4 p-3 rounded-lg bg-red-50 text-[#B91C1C] dark:bg-red-950/40 dark:text-red-300 text-xs border border-red-200 dark:border-red-900/50 flex items-start gap-2.5">
+              <ShieldAlert className="text-[#B91C1C] shrink-0 mt-0.5" size={16} />
               <div>
-                <p className="font-bold">Account Temporarily Locked</p>
+                <p className="font-semibold">Account Temporarily Locked</p>
                 <p className="text-[11px] mt-0.5">
                   Multiple unsuccessful attempts recorded. Please contact your administrator or reset your password.
                 </p>
@@ -360,50 +362,51 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
           {/* Warning Banner */}
           {!accountLocked && warningMessage && (
-            <div className="mb-4 p-3 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
-              <ShieldAlert className="text-amber-600 shrink-0" size={16} />
+            <div className="mb-4 p-3 rounded-lg bg-amber-50 text-[#B45309] dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-900/50 flex items-center gap-2">
+              <ShieldAlert className="text-[#B45309] shrink-0" size={16} />
               <span>{warningMessage}</span>
             </div>
           )}
 
           {/* Error Banner */}
           {!accountLocked && error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium border border-red-100 dark:border-red-900/50">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 text-[#B91C1C] dark:bg-red-900/30 dark:text-red-400 text-xs font-medium border border-red-200 dark:border-red-900/50">
               {error}
             </div>
           )}
 
           {/* Standard Login Form */}
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in fade-in duration-200">
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5">Email, Roll No, or Employee ID</label>
+              <label className="block text-xs font-semibold text-[#0F172A] dark:text-slate-300 mb-1.5">{config.field}</label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Enter email, roll number, or employee ID"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400"
+                placeholder={config.placeholder}
+                className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all text-sm text-[#0F172A] dark:text-white placeholder:text-[#64748B]"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-[#0F172A] dark:text-slate-300 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder:text-slate-400 pr-12"
+                  className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all text-sm text-[#0F172A] dark:text-white placeholder:text-[#64748B] pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F172A] dark:hover:text-slate-200"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -414,13 +417,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                   type="checkbox" 
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+                  className="w-4 h-4 rounded text-[#2563EB] focus:ring-[#2563EB] border-[#E2E8F0] dark:border-slate-600 bg-white dark:bg-slate-900"
                 />
-                <span className="font-medium text-slate-600 dark:text-slate-300">Remember me</span>
+                <span className="font-medium text-[#64748B] dark:text-slate-300">Remember me</span>
               </label>
               <Link 
                 to={`/forgot-password?role=${effectiveRole}`} 
-                className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="font-medium text-[#2563EB] hover:text-[#1D4ED8] dark:text-blue-400"
               >
                 Forgot Password?
               </Link>
@@ -430,18 +433,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white rounded-lg font-medium text-sm shadow-xs transition-colors flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Sign In'}
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Sign In'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowFaceModal(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20 active:scale-[0.99]"
+                className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#243B53] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShieldCheck size={18} className="text-amber-300 animate-pulse" />
-                ⚡ 1-Click Instant AI Face Unlock
+                <ShieldCheck size={16} className="text-[#2563EB] dark:text-blue-400" />
+                <span>Instant Face Verification Login</span>
               </button>
             </div>
           </form>
@@ -459,8 +462,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             }}
           />
 
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 text-center text-[11px] text-slate-500 dark:text-slate-400">
-            &copy; {new Date().getFullYear()} College Management System. All rights reserved.
+          <div className="mt-6 pt-4 border-t border-[#E2E8F0] dark:border-slate-800 text-center text-[11px] text-[#64748B] dark:text-slate-400">
+            &copy; {new Date().getFullYear()} University Management System. All rights reserved.
           </div>
         </div>
       </div>

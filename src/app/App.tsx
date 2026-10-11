@@ -73,24 +73,24 @@ export function Badge({ children, variant = "default", size = "md", className = 
   children: React.ReactNode; variant?: BadgeVariant; size?: "sm" | "md"; className?: string;
 }) {
   const v = {
-    default: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-    success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    warning: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    danger: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    error: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    info: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-    purple: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    default: "bg-slate-100 text-[#0F172A] border border-[#E2E8F0] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
+    success: "bg-emerald-50 text-[#15803D] border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
+    warning: "bg-amber-50 text-[#B45309] border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60",
+    danger: "bg-red-50 text-[#B91C1C] border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60",
+    error: "bg-red-50 text-[#B91C1C] border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60",
+    info: "bg-sky-50 text-[#0369A1] border border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/60",
+    indigo: "bg-blue-50 text-[#2563EB] border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
+    purple: "bg-slate-100 text-[#243B53] border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
   };
-  const s = { sm: "px-1.5 py-0.5 text-xs rounded-md", md: "px-2.5 py-0.5 text-xs rounded-lg" };
-  return <span className={cn("inline-flex items-center font-medium", v[variant] || v.default, s[size], className)}>{children}</span>;
+  const s = { sm: "px-2 py-0.5 text-[11px] rounded font-medium", md: "px-2.5 py-0.5 text-xs rounded-md font-medium" };
+  return <span className={cn("inline-flex items-center gap-1 font-medium", v[variant] || v.default, s[size], className)}>{children}</span>;
 }
 
 export function Card({ children, className = "", hover = false, onClick }: {
   children: React.ReactNode; className?: string; hover?: boolean; onClick?: React.MouseEventHandler<HTMLDivElement>;
 }) {
   return (
-    <div onClick={onClick} className={cn("bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm", hover && "hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer", className)}>
+    <div onClick={onClick} className={cn("bg-white dark:bg-slate-900 rounded-lg border border-[#E2E8F0] dark:border-slate-800 shadow-xs", hover && "hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-150 cursor-pointer", className)}>
       {children}
     </div>
   );
@@ -98,19 +98,17 @@ export function Card({ children, className = "", hover = false, onClick }: {
 
 export function Avatar({ name, src, size = "md" }: { name: string; src?: string; size?: "xs" | "sm" | "md" | "lg" | "xl" }) {
   if (src) {
-    const sizes = { xs: "w-6 h-6", sm: "w-8 h-8", md: "w-10 h-10", lg: "w-12 h-12", xl: "w-16 h-16" };
+    const sizes = { xs: "w-6 h-6", sm: "w-8 h-8", md: "w-9 h-9", lg: "w-11 h-11", xl: "w-14 h-14" };
     return (
-      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-xs", sizes[size])}>
+      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-[#E2E8F0] dark:border-slate-700 shadow-xs", sizes[size])}>
         <img src={src} alt={name} className="w-full h-full object-cover" />
       </div>
     );
   }
   const initials = (name || 'User').split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
-  const sizes = { xs: "w-6 h-6 text-xs", sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-12 h-12 text-base", xl: "w-16 h-16 text-xl" };
-  const colors = ["bg-blue-500", "bg-indigo-500", "bg-cyan-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500", "bg-teal-500"];
-  const bg = colors[(name || 'User').charCodeAt(0) % colors.length];
+  const sizes = { xs: "w-6 h-6 text-xs", sm: "w-8 h-8 text-xs", md: "w-9 h-9 text-sm", lg: "w-11 h-11 text-base", xl: "w-14 h-14 text-lg" };
   return (
-    <div className={cn("rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0", sizes[size], bg)}>
+    <div className={cn("rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 bg-[#243B53] border border-[#102A43]", sizes[size])}>
       {initials}
     </div>
   );
@@ -123,33 +121,33 @@ export function StatCard({ title, value, change, changeType, icon, color = "blue
   icon: React.ReactNode; color?: StatColor; subtitle?: string;
 }) {
   const colors: Record<StatColor, { bg: string; ic: string }> = {
-    blue: { bg: "bg-blue-50 dark:bg-blue-900/20", ic: "text-blue-600 dark:text-blue-400" },
-    green: { bg: "bg-emerald-50 dark:bg-emerald-900/20", ic: "text-emerald-600 dark:text-emerald-400" },
-    emerald: { bg: "bg-emerald-50 dark:bg-emerald-900/20", ic: "text-emerald-600 dark:text-emerald-400" },
-    amber: { bg: "bg-amber-50 dark:bg-amber-900/20", ic: "text-amber-600 dark:text-amber-400" },
-    red: { bg: "bg-red-50 dark:bg-red-900/20", ic: "text-red-600 dark:text-red-400" },
-    indigo: { bg: "bg-indigo-50 dark:bg-indigo-900/20", ic: "text-indigo-600 dark:text-indigo-400" },
-    cyan: { bg: "bg-cyan-50 dark:bg-cyan-900/20", ic: "text-cyan-600 dark:text-cyan-400" },
-    purple: { bg: "bg-purple-50 dark:bg-purple-900/20", ic: "text-purple-600 dark:text-purple-400" },
+    blue: { bg: "bg-blue-50 text-[#2563EB] dark:bg-blue-950/40 dark:text-blue-400", ic: "text-[#2563EB] dark:text-blue-400" },
+    green: { bg: "bg-emerald-50 text-[#15803D] dark:bg-emerald-950/40 dark:text-emerald-400", ic: "text-[#15803D] dark:text-emerald-400" },
+    emerald: { bg: "bg-emerald-50 text-[#15803D] dark:bg-emerald-950/40 dark:text-emerald-400", ic: "text-[#15803D] dark:text-emerald-400" },
+    amber: { bg: "bg-amber-50 text-[#B45309] dark:bg-amber-950/40 dark:text-amber-400", ic: "text-[#B45309] dark:text-amber-400" },
+    red: { bg: "bg-red-50 text-[#B91C1C] dark:bg-red-950/40 dark:text-red-400", ic: "text-[#B91C1C] dark:text-red-400" },
+    indigo: { bg: "bg-blue-50 text-[#2563EB] dark:bg-blue-950/40 dark:text-blue-400", ic: "text-[#2563EB] dark:text-blue-400" },
+    cyan: { bg: "bg-sky-50 text-[#0369A1] dark:bg-sky-950/40 dark:text-sky-400", ic: "text-[#0369A1] dark:text-sky-400" },
+    purple: { bg: "bg-slate-100 text-[#243B53] dark:bg-slate-800 dark:text-slate-300", ic: "text-[#243B53] dark:text-slate-300" },
   };
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
+    <Card className="p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{title}</p>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-1">{value}</h3>
-          {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
+          <p className="text-xs text-[#64748B] dark:text-slate-400 font-medium truncate">{title}</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white mt-1 tracking-tight">{value}</h3>
+          {subtitle && <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1 truncate">{subtitle}</p>}
           {change && (
             <div className="flex items-center gap-1 mt-2">
               {changeType === "up" ? (
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center gap-0.5">▲ {change}</span>
+                <span className="text-[#15803D] dark:text-emerald-400 font-medium text-xs flex items-center gap-0.5">▲ {change}</span>
               ) : (
-                <span className="text-rose-600 dark:text-rose-400 font-semibold text-xs flex items-center gap-0.5">▼ {change}</span>
+                <span className="text-[#B91C1C] dark:text-red-400 font-medium text-xs flex items-center gap-0.5">▼ {change}</span>
               )}
             </div>
           )}
         </div>
-        <div className={cn("p-3 rounded-2xl flex-shrink-0", (colors[color] || colors.blue).bg)}>
+        <div className={cn("p-2.5 rounded-lg flex-shrink-0 border border-[#E2E8F0] dark:border-slate-800", (colors[color] || colors.blue).bg)}>
           <div className={(colors[color] || colors.blue).ic}>{icon}</div>
         </div>
       </div>
@@ -160,12 +158,12 @@ export function StatCard({ title, value, change, changeType, icon, color = "blue
 export function PBar({ value, max = 100, color = "blue" }: { value: number; max?: number; color?: StatColor }) {
   const pct = Math.min((value / max) * 100, 100);
   const colors: Record<StatColor, string> = {
-    blue: "bg-blue-600", green: "bg-emerald-500", emerald: "bg-emerald-500", amber: "bg-amber-500",
-    red: "bg-red-500", indigo: "bg-indigo-500", cyan: "bg-cyan-500", purple: "bg-purple-500",
+    blue: "bg-[#2563EB]", green: "bg-[#15803D]", emerald: "bg-[#15803D]", amber: "bg-[#B45309]",
+    red: "bg-[#B91C1C]", indigo: "bg-[#2563EB]", cyan: "bg-[#0369A1]", purple: "bg-[#243B53]",
   };
   return (
-    <div className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-      <div className={cn("h-full rounded-full transition-all duration-500", colors[color])} style={{ width: `${pct}%` }} />
+    <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+      <div className={cn("h-full rounded-full transition-all duration-300", colors[color] || colors.blue)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -176,11 +174,11 @@ function SInput({ label, type = "text", placeholder, value, onChange, icon, clas
 }) {
   return (
     <div className={className}>
-      {label && <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>}
+      {label && <label className="block text-xs font-semibold text-[#0F172A] dark:text-slate-300 mb-1.5">{label}</label>}
       <div className="relative">
-        {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</div>}
+        {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]">{icon}</div>}
         <input type={type} placeholder={placeholder} value={value} onChange={onChange}
-          className={cn("w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all py-2.5 text-sm", icon ? "pl-10 pr-4" : "px-4")}
+          className={cn("w-full bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all py-2 text-sm", icon ? "pl-9 pr-3.5" : "px-3.5")}
           {...props} />
       </div>
     </div>
@@ -190,9 +188,9 @@ function SInput({ label, type = "text", placeholder, value, onChange, icon, clas
 function SearchBar({ placeholder = "Search...", value, onChange }: { placeholder?: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative">
-      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
       <input type="text" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+        className="w-full bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all" />
     </div>
   );
 }
@@ -273,21 +271,21 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
 
       {/* Sidebar Container */}
       <div className={cn(
-        "h-screen bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 z-50",
+        "h-screen bg-[#243B53] text-slate-100 border-r border-[#102A43] flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
         "lg:static fixed top-0 bottom-0 left-0",
         mobileOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         collapsed ? "lg:w-16" : "lg:w-64"
       )}>
         {/* Logo */}
-        <div className={cn("flex items-center h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-5")}>
+        <div className={cn("flex items-center h-16 bg-[#102A43] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-              <GraduationCap size={15} className="text-white" />
+            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center flex-shrink-0 shadow-xs">
+              <GraduationCap size={16} className="text-white" />
             </div>
             {(!collapsed || mobileOpen) && (
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white leading-none">EduERP</p>
-                <p className="text-xs text-slate-400 mt-0.5">{user?.role || 'Admin'} Portal</p>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white tracking-tight leading-none">EduERP</p>
+                <p className="text-xs text-slate-300 mt-1 truncate">{user?.role || 'Admin'} Console</p>
               </div>
             )}
           </div>
@@ -300,14 +298,15 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                 onToggle();
               }
             }} 
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+            aria-label="Toggle Sidebar"
           >
             {mobileOpen ? <X size={18} /> : (collapsed ? <ChevronRight size={15} className="hidden lg:block" /> : <ChevronLeft size={15} className="hidden lg:block" />)}
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1 scrollbar-thin">
           {filteredItems.map(item => {
             const Icon = item.icon;
             const hasChildren = item.children && item.children.length > 0;
@@ -317,7 +316,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
 
             if (hasChildren) {
               return (
-                <div key={item.id} className="space-y-0.5">
+                <div key={item.id} className="space-y-1">
                   <button
                     onClick={() => {
                       if (isCollapsedDesktop) {
@@ -328,23 +327,23 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                      isActive ? "bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-semibold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      isActive ? "bg-[#2563EB] text-white font-semibold shadow-xs" : "text-slate-200 hover:bg-white/10 hover:text-white",
                       isCollapsedDesktop && "lg:justify-center"
                     )}
                   >
-                    <Icon size={17} className="flex-shrink-0" />
+                    <Icon size={16} className="flex-shrink-0" />
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-300", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
 
                   {/* Submenu Accordion */}
                   {(!collapsed || mobileOpen) && (menuExpanded || isChildActive) && (
-                    <div className="pl-4 space-y-0.5 border-l-2 border-slate-100 dark:border-slate-800 ml-5 my-1">
+                    <div className="pl-3 space-y-1 border-l border-white/15 ml-4 my-1">
                       {item.children!.map(child => {
                         const ChildIcon = child.icon;
                         const isSubActive = active === child.id;
@@ -353,19 +352,16 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                             key={child.id}
                             onClick={() => handleItemClick(child.id)}
                             className={cn(
-                              "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150",
+                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
                               isSubActive
-                                ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
-                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                                ? "bg-[#2563EB] text-white shadow-xs font-semibold"
+                                : "text-slate-300 hover:bg-white/10 hover:text-white"
                             )}
                           >
                             <ChildIcon size={14} className="flex-shrink-0" />
                             <span className="flex-1 text-left truncate">{child.label}</span>
                             {child.badge && (
-                              <span className={cn(
-                                "text-[10px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider",
-                                isSubActive ? "bg-white/20 text-white" : "bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
-                              )}>
+                              <span className="text-[10px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-white/20 text-white">
                                 {child.badge}
                               </span>
                             )}
@@ -381,16 +377,15 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
             return (
               <button key={item.id} onClick={() => handleItemClick(item.id)}
                 title={isCollapsedDesktop ? item.label : undefined}
-                className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                  isActive ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActive ? "bg-[#2563EB] text-white font-semibold shadow-xs" : "text-slate-200 hover:bg-white/10 hover:text-white",
                   isCollapsedDesktop && "lg:justify-center")}>
-                <Icon size={17} className="flex-shrink-0" />
+                <Icon size={16} className="flex-shrink-0" />
                 {(!collapsed || mobileOpen) && (
                   <>
                     <span className="flex-1 text-left truncate">{item.label}</span>
                     {item.badge && (
-                      <span className={cn("text-xs px-1.5 py-0.5 rounded-md font-medium",
-                        item.badge === "New" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-white/20 text-white">
                         {item.badge}
                       </span>
                     )}
@@ -401,26 +396,26 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
           })}
         </nav>
 
-        {/* User */}
-        <div className={cn("border-t border-slate-100 dark:border-slate-800 p-3")}>
+        {/* User Footer */}
+        <div className="border-t border-white/10 bg-[#102A43] p-3">
           {(!collapsed || mobileOpen) ? (
             <div 
               onClick={() => handleItemClick("profile")}
-              className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-              title="Open Security & Face ID"
+              className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
+              title="Open Security & Profile"
             >
               <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
-                <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium truncate">Security & Face ID</p>
+                <p className="text-xs font-semibold text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
+                <p className="text-[11px] text-slate-300 truncate">{user?.role || 'Administrator'}</p>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Logout">
-                <LogOut size={14} />
+              <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-300 hover:text-red-400 p-1 transition-colors" title="Logout">
+                <LogOut size={15} />
               </button>
             </div>
           ) : (
-            <button onClick={() => handleItemClick("profile")} className="w-full flex justify-center p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="Security & Face ID">
-              <UserCheck size={16} className="text-indigo-500" />
+            <button onClick={() => handleItemClick("profile")} className="w-full flex justify-center p-2 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors" title="Open Profile">
+              <UserCheck size={16} className="text-blue-400" />
             </button>
           )}
         </div>
@@ -481,54 +476,67 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   };
 
   const labels: Record<string, string> = {
-    dashboard: "Dashboard",
+    dashboard: "Dashboard Overview",
     users: "User Access Control",
-    "bulk-data": "Bulk Excel Hub",
-    profile: "Security & Face ID",
-    students: "Student Management", faculty: "Faculty Management",
+    "registration-control": "Course Registration Windows",
+    "subject-offerings": "Curriculum Offering Control",
+    academic: "Curriculum & Subjects",
+    "subject-management": "Subject Master Management",
+    "bulk-data": "Bulk Data Hub",
+    profile: "Security & Profile",
+    students: "Student Management",
+    faculty: "Faculty Management",
     mentors: "Mentor Management",
-    attendance: "Attendance", exams: "Examinations", timetable: "Timetable",
-    fees: "Fee Management", library: "Library", placement: "Placement",
-    "campus-map": "Interactive Campus Map",
-    reports: "Reports & Analytics", settings: "Settings",
+    attendance: "Attendance Records",
+    exams: "Examination Operations",
+    timetable: "Master Timetable",
+    fees: "Fee Accounts",
+    library: "Library Records",
+    hostel: "Hostel Management",
+    placement: "Placement & Training",
+    reports: "Institutional Analytics",
+    "audit-logs": "System Audit Logs",
+    settings: "System Settings",
   };
   const unreadCount = safeNotifs.filter(n => n && !n.is_read).length;
 
   return (
-    <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-20">
+    <div className="h-16 border-b border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className={`p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${collapsed ? 'block' : 'block lg:hidden'}`}
+          className="p-2 -ml-2 rounded-lg text-[#243B53] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white capitalize">{labels[module] || module}</h2>
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white capitalize tracking-tight leading-tight">{labels[module] || module}</h2>
+          <p className="text-[11px] text-[#64748B] dark:text-slate-400 hidden sm:block">University Management System</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative hidden md:block z-50">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={15} />
           <input 
             type="text" 
-            placeholder="Search students, faculty..."
+            placeholder="Search records, users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => { if(safeSearchResults.length > 0) setShowSearch(true) }}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-10 py-2 text-sm w-56 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+            className="bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs sm:text-sm w-48 lg:w-60 text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all" 
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-300 dark:text-slate-600 font-mono">⌘K</span>
           
           {showSearch && safeSearchResults.length > 0 && (
             <>
               <div className="fixed inset-0" onClick={() => setShowSearch(false)} />
-              <div className="absolute top-12 left-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="p-2">
+              <div className="absolute top-11 left-0 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-[#E2E8F0] dark:border-slate-700 overflow-hidden">
+                <div className="p-1.5">
                   {safeSearchResults.map((r, i) => (
-                    <div key={i} className="px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-lg">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{r.name}</p>
-                      <p className="text-xs text-slate-500">{r.role}</p>
+                    <div key={i} className="px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-md">
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-white">{r.name}</p>
+                      <p className="text-[11px] text-[#64748B]">{r.role}</p>
                     </div>
                   ))}
                 </div>
@@ -537,30 +545,30 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
           )}
         </div>
 
-        <button onClick={toggleTheme} className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <button onClick={toggleTheme} className="p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
           {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
         <div className="relative">
-          <button onClick={() => setShowNotifs(!showNotifs)} className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <button onClick={() => setShowNotifs(!showNotifs)} className="relative p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Notifications">
             <Bell size={17} />
-            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />}
+            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#B91C1C] rounded-full ring-2 ring-white dark:ring-slate-900" />}
           </button>
           {showNotifs && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setShowNotifs(false)} />
-              <div className="absolute right-0 top-12 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-40">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
+              <div className="absolute right-0 top-11 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-[#E2E8F0] dark:border-slate-700 z-40 overflow-hidden">
+                <div className="p-3 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-[#102A43] dark:text-white uppercase tracking-wider">Notifications</h3>
                   {unreadCount > 0 && <Badge variant="info">{unreadCount} new</Badge>}
                 </div>
-                <div className="divide-y divide-slate-50 dark:divide-slate-700/50 max-h-72 overflow-y-auto">
+                <div className="divide-y divide-[#E2E8F0] dark:divide-slate-700/50 max-h-72 overflow-y-auto">
                   {safeNotifs.length === 0 ? (
-                    <div className="p-6 text-center text-slate-500 text-sm">No notifications</div>
+                    <div className="p-6 text-center text-[#64748B] text-xs">No pending notifications</div>
                   ) : safeNotifs.map((n) => (
-                    <div key={n.id} onClick={() => markAsRead(n.id)} className={cn("p-3 cursor-pointer transition-colors", !n.is_read ? "bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-700/40")}>
-                      <p className="text-xs font-semibold text-slate-900 dark:text-white">{n.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                    <div key={n.id} onClick={() => markAsRead(n.id)} className={cn("p-3 cursor-pointer transition-colors", !n.is_read ? "bg-blue-50/60 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-700/40")}>
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-white">{n.title}</p>
+                      <p className="text-xs text-[#64748B] mt-0.5 line-clamp-2">{n.message}</p>
                       <p className="text-[10px] text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
                     </div>
                   ))}
@@ -2015,7 +2023,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+    <div className="flex h-screen bg-[#F1F5F9] dark:bg-slate-950 overflow-hidden relative">
       <Sidebar 
         active={mod} 
         onChange={setMod} 

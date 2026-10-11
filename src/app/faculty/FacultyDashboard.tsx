@@ -50,7 +50,7 @@ export function FacultyDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+    <div className="flex h-screen bg-[#F1F5F9] dark:bg-slate-950 overflow-hidden relative">
       <FacultySidebar 
         active={mod} 
         onChange={setMod} 

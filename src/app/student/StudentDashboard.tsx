@@ -52,7 +52,7 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
+    <div className="flex h-screen overflow-hidden bg-[#F1F5F9] dark:bg-slate-950 relative">
       <StudentSidebar 
         active={activeModule} 
         onChange={setActiveModule} 
