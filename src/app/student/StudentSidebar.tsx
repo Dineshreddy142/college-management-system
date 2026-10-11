@@ -56,21 +56,21 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
 
       {/* Sidebar Container */}
       <div className={cn(
-        "h-screen bg-[#243B53] text-slate-100 border-r border-[#102A43] flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
+        "h-screen bg-[#0A0F1D] text-slate-100 border-r border-white/10 flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
         "lg:static fixed top-0 bottom-0 left-0",
         mobileOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         collapsed ? "lg:w-16" : "lg:w-64"
       )}>
         {/* Logo */}
-        <div className={cn("flex items-center h-16 bg-[#102A43] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
+        <div className={cn("flex items-center h-16 bg-[#060A14] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNav('landing')}>
-            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center flex-shrink-0 shadow-xs">
+            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-500/30">
               <GraduationCap size={16} className="text-white" />
             </div>
             {(!collapsed || mobileOpen) && (
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white tracking-tight leading-none">EduERP</p>
-                <p className="text-xs text-slate-300 mt-1 truncate">Student Portal</p>
+                <p className="text-xs text-indigo-300 mt-1 truncate">Student Portal</p>
               </div>
             )}
           </div>
@@ -83,7 +83,7 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                 onToggle();
               }
             }} 
-            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Toggle Navigation"
           >
             {mobileOpen ? <X size={18} /> : (!collapsed && <ChevronLeft size={15} className="hidden lg:block" />)}
@@ -112,8 +112,8 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
-                      isActive ? "bg-[#2563EB] text-white font-semibold shadow-xs" : "text-slate-200 hover:bg-white/10 hover:text-white",
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-left",
+                      isActive ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
                       isCollapsedDesktop && "lg:justify-center"
                     )}
                   >
@@ -121,7 +121,7 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate text-sm">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-300", (menuExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
@@ -137,10 +137,10 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                             key={child.id}
                             onClick={() => handleItemClick(child.id)}
                             className={cn(
-                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
                               isSubActive
-                                ? "bg-[#2563EB] text-white shadow-xs font-semibold"
-                                : "text-slate-300 hover:bg-white/10 hover:text-white"
+                                ? "bg-indigo-600 text-white shadow-xs font-semibold"
+                                : "text-slate-400 hover:bg-white/[0.08] hover:text-white"
                             )}
                           >
                             <ChildIcon size={14} className="flex-shrink-0" />
@@ -159,14 +159,15 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
                 key={item.id}
                 onClick={() => handleItemClick(item.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group text-left",
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 group text-left",
                   isActive 
-                    ? "bg-[#2563EB] text-white font-semibold shadow-xs" 
-                    : "text-slate-200 hover:bg-white/10 hover:text-white",
+                    ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" 
+                    : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
                   isCollapsedDesktop && "lg:justify-center px-0"
                 )}
                 title={isCollapsedDesktop ? item.label : undefined}
               >
+
                 <div className="relative flex-shrink-0">
                   <Icon size={16} />
                 </div>

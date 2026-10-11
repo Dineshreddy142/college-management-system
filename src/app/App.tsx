@@ -77,16 +77,16 @@ export function Badge({ children, variant = "default", size = "md", className = 
   children: React.ReactNode; variant?: BadgeVariant; size?: "sm" | "md"; className?: string;
 }) {
   const v = {
-    default: "bg-slate-100 text-[#0F172A] border border-[#E2E8F0] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-    success: "bg-emerald-50 text-[#15803D] border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
-    warning: "bg-amber-50 text-[#B45309] border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60",
-    danger: "bg-red-50 text-[#B91C1C] border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60",
-    error: "bg-red-50 text-[#B91C1C] border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60",
-    info: "bg-sky-50 text-[#0369A1] border border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/60",
-    indigo: "bg-blue-50 text-[#2563EB] border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60",
-    purple: "bg-slate-100 text-[#243B53] border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
+    default: "bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:border-slate-700/70",
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60",
+    warning: "bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60",
+    danger: "bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60",
+    error: "bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60",
+    info: "bg-sky-50 text-sky-700 border border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/60",
+    indigo: "bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800/60",
+    purple: "bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
   };
-  const s = { sm: "px-2 py-0.5 text-[11px] rounded font-medium", md: "px-2.5 py-0.5 text-xs rounded-md font-medium" };
+  const s = { sm: "px-2 py-0.5 text-[11px] rounded-md font-semibold", md: "px-2.5 py-0.5 text-xs rounded-lg font-semibold" };
   return <span className={cn("inline-flex items-center gap-1 font-medium", v[variant] || v.default, s[size], className)}>{children}</span>;
 }
 
@@ -94,7 +94,7 @@ export function Card({ children, className = "", hover = false, onClick }: {
   children: React.ReactNode; className?: string; hover?: boolean; onClick?: React.MouseEventHandler<HTMLDivElement>;
 }) {
   return (
-    <div onClick={onClick} className={cn("bg-white dark:bg-slate-900 rounded-lg border border-[#E2E8F0] dark:border-slate-800 shadow-xs", hover && "hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-150 cursor-pointer", className)}>
+    <div onClick={onClick} className={cn("bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs", hover && "hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 cursor-pointer", className)}>
       {children}
     </div>
   );
@@ -104,7 +104,7 @@ export function Avatar({ name, src, size = "md" }: { name: string; src?: string;
   if (src) {
     const sizes = { xs: "w-6 h-6", sm: "w-8 h-8", md: "w-9 h-9", lg: "w-11 h-11", xl: "w-14 h-14" };
     return (
-      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-[#E2E8F0] dark:border-slate-700 shadow-xs", sizes[size])}>
+      <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-xs", sizes[size])}>
         <img src={src} alt={name} className="w-full h-full object-cover" />
       </div>
     );
@@ -112,7 +112,8 @@ export function Avatar({ name, src, size = "md" }: { name: string; src?: string;
   const initials = (name || 'User').split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const sizes = { xs: "w-6 h-6 text-xs", sm: "w-8 h-8 text-xs", md: "w-9 h-9 text-sm", lg: "w-11 h-11 text-base", xl: "w-14 h-14 text-lg" };
   return (
-    <div className={cn("rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 bg-[#243B53] border border-[#102A43]", sizes[size])}>
+    <div className={cn("rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 bg-indigo-600 border border-indigo-500/40 shadow-xs", sizes[size])}>
+
       {initials}
     </div>
   );
@@ -275,21 +276,21 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
 
       {/* Sidebar Container */}
       <div className={cn(
-        "h-screen bg-[#243B53] text-slate-100 border-r border-[#102A43] flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
+        "h-screen bg-[#0A0F1D] text-slate-100 border-r border-white/10 flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
         "lg:static fixed top-0 bottom-0 left-0",
         mobileOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         collapsed ? "lg:w-16" : "lg:w-64"
       )}>
         {/* Logo */}
-        <div className={cn("flex items-center h-16 bg-[#102A43] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
+        <div className={cn("flex items-center h-16 bg-[#060A14] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center flex-shrink-0 shadow-xs">
+            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-500/30">
               <GraduationCap size={16} className="text-white" />
             </div>
             {(!collapsed || mobileOpen) && (
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white tracking-tight leading-none">EduERP</p>
-                <p className="text-xs text-slate-300 mt-1 truncate">{user?.role || 'Admin'} Console</p>
+                <p className="text-xs text-indigo-300 mt-1 truncate">{user?.role || 'Admin'} Console</p>
               </div>
             )}
           </div>
@@ -302,7 +303,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                 onToggle();
               }
             }} 
-            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Toggle Sidebar"
           >
             {mobileOpen ? <X size={18} /> : (collapsed ? <ChevronRight size={15} className="hidden lg:block" /> : <ChevronLeft size={15} className="hidden lg:block" />)}
@@ -331,8 +332,8 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isActive ? "bg-[#2563EB] text-white font-semibold shadow-xs" : "text-slate-200 hover:bg-white/10 hover:text-white",
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                      isActive ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
                       isCollapsedDesktop && "lg:justify-center"
                     )}
                   >
@@ -340,7 +341,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-300", (menuExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
@@ -356,10 +357,10 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                             key={child.id}
                             onClick={() => handleItemClick(child.id)}
                             className={cn(
-                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
                               isSubActive
-                                ? "bg-[#2563EB] text-white shadow-xs font-semibold"
-                                : "text-slate-300 hover:bg-white/10 hover:text-white"
+                                ? "bg-indigo-600 text-white shadow-xs font-semibold"
+                                : "text-slate-400 hover:bg-white/[0.08] hover:text-white"
                             )}
                           >
                             <ChildIcon size={14} className="flex-shrink-0" />
@@ -381,8 +382,8 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
             return (
               <button key={item.id} onClick={() => handleItemClick(item.id)}
                 title={isCollapsedDesktop ? item.label : undefined}
-                className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive ? "bg-[#2563EB] text-white font-semibold shadow-xs" : "text-slate-200 hover:bg-white/10 hover:text-white",
+                className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                  isActive ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
                   isCollapsedDesktop && "lg:justify-center")}>
                 <Icon size={16} className="flex-shrink-0" />
                 {(!collapsed || mobileOpen) && (
@@ -401,28 +402,29 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
         </nav>
 
         {/* User Footer */}
-        <div className="border-t border-white/10 bg-[#102A43] p-3">
+        <div className="border-t border-white/10 bg-[#060A14] p-3">
           {(!collapsed || mobileOpen) ? (
             <div 
               onClick={() => handleItemClick("profile")}
-              className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
+              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/[0.08] cursor-pointer transition-colors"
               title="Open Security & Profile"
             >
               <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
-                <p className="text-[11px] text-slate-300 truncate">{user?.role || 'Administrator'}</p>
+                <p className="text-[11px] text-indigo-300 truncate">{user?.role || 'Administrator'}</p>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-300 hover:text-red-400 p-1 transition-colors" title="Logout">
+              <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-rose-400 p-1 transition-colors" title="Logout">
                 <LogOut size={15} />
               </button>
             </div>
           ) : (
-            <button onClick={() => handleItemClick("profile")} className="w-full flex justify-center p-2 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors" title="Open Profile">
-              <UserCheck size={16} className="text-blue-400" />
+            <button onClick={() => handleItemClick("profile")} className="w-full flex justify-center p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors" title="Open Profile">
+              <UserCheck size={16} className="text-indigo-400" />
             </button>
           )}
         </div>
+
       </div>
     </>
   );
@@ -505,32 +507,33 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   const unreadCount = safeNotifs.filter(n => n && !n.is_read).length;
 
   return (
-    <div className="h-16 border-b border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
+    <div className="h-16 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-[#0F1523]/95 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className="p-2 -ml-2 rounded-lg text-[#243B53] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-2 -ml-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={18} />
         </button>
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white capitalize tracking-tight leading-tight">{labels[module] || module}</h2>
-          <p className="text-[11px] text-[#64748B] dark:text-slate-400 hidden sm:block">University Management System</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white capitalize tracking-tight leading-tight">{labels[module] || module}</h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">University Enterprise Management Platform</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative hidden md:block z-50">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={15} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
           <input 
             type="text" 
             placeholder="Search records, users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => { if(safeSearchResults.length > 0) setShowSearch(true) }}
-            className="bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs sm:text-sm w-48 lg:w-60 text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all" 
+            className="bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs sm:text-sm w-48 lg:w-64 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-xs" 
           />
+
           
           {showSearch && safeSearchResults.length > 0 && (
             <>
@@ -2021,7 +2024,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   };
 
   return (
-    <div className="flex h-screen bg-[#F1F5F9] dark:bg-slate-950 overflow-hidden relative">
+    <div className="flex h-screen bg-[#F8FAFC] dark:bg-[#070A12] overflow-hidden relative">
       <Sidebar 
         active={mod} 
         onChange={setMod} 
