@@ -10,7 +10,7 @@ import { cn } from "../App";
 
 export const STUDENT_SIDEBAR_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { id: "registration", label: "Course Registration", icon: BookOpen, badge: "CBCS" },
+  { id: "registration", label: "Course Registration", icon: BookOpen, badge: null },
   { id: "my-subjects", label: "My Subjects", icon: Layers, badge: null },
   { id: "profile", label: "My Profile", icon: User, badge: null },
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "88%" },

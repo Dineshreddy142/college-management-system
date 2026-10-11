@@ -42,3 +42,38 @@ Before modifying or completing any feature, form, button, or dashboard:
 
 - **NEVER** guess column names, endpoint URLs, or payload keys. Always view the source files first.
 - If an error occurs, inspect the log output immediately before attempting fixes.
+
+---
+
+## Rule 4: Fullstack Synchronicity (Zero Half-Baked Features)
+
+When creating, modifying, or deleting any feature, module, or entity:
+- **NEVER** perform changes in only one layer (e.g. deleting in UI while leaving backend routes and database tables dangling).
+- Every operation must be executed across **all 3 layers simultaneously**:
+  1. **Database Layer:** Tables, columns, foreign keys, views, and `backend/init_db.js`.
+  2. **Backend API Layer:** Express routes, controllers, services, middlewares, and error handlers.
+  3. **Frontend UI Layer:** Navigation links, sidebar items, React components, state bindings, API calls, and modals.
+- If a feature is deleted, its UI components, backend routes/controllers, and database tables must be removed together.
+- If a feature is implemented, its database schema, backend API, and interactive UI must be wired together end-to-end.
+
+---
+
+## Rule 5: Mandatory Pre-Action User Report & Explicit Approval
+
+Before implementing, altering, or deleting ANY feature, table, or component:
+1. Provide a comprehensive **3-Layer Impact Report** to the user:
+   - **Database:** What tables/columns exist, will be modified, or will be deleted.
+   - **Backend API:** What endpoints exist, will be created, or will be removed.
+   - **Frontend UI:** What components, buttons, or routes already exist or will be changed.
+2. State whether components/tables already exist, are needed, or are redundant.
+3. Explicitly ask for user approval before modifying code or dropping tables.
+
+---
+
+## Rule 6: Automated Fullstack Integrity Guardrail
+
+- Always run `npm run verify:all` on every change.
+- The verification pipeline must audit:
+  - Database foreign keys and zero orphan records.
+  - Zero dead or un-wired buttons in frontend.
+  - Zero compile errors across TypeScript and Vite production bundles.
