@@ -1297,17 +1297,6 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
           <FileSpreadsheet size={14} />
           <span>Bulk Upload Faculty (.XLSX)</span>
         </button>
-
-        {onGoBulk && (
-          <button
-            type="button"
-            onClick={onGoBulk}
-            className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 cursor-pointer shadow-sm"
-          >
-            <FileSpreadsheet size={14} />
-            <span>Open Bulk Data Hub</span>
-          </button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

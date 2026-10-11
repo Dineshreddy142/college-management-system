@@ -20,6 +20,8 @@ import { ComplaintsModule } from "./ComplaintsModule";
 import { StudentDailyMcqModule } from "./StudentDailyMcqModule";
 import { AIAssistantModule } from "../shared/AIAssistantModule";
 import { AnalyticsModule } from "./AnalyticsModule";
+import { StudentSemesterRegistration } from "./StudentSemesterRegistration";
+import { StudentMySubjects } from "./StudentMySubjects";
 
 export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => void; theme: string; toggleTheme: () => void }) {
   const [activeModule, setActiveModule] = useState("dashboard");
@@ -29,6 +31,8 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
   const renderModule = () => {
     switch (activeModule) {
       case "dashboard": return <DashboardHome />;
+      case "registration": return <StudentSemesterRegistration />;
+      case "my-subjects": return <StudentMySubjects />;
       case "profile": return <ProfileModule />;
       case "attendance": return <AttendanceModule />;
       case "daily-mcqs": return <StudentDailyMcqModule />;

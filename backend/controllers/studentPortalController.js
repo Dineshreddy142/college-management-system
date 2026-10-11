@@ -31,9 +31,17 @@ const resolveStudentContext = async (userId) => {
 export const getStudentProfile = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT s.*, u.email, u.phone, u.name 
-       FROM Students s 
-       JOIN Users u ON s.user_id = u.id 
+      `SELECT s.*, u.email, u.phone, u.full_name as name, u.full_name,
+              d.name as department_name, d.code as department_code,
+              crs.name as course_name, crs.name as program_name,
+              sec.name as section_name,
+              ay.name as academic_year_name
+       FROM students s 
+       JOIN users u ON s.user_id = u.id 
+       LEFT JOIN departments d ON s.department_id = d.id
+       LEFT JOIN courses crs ON s.course_id = crs.id
+       LEFT JOIN sections sec ON s.section_id = sec.id
+       LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
        WHERE s.user_id = ?`,
       [req.user.id]
     );
@@ -47,18 +55,40 @@ export const getStudentProfile = async (req, res) => {
 
 export const getStudentAttendance = async (req, res) => {
   try {
-    const [studentRows] = await pool.query(`SELECT id FROM Students WHERE user_id = ?`, [req.user.id]);
+    const [studentRows] = await pool.query(`SELECT id FROM students WHERE user_id = ?`, [req.user.id]);
     if (studentRows.length === 0) return res.status(404).json({ message: 'Student not found' });
-    
+    const studentId = studentRows[0].id;
+
+    // Join attendance_records with attendance_sessions and subjects
     const [rows] = await pool.query(
-      `SELECT a.*, sa.subject_name 
-       FROM Attendance a
-       JOIN SubjectAllocations sa ON a.allocation_id = sa.id
-       WHERE a.student_id = ?
-       ORDER BY a.date DESC LIMIT 30`,
-      [studentRows[0].id]
-    );
-    res.json(rows);
+      `SELECT ar.id, ar.status, ar.marked_at,
+              ats.date, ats.topic_covered,
+              s.name as subject_name, s.code as subject_code
+       FROM attendance_records ar
+       JOIN attendance_sessions ats ON ar.attendance_session_id = ats.id
+       JOIN subjects s ON ats.subject_id = s.id
+       WHERE ar.student_id = ?
+       ORDER BY ats.date DESC, ar.marked_at DESC
+       LIMIT 50`,
+      [studentId]
+    ).catch(() => [[]]);
+
+    if (rows.length > 0) {
+      return res.json(rows);
+    }
+
+    // Fallback to legacy attendance_details if any
+    const [legacyRows] = await pool.query(
+      `SELECT ad.attendance_id as id, ad.status, a.date, s.name as subject_name, s.code as subject_code
+       FROM attendance_details ad
+       JOIN attendance a ON ad.attendance_id = a.id
+       LEFT JOIN subjects s ON a.subject_id = s.id
+       WHERE ad.student_id = ?
+       ORDER BY a.date DESC LIMIT 50`,
+      [studentId]
+    ).catch(() => [[]]);
+
+    res.json(legacyRows);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error fetching attendance' });
@@ -67,7 +97,19 @@ export const getStudentAttendance = async (req, res) => {
 
 export const getStudentAssignments = async (req, res) => {
   try {
-    res.json([]);
+    const [studentRows] = await pool.query(`SELECT id FROM students WHERE user_id = ?`, [req.user.id]).catch(() => [[]]);
+    if (studentRows.length === 0) return res.json([]);
+    const studentId = studentRows[0].id;
+
+    const [assignments] = await pool.query(`
+      SELECT dma.*, s.name as subject_name, s.code as subject_code
+      FROM daily_mcq_assignments dma
+      JOIN subjects s ON dma.subject_id = s.id
+      WHERE dma.student_id = ?
+      ORDER BY dma.assigned_date DESC
+    `, [studentId]).catch(() => [[]]);
+
+    res.json(assignments);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -76,14 +118,33 @@ export const getStudentAssignments = async (req, res) => {
 
 export const getStudentTimetable = async (req, res) => {
   try {
-    const timetable = {
-      department: "Computer Science",
-      semester: "6",
-      section: "A",
-      batch: "2021-2025",
-      schedule: []
-    };
-    res.json(timetable);
+    const studentCtx = await resolveStudentContext(req.user.id);
+    if (!studentCtx) {
+      return res.status(404).json({ message: 'Student context not found' });
+    }
+
+    const [entries] = await pool.query(`
+      SELECT te.id, te.day_of_week,
+             s.name as subject_name, s.code as subject_code,
+             f.first_name as faculty_first_name, f.last_name as faculty_last_name,
+             ts.start_time, ts.end_time, ts.title as slot_title,
+             c.room_number, c.building_name
+      FROM timetable_entries te
+      JOIN subjects s ON te.subject_id = s.id
+      LEFT JOIN faculty f ON te.faculty_id = f.id
+      LEFT JOIN time_slots ts ON te.time_slot_id = ts.id
+      LEFT JOIN classrooms c ON te.room_id = c.id
+      WHERE (te.section_id = ? OR te.section_id IS NULL)
+      ORDER BY FIELD(te.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'), ts.start_time ASC
+    `, [studentCtx.section_id || 0]).catch(() => [[]]);
+
+    res.json({
+      department: studentCtx.department_name || "Computer Science",
+      semester: studentCtx.semester_name || studentCtx.semester || "1",
+      section: studentCtx.section_name || "A",
+      batch: studentCtx.academic_year_name || "2024-2025",
+      schedule: entries
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -91,7 +152,16 @@ export const getStudentTimetable = async (req, res) => {
 
 export const getAllStudents = async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT s.*, u.email, u.status FROM students s JOIN users u ON s.user_id = u.id');
+    const [rows] = await pool.execute(`
+      SELECT s.*, u.email, u.status, u.full_name as user_full_name,
+             d.name as department_name, d.code as department_code,
+             crs.name as course_name
+      FROM students s 
+      JOIN users u ON s.user_id = u.id
+      LEFT JOIN departments d ON s.department_id = d.id
+      LEFT JOIN courses crs ON s.course_id = crs.id
+      ORDER BY s.id DESC
+    `);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });

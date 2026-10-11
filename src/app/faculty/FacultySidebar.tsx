@@ -15,8 +15,7 @@ export const FACULTY_SIDEBAR_ITEMS = [
 
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "Pending" },
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3" },
-  { id: "exams", label: "Examinations", icon: Award, badge: null },
-  { id: "marks", label: "Marks Entry", icon: BarChart3, badge: null },
+  { id: "exams", label: "Exams & Marks Entry", icon: Award, badge: null },
   { id: "students", label: "Students", icon: Users, badge: null },
   { id: "leaves", label: "Leaves", icon: CalendarDays, badge: null },
   { id: "timetable", label: "Timetable", icon: Clock, badge: null },

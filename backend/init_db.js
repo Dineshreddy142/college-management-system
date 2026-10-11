@@ -194,6 +194,13 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Ensure faculties compatibility view exists so both 'faculty' and 'faculties' queries succeed
+    try {
+      await pool.query(`CREATE OR REPLACE VIEW faculties AS SELECT * FROM faculty`);
+    } catch (vErr) {
+      console.warn('[DATABASE INIT] Note on faculties compatibility view:', vErr.message);
+    }
+
     // 7. Departments table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS departments (
@@ -1093,7 +1100,13 @@ export async function initializeDatabase() {
     `);
 
     // Remove Campus Block Twin, Obsolete CBCS / Semester Registration, and Obsolete Curriculum database tables
-    await pool.query(`DROP TABLE IF EXISTS curriculum_subjects, curriculums, student_cbcs_preferences, cbcs_allocation_logs, cbcs_registration_windows, student_offering_enrollments, student_semester_registrations, floor_rooms, floor_corridors, block_floors, campus_blocks`);
+    try {
+      await pool.query('SET FOREIGN_KEY_CHECKS = 0');
+      await pool.query(`DROP TABLE IF EXISTS curriculum_subjects, curriculums, student_cbcs_preferences, cbcs_allocation_logs, cbcs_registration_windows, student_offering_enrollments, student_semester_registrations, floor_rooms, floor_corridors, block_floors, campus_blocks`);
+      await pool.query('SET FOREIGN_KEY_CHECKS = 1');
+    } catch (dropErr) {
+      console.warn('[DATABASE INIT] Note on obsolete table drop:', dropErr.message);
+    }
 
     // 13. Attendance header table
     await pool.query(`

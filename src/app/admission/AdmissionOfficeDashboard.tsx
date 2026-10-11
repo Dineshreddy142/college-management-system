@@ -1098,8 +1098,7 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
                         {applications.map((app) => <option key={app.id} value={app.id}>{app.application_number} - {app.applicant_name}</option>)}
                       </select>
                       <div className="flex space-x-2 pt-1">
-                        <button onClick={handleGenerateOfferLetter} className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold">Preview Document</button>
-                        <button onClick={handleDownloadPDFOfferLetter} className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5"><Download className="w-3.5 h-3.5" /><span>Download PDF</span></button>
+                        <button onClick={handleGenerateOfferLetter} className="w-full px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">Generate & Preview Document</button>
                       </div>
                     </div>
                   </div>
