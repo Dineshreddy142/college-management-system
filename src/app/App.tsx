@@ -26,6 +26,10 @@ import { SubjectManagement } from "./admin/subject-management/SubjectManagement"
 import { FacultyBulkUploadModal } from "./admin/faculty-assignment/FacultyBulkUploadModal";
 import { AuditLogsModule } from "./admin/audit/AuditLogsModule";
 import { HostelManagement } from "./admin/hostel/HostelManagement";
+import { HODAdminAttendanceDashboard } from "./admin/attendance-dashboard/HODAdminAttendanceDashboard";
+import { AdminExamResultsManagement } from "./admin/exam-management/AdminExamResultsManagement";
+import { AdminFinanceManagement } from "./admin/finance/AdminFinanceManagement";
+import { AdminLibraryManagement } from "./admin/library/AdminLibraryManagement";
 import client from "../api/client";
 
 import {
@@ -1268,7 +1272,7 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
         experience: f.experience || 5,
         subjects: f.subjects || ['Core Academics']
       }))
-    : FACULTY;
+    : [];
 
   return (
     <div className="space-y-5">
@@ -1300,7 +1304,12 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayList.map(f => (
+        {displayList.length === 0 ? (
+          <div className="col-span-full p-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900">
+            No faculty records found in database. Click "Add Faculty" above to create one.
+          </div>
+        ) : (
+          displayList.map(f => (
           <Card key={f.id} className="p-5" hover>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -1329,7 +1338,7 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
               <Btn variant="ghost" size="sm" icon={<Phone size={13} />} />
             </div>
           </Card>
-        ))}
+        )))}
       </div>
 
       {/* ADD FACULTY MODAL OVERLAY */}
@@ -1996,11 +2005,11 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;
       case "faculty": return <FacultyManagement onGoBulk={() => setMod("bulk-data")} />;
       case "mentors": return <AdminMentorManagement />;
-      case "attendance": return <AttendanceModule onGoBulk={() => setMod("bulk-data")} />;
-      case "exams": return <ExaminationModule onGoBulk={() => setMod("bulk-data")} />;
+      case "attendance": return <HODAdminAttendanceDashboard />;
+      case "exams": return <AdminExamResultsManagement />;
       case "timetable": return <TimetableManager />;
-      case "fees": return <FeeManagement />;
-      case "library": return <LibraryManagement />;
+      case "fees": return <AdminFinanceManagement />;
+      case "library": return <AdminLibraryManagement />;
       case "hostel": return <HostelManagement />;
       case "placement": return <PlacementModule />;
 

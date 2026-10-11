@@ -284,6 +284,36 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Ensure strict foreign key constraints for faculty and students
+    try {
+      const addFkSafe = async (tbl, cName, sql) => {
+        const [cCheck] = await pool.query(
+          'SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
+          [tbl, cName]
+        );
+        if (cCheck.length === 0) {
+          await pool.query(sql).catch(e => console.warn(`[DATABASE INIT] Note on ${cName}:`, e.message));
+        }
+      };
+
+      // Ensure orphan records are cleaned before applying constraints
+      await pool.query('UPDATE faculty SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM users)').catch(() => {});
+      await pool.query('UPDATE faculty SET department_id = NULL WHERE department_id IS NOT NULL AND department_id NOT IN (SELECT id FROM departments)').catch(() => {});
+      await pool.query('UPDATE students SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM users)').catch(() => {});
+      await pool.query('UPDATE students SET department_id = NULL WHERE department_id IS NOT NULL AND department_id NOT IN (SELECT id FROM departments)').catch(() => {});
+      await pool.query('UPDATE students SET section_id = NULL WHERE section_id IS NOT NULL AND section_id NOT IN (SELECT id FROM sections)').catch(() => {});
+      await pool.query('UPDATE students SET academic_year_id = NULL WHERE academic_year_id IS NOT NULL AND academic_year_id NOT IN (SELECT id FROM academic_years)').catch(() => {});
+
+      await addFkSafe('faculty', 'fk_faculty_user', 'ALTER TABLE faculty ADD CONSTRAINT fk_faculty_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+      await addFkSafe('faculty', 'fk_faculty_department', 'ALTER TABLE faculty ADD CONSTRAINT fk_faculty_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL');
+      await addFkSafe('students', 'fk_students_user', 'ALTER TABLE students ADD CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+      await addFkSafe('students', 'fk_students_department', 'ALTER TABLE students ADD CONSTRAINT fk_students_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL');
+      await addFkSafe('students', 'fk_students_section', 'ALTER TABLE students ADD CONSTRAINT fk_students_section FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL');
+      await addFkSafe('students', 'fk_students_academic_year', 'ALTER TABLE students ADD CONSTRAINT fk_students_academic_year FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL');
+    } catch (fkErr) {
+      console.warn('[DATABASE INIT] Note on core foreign keys:', fkErr.message);
+    }
+
     // 11.b Subject Categories Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS subject_categories (

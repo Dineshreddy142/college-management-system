@@ -9,6 +9,31 @@ export function WorkloadReport() {
   const data: any[] = [];
   const facultyList: any[] = [];
 
+  const handleExportPDF = () => {
+    window.print();
+  };
+
+  const handleExportExcel = () => {
+    const headers = ["Faculty", "Department", "Subjects", "Sections", "Theory Hrs", "Lab Hrs", "Total Load"];
+    const rows = facultyList.map(f => [
+      `"${f.name || ''}"`,
+      `"${f.dept || ''}"`,
+      f.subjects || 0,
+      f.sections || 0,
+      f.theory || 0,
+      f.lab || 0,
+      f.total || 0
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "faculty_workload_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -17,8 +42,8 @@ export function WorkloadReport() {
           <p className="text-sm text-slate-500">Monitor and balance faculty teaching hours across departments.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Btn variant="outline" size="sm" icon={<Download size={16} />}>Export PDF</Btn>
-          <Btn variant="primary" size="sm" icon={<Download size={16} />}>Export Excel</Btn>
+          <Btn variant="outline" size="sm" icon={<Download size={16} />} onClick={handleExportPDF}>Export PDF</Btn>
+          <Btn variant="primary" size="sm" icon={<Download size={16} />} onClick={handleExportExcel}>Export Excel</Btn>
         </div>
       </div>
 

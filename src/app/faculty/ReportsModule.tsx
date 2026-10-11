@@ -25,7 +25,7 @@ export function ReportsModule() {
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2">{r.title}</h3>
               <p className="text-sm text-slate-500 mb-6">{r.desc}</p>
             </div>
-            <Btn variant="outline" className="w-full" icon={<Download size={14} />}>Export PDF</Btn>
+            <Btn variant="outline" className="w-full" icon={<Download size={14} />} onClick={() => window.print()}>Export PDF</Btn>
           </Card>
         ))}
       </div>

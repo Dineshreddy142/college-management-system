@@ -14,7 +14,7 @@ export function AcademicPerformanceModule() {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Academic Performance</h2>
           <p className="text-sm text-slate-500">Track student grades, marks, and CGPA trends.</p>
         </div>
-        <Btn variant="outline" icon={<Download size={15} />}>Download Marksheet</Btn>
+        <Btn variant="outline" icon={<Download size={15} />} onClick={() => window.print()}>Download Marksheet</Btn>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

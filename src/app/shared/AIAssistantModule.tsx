@@ -20,7 +20,7 @@ interface Thread {
   created_at: string;
 }
 
-export function AIAssistantModule() {
+export function AIAssistantModule({ onNavigate }: { onNavigate?: (module: string) => void } = {}) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -160,7 +160,13 @@ export function AIAssistantModule() {
             <MapPin size={16} /> Campus Navigation Action
           </div>
           <button
-            onClick={() => alert(`Navigating to location ID: ${actionData.destinationNodeId || 'Main Campus'}`)}
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('campus-map');
+              } else {
+                window.dispatchEvent(new CustomEvent('cms:navigate', { detail: 'campus-map' }));
+              }
+            }}
             className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 shadow-sm"
           >
             Open Map Route
@@ -176,7 +182,13 @@ export function AIAssistantModule() {
             <CreditCard size={16} /> Fee Payment Action
           </div>
           <button
-            onClick={() => alert('Redirecting to Fee Payment Portal...')}
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('fees');
+              } else {
+                window.dispatchEvent(new CustomEvent('cms:navigate', { detail: 'fees' }));
+              }
+            }}
             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 shadow-sm"
           >
             Pay Dues Online

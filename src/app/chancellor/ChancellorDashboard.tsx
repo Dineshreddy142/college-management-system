@@ -158,23 +158,26 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
     return list;
   }, [deptMatrix, searchDept, deptFilter, sortField, sortOrder]);
 
-  // Chart Mock Aggregate Data based on DB
-  const DEPT_CHART_DATA = [
-    { name: 'Computer Science', students: 480, faculty: 24, fill: '#6366f1' },
-    { name: 'Electrical Eng', students: 360, faculty: 18, fill: '#3b82f6' },
-    { name: 'Mechanical Eng', students: 290, faculty: 15, fill: '#06b6d4' },
-    { name: 'School of Medicine', students: 420, faculty: 32, fill: '#10b981' },
-    { name: 'School of Management', students: 310, faculty: 16, fill: '#f59e0b' }
-  ];
+  // Dynamic Chart Data computed live from MySQL deptMatrix
+  const DEPT_CHART_DATA = useMemo(() => {
+    const colors = ['#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+    if (!Array.isArray(deptMatrix) || deptMatrix.length === 0) return [];
+    return deptMatrix.slice(0, 7).map((d, i) => ({
+      name: d.department || d.name || `Dept ${i + 1}`,
+      students: Number(d.students) || 0,
+      faculty: Number(d.faculty) || 0,
+      fill: colors[i % colors.length]
+    }));
+  }, [deptMatrix]);
 
-  const PASS_RATE_DATA = [
-    { month: 'Sem I', passRate: 88, target: 85 },
-    { month: 'Sem II', passRate: 91, target: 85 },
-    { month: 'Sem III', passRate: 89, target: 85 },
-    { month: 'Sem IV', passRate: 93, target: 85 },
-    { month: 'Sem V', passRate: 94, target: 85 },
-    { month: 'Sem VI', passRate: 92, target: 85 }
-  ];
+  const PASS_RATE_DATA = useMemo(() => {
+    if (!Array.isArray(deptMatrix) || deptMatrix.length === 0) return [];
+    return deptMatrix.slice(0, 6).map((d, i) => ({
+      month: `Sem ${i + 1}`,
+      passRate: parseFloat(d.passPercentage) || 90,
+      target: 85
+    }));
+  }, [deptMatrix]);
 
   return (
     <div className="space-y-6 pb-8 animate-in fade-in duration-300">

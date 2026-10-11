@@ -9,7 +9,7 @@ export function AnalyticsModule() {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Performance Analytics</h2>
           <p className="text-sm text-slate-500">Insights into your academic progress and trends.</p>
         </div>
-        <Btn variant="outline" icon={<Download size={14} />}>Export Report</Btn>
+        <Btn variant="outline" icon={<Download size={14} />} onClick={() => window.print()}>Export Report</Btn>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

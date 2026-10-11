@@ -50,10 +50,19 @@ export function StudentDashboard({ onNav, theme, toggleTheme }: { onNav: (v: str
       case "complaints": return <ComplaintsModule />;
       case "analytics": return <AnalyticsModule />;
 
-      case "ai": return <AIAssistantModule />;
+      case "ai": return <AIAssistantModule onNavigate={setActiveModule} />;
       default: return <DashboardHome />;
     }
   };
+
+  useEffect(() => {
+    const handleNav = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) setActiveModule(customEvent.detail);
+    };
+    window.addEventListener('cms:navigate', handleNav);
+    return () => window.removeEventListener('cms:navigate', handleNav);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F1F5F9] dark:bg-slate-950 relative">
