@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 import client from '../../api/client';
 import { useAuth } from '../portal/AuthContext';
-import { Badge, Card, StatCard, Avatar, cn } from '../App';
-import { Btn } from '../../components/ui/Btn';
+import { Badge, Card, StatCard, Avatar, cn, Btn } from '../App';
 
 interface OfficeStaffDashboardProps {
   onNav?: (module: string) => void;

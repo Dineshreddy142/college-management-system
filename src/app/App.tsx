@@ -51,8 +51,8 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from "recharts";
-export { cn, Btn } from "../components/ui/Btn";
-import { cn, Btn } from "../components/ui/Btn";
+export { cn, Btn } from "./components/ui/Btn";
+import { cn, Btn } from "./components/ui/Btn";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA

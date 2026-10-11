@@ -1,8 +1,7 @@
 import React from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from './utils';
 
-export const cn = (...args: any[]) => twMerge(clsx(...args));
+export { cn };
 
 export type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "success";
 export type BtnSize = "sm" | "md" | "lg";
