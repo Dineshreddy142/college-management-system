@@ -27,7 +27,6 @@ import sectionRoutes from './routes/sectionRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import webauthnRoutes from './routes/webauthnRoutes.js';
 import faceAuthRoutes from './routes/faceAuthRoutes.js';
-import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import curriculumRoutes from './routes/curriculumRoutes.js';
 import facultyAssignmentRoutes from './routes/facultyAssignmentRoutes.js';
@@ -120,10 +119,9 @@ app.use('/api/notifications', authenticateToken, notificationRoutes);
 app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/profile', authenticateToken, profileRoutes);
 
-// --- VEHICLES, SETTINGS, AI & BULK UPLOAD ---
+// --- VEHICLES, SETTINGS & AI ---
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/settings', settingRoutes);
-app.use('/api/bulk', bulkUploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/mcq', mcqRoutes);
 app.use('/api/chancellor', chancellorRoutes);

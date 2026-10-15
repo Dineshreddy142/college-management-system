@@ -18,7 +18,6 @@ import { TimetableManager } from "./admin/timetable/TimetableManager";
 
 import { ProfileModule } from "./shared/ProfileModule";
 
-import { BulkDataHub } from "./admin/bulk/BulkDataHub";
 import { UserControlModule } from "./admin/users/UserControlModule";
 import { AdminRegistrationControl } from "./admin/registration-control/AdminRegistrationControl";
 import { AdminOfferingRegistrationControl } from "./admin/offering-management/AdminOfferingRegistrationControl";
@@ -220,7 +219,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "registration-control", label: "Academic Windows & Cutoffs", icon: UserCheck, badge: "Live" },
   { id: "timetable", label: "Master Institutional Timetable", icon: CalendarDays, badge: null },
   { id: "audit-logs", label: "Security & Forensic Audit", icon: ShieldAlert, badge: "Live" },
-  { id: "bulk-data", label: "Bulk Data Hub & Sync", icon: FileSpreadsheet, badge: "AI Sync" },
   { id: "reports", label: "Institutional Analytics", icon: BarChart3, badge: null },
   { id: "settings", label: "System Settings & Gateways", icon: Settings, badge: null },
   { id: "profile", label: "Administrator Profile", icon: UserCheck, badge: null },
@@ -259,7 +257,6 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
         'registration-control',
         'timetable',
         'audit-logs',
-        'bulk-data',
         'reports',
         'settings',
         'profile'
@@ -272,7 +269,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
     if (normRole === 'accountant') return ['dashboard', 'users', 'fees', 'reports', 'settings'].includes(item.id);
     if (normRole === 'librarian') return ['dashboard', 'library', 'settings'].includes(item.id);
     if (normRole === 'placement' || normRole === 'placementofficer') return ['dashboard', 'placement', 'students', 'reports', 'settings'].includes(item.id);
-    if (normRole === 'office' || normRole === 'officestaff') return ['dashboard', 'students', 'faculty', 'attendance', 'bulk-data', 'reports', 'settings'].includes(item.id);
+    if (normRole === 'office' || normRole === 'officestaff') return ['dashboard', 'students', 'faculty', 'attendance', 'reports', 'settings'].includes(item.id);
     return true; // Default to all if unknown
   });
 
@@ -505,7 +502,6 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
     "subject-offerings": "Curriculum Offering Control",
     academic: "Curriculum & Subjects",
     "subject-management": "Subject Master Management",
-    "bulk-data": "Bulk Data Hub",
     profile: "Security & Profile",
     students: "Student Management",
     faculty: "Faculty Management",
@@ -684,15 +680,6 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
             >
               <ShieldAlert size={15} />
               <span>Forensic Audit</span>
-            </button>
-          )}
-          {onNavigate && (
-            <button
-              onClick={() => onNavigate("bulk-data")}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <FileSpreadsheet size={15} />
-              <span>Bulk Data Hub</span>
             </button>
           )}
         </div>
@@ -2029,10 +2016,9 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "subject-offerings": return <AdminOfferingRegistrationControl />;
       case "academic": return <SubjectManagement />;
       case "subject-management": return <SubjectManagement />;
-      case "bulk-data": return <BulkDataHub />;
       case "profile": return <ProfileModule />;
-      case "students": return <StudentManagement onGoBulk={() => setMod("bulk-data")} />;
-      case "faculty": return <FacultyManagement onGoBulk={() => setMod("bulk-data")} />;
+      case "students": return <StudentManagement />;
+      case "faculty": return <FacultyManagement />;
       case "mentors": return <AdminMentorManagement />;
       case "attendance": return <HODAdminAttendanceDashboard />;
       case "exams": return <AdminExamResultsManagement />;
