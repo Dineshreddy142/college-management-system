@@ -187,19 +187,19 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       <div className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-[#E2E8F0] dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-[#102A43] text-white flex items-center justify-center shadow-xs flex-shrink-0">
+            <div className="w-11 h-11 rounded-md bg-[#1E3A5F] text-white flex items-center justify-center shadow-xs flex-shrink-0">
               <Shield size={22} className="text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-[#102A43] dark:bg-slate-800 dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 tracking-wider">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-[#1E3A5F] dark:bg-slate-800 dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 tracking-wider">
                   CHANCELLOR CONSOLE
                 </span>
                 <span className="text-xs text-[#64748B] font-mono">
                   {lastUpdated ? `Updated: ${lastUpdated}` : 'Live Institutional Feed'}
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-[#102A43] dark:text-white mt-1 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white mt-1 tracking-tight">
                 Executive Governance & Convocation Dashboard
               </h1>
               <p className="text-xs text-[#64748B] dark:text-slate-400 mt-0.5">
@@ -794,7 +794,7 @@ function KpiCard({ title, value, subtitle, icon, color, highlight }: {
     }`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium text-[#64748B] dark:text-slate-400 truncate">{title}</span>
-        <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#243B53] dark:text-slate-300">
+        <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[#1E3A5F] dark:text-slate-300">
           {icon}
         </div>
       </div>

@@ -573,16 +573,16 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#243B53] dark:text-slate-300 hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="md:hidden p-2 text-[#64748B] dark:text-slate-300 hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 bg-[#102A43] text-white rounded-lg flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 bg-[#1E3A5F] text-white rounded-md flex items-center justify-center shadow-xs">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-[#102A43] dark:text-white leading-tight">Admission Control Office</h1>
+              <h1 className="text-base font-bold text-[#0F172A] dark:text-white leading-tight">Admission Control Office</h1>
               <p className="text-[11px] text-[#64748B] dark:text-slate-400">Institutional Admissions & Enrollment Portal</p>
             </div>
           </div>
@@ -592,19 +592,19 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
+            className="px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-md text-xs font-medium flex items-center space-x-1.5 transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
           {toggleTheme && (
-            <button onClick={toggleTheme} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-[#243B53] dark:text-slate-300 transition-colors">
+            <button onClick={toggleTheme} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-[#64748B] dark:text-slate-300 transition-colors">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           )}
 
-          <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-xs">
+          <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-md text-xs">
             <UserCheck className="w-4 h-4 text-[#15803D]" />
             <span className="font-semibold text-[#0F172A] dark:text-slate-200">{user?.full_name || user?.username || 'Admission Officer'}</span>
             <span className="text-[10px] bg-white dark:bg-slate-700 text-[#2563EB] dark:text-blue-400 border border-[#E2E8F0] dark:border-slate-600 px-1.5 py-0.5 rounded font-bold">OFFICER</span>
@@ -615,7 +615,7 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
       {/* Main Control Room Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Navigation Sidebar */}
-        <aside className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block w-64 bg-[#243B53] text-slate-100 border-r border-[#102A43] flex-shrink-0 overflow-y-auto p-2.5 z-20`}>
+        <aside className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block w-64 bg-[#1E3A5F] text-slate-100 border-r border-white/10 flex-shrink-0 overflow-y-auto p-2.5 z-20`}>
           <div className="space-y-1">
             {tabsNav.map((tab) => {
               const Icon = tab.icon;
@@ -627,7 +627,7 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
                     setActiveTab(tab.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                     isActive
                       ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
                       : 'text-slate-200 hover:bg-white/10 hover:text-white'

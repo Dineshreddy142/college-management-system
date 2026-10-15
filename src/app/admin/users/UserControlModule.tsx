@@ -683,7 +683,7 @@ export const UserControlModule: React.FC = () => {
 
       {/* Create User Credentials Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102A43]/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-xl overflow-hidden my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-800 bg-[#F1F5F9] dark:bg-slate-900/50">

@@ -135,7 +135,7 @@ export const StudentSemesterRegistration: FC = () => {
       )}
 
       {/* Header Profile Summary */}
-      <div className="bg-[#102A43] text-white p-5 rounded-lg border border-[#243B53] shadow-sm">
+      <div className="bg-[#1E3A5F] text-white p-5 rounded-lg border border-white/10 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-blue-300 font-semibold text-xs uppercase tracking-wider mb-1">
@@ -155,7 +155,7 @@ export const StudentSemesterRegistration: FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-md bg-[#243B53] border border-[#334E68] text-right">
+            <div className="p-3 rounded-md bg-[#13263E] border border-white/10 text-right">
               <p className="text-[10px] text-slate-300 uppercase font-semibold">Enrolled Credits</p>
               <p className={`text-lg font-bold ${isCreditValid ? 'text-emerald-300' : 'text-amber-300'}`}>
                 {credits.totalCredits} / {credits.maxAllowed}

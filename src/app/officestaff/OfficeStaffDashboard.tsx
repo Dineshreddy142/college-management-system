@@ -73,11 +73,11 @@ export function OfficeStaffDashboard({ onNav, theme = 'light', toggleTheme }: Of
       {/* Top Header */}
       <header className="h-16 bg-white dark:bg-slate-900 border-b border-[#E2E8F0] dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#102A43] text-white flex items-center justify-center shadow-xs">
+          <div className="w-8 h-8 rounded-md bg-[#1E3A5F] text-white flex items-center justify-center shadow-xs">
             <Building size={18} />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white tracking-tight leading-tight">
+            <h1 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white tracking-tight leading-tight">
               Administrative Office & Student Records
             </h1>
             <p className="text-[11px] text-[#64748B] dark:text-slate-400">
@@ -88,7 +88,7 @@ export function OfficeStaffDashboard({ onNav, theme = 'light', toggleTheme }: Of
 
         <div className="flex items-center gap-2 sm:gap-3">
           {toggleTheme && (
-            <button onClick={toggleTheme} className="p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+            <button onClick={toggleTheme} className="p-2 rounded-lg text-[#64748B] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
               {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           )}
@@ -340,7 +340,7 @@ export function OfficeStaffDashboard({ onNav, theme = 'light', toggleTheme }: Of
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="p-5 md:col-span-2 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-slate-800">
-                <h3 className="text-sm font-bold text-[#102A43] dark:text-white tracking-tight">
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-white tracking-tight">
                   Recent Document & Certificate Issuance Log
                 </h3>
                 <Badge variant="info">Digital Verification Active</Badge>
@@ -367,7 +367,7 @@ export function OfficeStaffDashboard({ onNav, theme = 'light', toggleTheme }: Of
             </Card>
 
             <Card className="p-5 space-y-4">
-              <h3 className="text-sm font-bold text-[#102A43] dark:text-white tracking-tight">
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-white tracking-tight">
                 Quick Document Generator
               </h3>
               <p className="text-xs text-[#64748B] dark:text-slate-400">
@@ -424,7 +424,7 @@ export function OfficeStaffDashboard({ onNav, theme = 'light', toggleTheme }: Of
           <div className="fixed inset-0 bg-[#0F172A]/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-slate-800">
-                <h3 className="text-sm font-bold text-[#102A43] dark:text-white">
+                <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">
                   Issue Verified Institutional Certificate
                 </h3>
                 <button onClick={() => setShowCertificateModal(false)} className="text-[#64748B] hover:text-[#0F172A]">✕</button>

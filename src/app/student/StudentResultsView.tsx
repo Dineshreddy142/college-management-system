@@ -289,7 +289,7 @@ export const StudentResultsView: React.FC = () => {
 
       {/* Official Marksheet Modal */}
       {isMarksheetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#102A43]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
             <div className="px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between bg-[#F1F5F9] dark:bg-slate-900/40">
@@ -317,7 +317,7 @@ export const StudentResultsView: React.FC = () => {
                   
                   {/* Marksheet Institutional Header */}
                   <div className="text-center pb-4 border-b border-[#E2E8F0] dark:border-slate-700">
-                    <h2 className="text-lg font-bold text-[#102A43] dark:text-white uppercase tracking-tight">University Academic Examination Board</h2>
+                    <h2 className="text-lg font-bold text-[#1E3A5F] dark:text-white uppercase tracking-tight">University Academic Examination Board</h2>
                     <p className="text-xs text-[#64748B] uppercase mt-0.5 font-semibold">Official Grade Card & Academic Marksheet</p>
                   </div>
 
@@ -389,7 +389,7 @@ export const StudentResultsView: React.FC = () => {
 
       {/* Revaluation Modal */}
       {isRevaluationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#102A43]/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-700 shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between bg-[#F1F5F9] dark:bg-slate-900/40">
               <h3 className="text-sm font-bold text-[#0F172A] dark:text-white">Submit Revaluation Request</h3>

@@ -49,13 +49,13 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className="p-2 -ml-2 rounded-lg text-[#243B53] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-2 -ml-2 rounded-md text-[#64748B] hover:text-[#0F172A] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={18} />
         </button>
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-[#102A43] dark:text-white capitalize tracking-tight leading-tight">{getTitle()}</h2>
+          <h2 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-white capitalize tracking-tight leading-tight">{getTitle()}</h2>
           <p className="text-[11px] text-[#64748B] dark:text-slate-400">Student Guardian Portal</p>
         </div>
       </div>
@@ -66,12 +66,12 @@ export function ParentTopNav({ module, theme, toggleTheme, collapsed, onToggleSi
           <span className="text-[11px] font-semibold text-[#0F172A] dark:text-slate-300">Parent Portal</span>
         </div>
 
-        <button onClick={toggleTheme} className="p-2 text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Toggle Theme">
+        <button onClick={toggleTheme} className="p-2 text-[#64748B] hover:text-[#0F172A] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors" title="Toggle Theme">
           {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
         <div className="relative">
-          <button onClick={() => setShowNotifs(!showNotifs)} className="p-2 text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative" title="Notifications">
+          <button onClick={() => setShowNotifs(!showNotifs)} className="p-2 text-[#64748B] hover:text-[#0F172A] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors relative" title="Notifications">
             <Bell size={17} />
             {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#B91C1C] rounded-full ring-2 ring-white dark:ring-slate-900" />}
           </button>

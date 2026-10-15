@@ -295,14 +295,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </p>
 
             <div className="space-y-3">
-              <div className="p-3.5 rounded-md bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+              <div className="p-3.5 rounded-md bg-[#13263E]/80 border border-white/10 flex items-center gap-3 text-xs">
                 <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
                 <div>
                   <span className="font-semibold block text-white">Enterprise Role-Based Access Control</span>
                   <span className="text-slate-300 text-[11px]">Strict multi-tier authorization & encrypted telemetry audit logs</span>
                 </div>
               </div>
-              <div className="p-3.5 rounded-md bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+              <div className="p-3.5 rounded-md bg-[#13263E]/80 border border-white/10 flex items-center gap-3 text-xs">
                 <KeyRound size={18} className="text-sky-400 shrink-0" />
                 <div>
                   <span className="font-semibold block text-white">Biometric & Multi-Factor Support</span>
@@ -339,7 +339,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
 
           {/* Card Header */}
           <div className="mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-[#102A43] dark:text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] dark:text-white tracking-tight">
               {config.title}
             </h2>
             <p className="text-[#64748B] dark:text-slate-400 text-xs mt-1">
@@ -442,7 +442,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                 <button
                   type="button"
                   onClick={() => setShowFaceModal(true)}
-                  className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#243B53] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#0F172A] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShieldCheck size={16} className="text-[#2563EB] dark:text-blue-400" />
                   <span>Instant Face Verification Login</span>

@@ -132,7 +132,7 @@ export function StatCard({ title, value, change, changeType, icon, color = "blue
     red: { bg: "bg-red-50 text-[#B91C1C] dark:bg-red-950/40 dark:text-red-400", ic: "text-[#B91C1C] dark:text-red-400" },
     indigo: { bg: "bg-blue-50 text-[#2563EB] dark:bg-blue-950/40 dark:text-blue-400", ic: "text-[#2563EB] dark:text-blue-400" },
     cyan: { bg: "bg-sky-50 text-[#0369A1] dark:bg-sky-950/40 dark:text-sky-400", ic: "text-[#0369A1] dark:text-sky-400" },
-    purple: { bg: "bg-slate-100 text-[#243B53] dark:bg-slate-800 dark:text-slate-300", ic: "text-[#243B53] dark:text-slate-300" },
+    purple: { bg: "bg-slate-100 text-[#1E3A5F] dark:bg-slate-800 dark:text-slate-300", ic: "text-[#1E3A5F] dark:text-slate-300" },
   };
   return (
     <Card className="p-4 sm:p-5">
@@ -163,7 +163,7 @@ export function PBar({ value, max = 100, color = "blue" }: { value: number; max?
   const pct = Math.min((value / max) * 100, 100);
   const colors: Record<StatColor, string> = {
     blue: "bg-[#2563EB]", green: "bg-[#15803D]", emerald: "bg-[#15803D]", amber: "bg-[#B45309]",
-    red: "bg-[#B91C1C]", indigo: "bg-[#2563EB]", cyan: "bg-[#0369A1]", purple: "bg-[#243B53]",
+    red: "bg-[#B91C1C]", indigo: "bg-[#2563EB]", cyan: "bg-[#0369A1]", purple: "bg-[#1E3A5F]",
   };
   return (
     <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -565,12 +565,12 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
           )}
         </div>
 
-        <button onClick={toggleTheme} className="p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+        <button onClick={toggleTheme} className="p-2 rounded-md text-[#64748B] hover:text-[#0F172A] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
           {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
         <div className="relative">
-          <button onClick={() => setShowNotifs(!showNotifs)} className="relative p-2 rounded-lg text-[#243B53] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Notifications">
+          <button onClick={() => setShowNotifs(!showNotifs)} className="relative p-2 rounded-md text-[#64748B] hover:text-[#0F172A] dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Notifications">
             <Bell size={17} />
             {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#B91C1C] rounded-full ring-2 ring-white dark:ring-slate-900" />}
           </button>
@@ -579,7 +579,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
               <div className="fixed inset-0 z-30" onClick={() => setShowNotifs(false)} />
               <div className="absolute right-0 top-11 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-[#E2E8F0] dark:border-slate-700 z-40 overflow-hidden">
                 <div className="p-3 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-[#102A43] dark:text-white uppercase tracking-wider">Notifications</h3>
+                  <h3 className="text-xs font-bold text-[#0F172A] dark:text-white uppercase tracking-wider">Notifications</h3>
                   {unreadCount > 0 && <Badge variant="info">{unreadCount} new</Badge>}
                 </div>
                 <div className="divide-y divide-[#E2E8F0] dark:divide-slate-700/50 max-h-72 overflow-y-auto">
