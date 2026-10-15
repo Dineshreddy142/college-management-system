@@ -229,9 +229,9 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
       userId = user.id;
     }
 
-    // Generate 256-bit random nonce
+    // Generate 256-bit random nonce valid for 5 minutes
     const nonce = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 15 * 1000);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await pool.execute(
       `INSERT INTO face_auth_nonces (nonce, user_id, expires_at, used) VALUES (?, ?, ?, 0)`,
@@ -240,7 +240,7 @@ router.post('/nonce', checkFaceAuthFeatureFlag, async (req, res) => {
 
     return successResponse(res, 'Face authentication challenge generated', {
       nonce,
-      expires_in: 15
+      expires_in: 300
     });
   } catch (err) {
     console.error('[FACE AUTH NONCE ERROR]:', err);
