@@ -1515,6 +1515,52 @@ export async function initializeDatabase() {
       )
     `);
 
+    // 18.d Exam Hall Tickets Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_hall_tickets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        student_id INT NOT NULL,
+        ticket_number VARCHAR(100) UNIQUE NOT NULL,
+        barcode_hash VARCHAR(255) NOT NULL,
+        attendance_percentage DECIMAL(5,2) DEFAULT 0.00,
+        fee_due_amount DECIMAL(10,2) DEFAULT 0.00,
+        eligibility_status ENUM('ELIGIBLE', 'CONDITIONAL', 'DETAINED') DEFAULT 'ELIGIBLE',
+        detention_reason VARCHAR(255) NULL,
+        room_number VARCHAR(100) NULL,
+        seat_number VARCHAR(50) NULL,
+        generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        generated_by INT NULL,
+        UNIQUE KEY uq_exam_student_ht (examination_id, student_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 18.e Exam Anonymized Evaluations Table (Blind Valuation Hub)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_anonymized_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        student_id INT NOT NULL,
+        dummy_barcode VARCHAR(64) UNIQUE NOT NULL,
+        max_marks DECIMAL(5,2) DEFAULT 60.00,
+        marks_obtained DECIMAL(5,2) NULL,
+        evaluator_faculty_id INT NULL,
+        evaluator_remarks VARCHAR(255) NULL,
+        status ENUM('BLINDED', 'EVALUATED', 'DECODED') DEFAULT 'BLINDED',
+        evaluated_at DATETIME NULL,
+        decoded_at DATETIME NULL,
+        decoded_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_anon_exam_sub_student (examination_id, subject_id, student_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
     // 19.a Fee Categories Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS fee_categories (

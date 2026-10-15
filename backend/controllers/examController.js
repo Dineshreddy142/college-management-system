@@ -760,3 +760,491 @@ export const reviewRevaluation = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to review revaluation', error: error.message });
   }
 };
+
+// ==========================================
+// COE EXTENSIONS: HALL TICKET & ANONYMIZED EVALUATOR HUB
+// ==========================================
+
+// Ensure extension tables exist safely
+const ensureExamExtensionTables = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_hall_tickets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        student_id INT NOT NULL,
+        ticket_number VARCHAR(100) UNIQUE NOT NULL,
+        barcode_hash VARCHAR(255) NOT NULL,
+        attendance_percentage DECIMAL(5,2) DEFAULT 0.00,
+        fee_due_amount DECIMAL(10,2) DEFAULT 0.00,
+        eligibility_status ENUM('ELIGIBLE', 'CONDITIONAL', 'DETAINED') DEFAULT 'ELIGIBLE',
+        detention_reason VARCHAR(255) NULL,
+        room_number VARCHAR(100) NULL,
+        seat_number VARCHAR(50) NULL,
+        generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        generated_by INT NULL,
+        UNIQUE KEY uq_exam_student_ht (examination_id, student_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exam_anonymized_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        examination_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        student_id INT NOT NULL,
+        dummy_barcode VARCHAR(64) UNIQUE NOT NULL,
+        max_marks DECIMAL(5,2) DEFAULT 60.00,
+        marks_obtained DECIMAL(5,2) NULL,
+        evaluator_faculty_id INT NULL,
+        evaluator_remarks VARCHAR(255) NULL,
+        status ENUM('BLINDED', 'EVALUATED', 'DECODED') DEFAULT 'BLINDED',
+        evaluated_at DATETIME NULL,
+        decoded_at DATETIME NULL,
+        decoded_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_anon_exam_sub_student (examination_id, subject_id, student_id),
+        FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+  } catch (err) {
+    console.error('Error ensuring exam extension tables:', err.message);
+  }
+};
+
+// Run table check
+ensureExamExtensionTables();
+
+// POST /api/exams/:id/hall-tickets/generate
+export const generateHallTickets = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { id } = req.params;
+
+    const [exams] = await pool.query('SELECT * FROM examinations WHERE id = ?', [id]);
+    if (exams.length === 0) {
+      return res.status(404).json({ success: false, message: 'Examination not found' });
+    }
+    const exam = exams[0];
+
+    const [scheduledSubs] = await pool.query(`
+      SELECT es.*, c.room_number as hall_room, s.code as subject_code
+      FROM examination_subjects es
+      JOIN subjects s ON es.subject_id = s.id
+      LEFT JOIN classrooms c ON es.room_id = c.id
+      WHERE es.examination_id = ?
+    `, [id]);
+
+    const defaultRoom = scheduledSubs.find(s => s.hall_room)?.hall_room || 'Exam Hall Alpha';
+
+    const [students] = await pool.query(`
+      SELECT DISTINCT st.id as student_id, st.roll_number, st.admission_number, st.first_name, st.last_name,
+             st.semester, d.name as department_name, u.email
+      FROM students st
+      JOIN users u ON st.user_id = u.id
+      LEFT JOIN departments d ON st.department_id = d.id
+      WHERE 1=1
+        ${exam.semester_id ? 'AND st.semester = ' + pool.escape(exam.semester_id) : ''}
+        ${exam.department_id ? 'AND st.department_id = ' + pool.escape(exam.department_id) : ''}
+      ORDER BY st.roll_number ASC, st.id ASC
+    `);
+
+    if (students.length === 0) {
+      return res.status(400).json({ success: false, message: 'No registered students found for this examination cohort.' });
+    }
+
+    let generatedCount = 0;
+    let detainedCount = 0;
+    const tickets = [];
+
+    for (let i = 0; i < students.length; i++) {
+      const st = students[i];
+
+      const [eligibilityRows] = await pool.query(`
+        SELECT attendance_percentage, is_eligible, override_reason
+        FROM exam_eligibility
+        WHERE examination_id = ? AND student_id = ?
+      `, [id, st.student_id]);
+
+      let avgAtt = 100.0;
+      let hasApprovedOverride = false;
+      let isEligible = true;
+
+      if (eligibilityRows.length > 0) {
+        const sumAtt = eligibilityRows.reduce((acc, curr) => acc + parseFloat(curr.attendance_percentage || 0), 0);
+        avgAtt = parseFloat((sumAtt / eligibilityRows.length).toFixed(2));
+        hasApprovedOverride = eligibilityRows.some(r => r.override_reason && r.is_eligible === 1);
+        isEligible = hasApprovedOverride || avgAtt >= 75.0;
+      }
+
+      let feeDue = 0.0;
+      try {
+        const [feeRows] = await pool.query(`
+          SELECT SUM(amount - COALESCE(paid_amount, 0)) as total_due
+          FROM fees
+          WHERE student_id = ? AND status != 'PAID'
+        `, [st.student_id]);
+        if (feeRows.length > 0 && feeRows[0].total_due !== null) {
+          feeDue = parseFloat(feeRows[0].total_due) || 0.0;
+        }
+      } catch (fErr) {
+        feeDue = 0.0;
+      }
+
+      let status = 'ELIGIBLE';
+      let detentionReason = null;
+
+      if (!isEligible && !hasApprovedOverride) {
+        status = 'DETAINED';
+        detentionReason = `Attendance Shortage (${avgAtt}% < 75% threshold)`;
+        detainedCount++;
+      } else if (feeDue > 10000) {
+        status = 'CONDITIONAL';
+        detentionReason = `Pending Fee Balance (₹${feeDue.toLocaleString('en-IN')})`;
+      } else {
+        generatedCount++;
+      }
+
+      const ticketNumber = `HT-${exam.id}-${st.roll_number || st.student_id}-${1000 + i}`;
+      const barcodeHash = `BARCODE-${exam.id}-${st.student_id}-${Date.now().toString(36).toUpperCase()}`;
+      const seatNumber = `SEAT-${String(i + 1).padStart(3, '0')}`;
+
+      await pool.query(`
+        INSERT INTO exam_hall_tickets
+        (examination_id, student_id, ticket_number, barcode_hash, attendance_percentage, fee_due_amount, eligibility_status, detention_reason, room_number, seat_number, generated_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          ticket_number = VALUES(ticket_number),
+          barcode_hash = VALUES(barcode_hash),
+          attendance_percentage = VALUES(attendance_percentage),
+          fee_due_amount = VALUES(fee_due_amount),
+          eligibility_status = VALUES(eligibility_status),
+          detention_reason = VALUES(detention_reason),
+          room_number = VALUES(room_number),
+          seat_number = VALUES(seat_number),
+          generated_by = VALUES(generated_by),
+          generated_at = CURRENT_TIMESTAMP
+      `, [id, st.student_id, ticketNumber, barcodeHash, avgAtt, feeDue, status, detentionReason, defaultRoom, seatNumber, req.user.id]);
+
+      tickets.push({
+        student_id: st.student_id,
+        roll_number: st.roll_number,
+        name: `${st.first_name} ${st.last_name || ''}`.trim(),
+        ticket_number: ticketNumber,
+        status,
+        detention_reason: detentionReason,
+        attendance_percentage: avgAtt,
+        fee_due_amount: feeDue,
+        room_number: defaultRoom,
+        seat_number: seatNumber
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Generated ${tickets.length} Hall Tickets (${generatedCount} Eligible, ${detainedCount} Detained).`,
+      data: {
+        total_students: tickets.length,
+        eligible_count: generatedCount,
+        detained_count: detainedCount,
+        tickets
+      }
+    });
+  } catch (error) {
+    console.error('Error generating hall tickets:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate hall tickets', error: error.message });
+  }
+};
+
+// GET /api/exams/:id/hall-tickets
+export const getHallTickets = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { id } = req.params;
+
+    const [rows] = await pool.query(`
+      SELECT ht.*, st.roll_number, st.admission_number, st.first_name, st.last_name,
+             d.name as department_name, st.semester, u.email,
+             e.name as exam_name, e.start_date, e.end_date
+      FROM exam_hall_tickets ht
+      JOIN students st ON ht.student_id = st.id
+      JOIN users u ON st.user_id = u.id
+      JOIN examinations e ON ht.examination_id = e.id
+      LEFT JOIN departments d ON st.department_id = d.id
+      WHERE ht.examination_id = ?
+      ORDER BY ht.eligibility_status ASC, st.roll_number ASC
+    `, [id]);
+
+    res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    console.error('Error fetching hall tickets:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch hall tickets', error: error.message });
+  }
+};
+
+// GET /api/student/my-hall-ticket
+export const getStudentHallTicket = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const studentId = await resolveStudentId(req.user.id);
+    if (!studentId) {
+      return res.status(404).json({ success: false, message: 'Student profile not found for this user.' });
+    }
+
+    const [tickets] = await pool.query(`
+      SELECT ht.*, e.name as exam_name, e.start_date, e.end_date, e.status as exam_status,
+             st.roll_number, st.admission_number, st.first_name, st.last_name,
+             d.name as department_name, st.semester
+      FROM exam_hall_tickets ht
+      JOIN examinations e ON ht.examination_id = e.id
+      JOIN students st ON ht.student_id = st.id
+      LEFT JOIN departments d ON st.department_id = d.id
+      WHERE ht.student_id = ?
+      ORDER BY ht.generated_at DESC
+      LIMIT 1
+    `, [studentId]);
+
+    if (tickets.length === 0) {
+      return res.status(404).json({ success: false, message: 'No hall ticket issued yet for your active examination cycle.' });
+    }
+
+    const ticket = tickets[0];
+
+    const [schedules] = await pool.query(`
+      SELECT es.exam_date, es.start_time, es.end_time,
+             s.code as subject_code, s.name as subject_name, s.credits,
+             c.room_number, c.building_name
+      FROM examination_subjects es
+      JOIN subjects s ON es.subject_id = s.id
+      LEFT JOIN classrooms c ON es.room_id = c.id
+      WHERE es.examination_id = ?
+      ORDER BY es.exam_date ASC, es.start_time ASC
+    `, [ticket.examination_id]);
+
+    res.json({
+      success: true,
+      data: {
+        ticket,
+        schedules
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching student hall ticket:', error);
+    res.status(500).json({ success: false, message: 'Failed to load hall ticket', error: error.message });
+  }
+};
+
+// POST /api/exams/:id/anonymized-evaluations/generate
+export const generateAnonymizedTokens = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { id } = req.params;
+    const { subject_id } = req.body;
+
+    if (!subject_id) {
+      return res.status(400).json({ success: false, message: 'subject_id is required' });
+    }
+
+    const [subConfigs] = await pool.query(`
+      SELECT es.*, s.code as subject_code, s.name as subject_name
+      FROM examination_subjects es
+      JOIN subjects s ON es.subject_id = s.id
+      WHERE es.examination_id = ? AND es.subject_id = ?
+    `, [id, subject_id]);
+
+    if (subConfigs.length === 0) {
+      return res.status(404).json({ success: false, message: 'Examination subject configuration not found.' });
+    }
+
+    const subConfig = subConfigs[0];
+    const maxExt = parseFloat(subConfig.max_external_marks) || 60.0;
+
+    const [exams] = await pool.query('SELECT * FROM examinations WHERE id = ?', [id]);
+    const exam = exams[0];
+
+    const [students] = await pool.query(`
+      SELECT DISTINCT st.id as student_id, st.roll_number
+      FROM students st
+      JOIN student_subject_registrations ssr ON st.id = ssr.student_id
+      WHERE ssr.subject_id = ? AND ssr.status = 'REGISTERED'
+        ${exam.semester_id ? 'AND st.semester = ' + pool.escape(exam.semester_id) : ''}
+        ${exam.department_id ? 'AND st.department_id = ' + pool.escape(exam.department_id) : ''}
+    `, [subject_id]);
+
+    let createdCount = 0;
+
+    for (let i = 0; i < students.length; i++) {
+      const st = students[i];
+      const randomToken = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const dummyBarcode = `ANON-${subConfig.subject_code || 'EXAM'}-${st.student_id.toString(36).toUpperCase()}${randomToken}`;
+
+      const [resIns] = await pool.query(`
+        INSERT INTO exam_anonymized_evaluations
+        (examination_id, subject_id, student_id, dummy_barcode, max_marks, status)
+        VALUES (?, ?, ?, ?, ?, 'BLINDED')
+        ON DUPLICATE KEY UPDATE max_marks = VALUES(max_marks)
+      `, [id, subject_id, st.student_id, dummyBarcode, maxExt]);
+
+      if (resIns.affectedRows > 0) createdCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Generated anonymized barcode tokens for ${students.length} answer sheets. Candidate identities are blinded for objective grading.`,
+      count: students.length
+    });
+  } catch (error) {
+    console.error('Error generating anonymized tokens:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate anonymized tokens', error: error.message });
+  }
+};
+
+// GET /api/exams/:id/anonymized-evaluations
+export const getAnonymizedEvaluations = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { id } = req.params;
+    const { subject_id } = req.query;
+
+    if (!subject_id) {
+      return res.status(400).json({ success: false, message: 'subject_id query param is required' });
+    }
+
+    const [rows] = await pool.query(`
+      SELECT ae.id, ae.examination_id, ae.subject_id, ae.dummy_barcode,
+             ae.max_marks, ae.marks_obtained, ae.evaluator_remarks, ae.status,
+             ae.evaluated_at, ae.decoded_at,
+             IF(ae.status = 'DECODED', st.roll_number, '***ANONYMIZED***') as roll_number,
+             IF(ae.status = 'DECODED', CONCAT(st.first_name, ' ', COALESCE(st.last_name, '')), 'Candidate Blind ID') as student_name,
+             s.name as subject_name, s.code as subject_code
+      FROM exam_anonymized_evaluations ae
+      JOIN subjects s ON ae.subject_id = s.id
+      JOIN students st ON ae.student_id = st.id
+      WHERE ae.examination_id = ? AND ae.subject_id = ?
+      ORDER BY ae.dummy_barcode ASC
+    `, [id, subject_id]);
+
+    res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    console.error('Error fetching anonymized evaluations:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch anonymized evaluations', error: error.message });
+  }
+};
+
+// POST /api/exams/anonymized-evaluations/submit
+export const submitAnonymizedMarks = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'items array is required' });
+    }
+
+    let updatedCount = 0;
+    for (const item of items) {
+      if (!item.dummy_barcode) continue;
+      const marksVal = item.marks_obtained !== null && item.marks_obtained !== undefined && item.marks_obtained !== '' ? parseFloat(item.marks_obtained) : null;
+
+      await pool.query(`
+        UPDATE exam_anonymized_evaluations
+        SET marks_obtained = ?,
+            evaluator_remarks = ?,
+            evaluator_faculty_id = ?,
+            status = IF(? IS NOT NULL, 'EVALUATED', status),
+            evaluated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, evaluated_at)
+        WHERE dummy_barcode = ?
+      `, [marksVal, item.evaluator_remarks || null, req.user.id, marksVal, marksVal, item.dummy_barcode]);
+
+      updatedCount++;
+    }
+
+    res.json({ success: true, message: `Saved marks for ${updatedCount} barcoded answer sheets.` });
+  } catch (error) {
+    console.error('Error submitting anonymized marks:', error);
+    res.status(500).json({ success: false, message: 'Failed to submit anonymized marks', error: error.message });
+  }
+};
+
+// POST /api/exams/:id/anonymized-evaluations/decode
+export const decodeAnonymizedTokens = async (req, res) => {
+  try {
+    await ensureExamExtensionTables();
+    const { id } = req.params;
+    const { subject_id } = req.body;
+
+    if (!subject_id) {
+      return res.status(400).json({ success: false, message: 'subject_id is required' });
+    }
+
+    const [evals] = await pool.query(`
+      SELECT ae.*, es.passing_marks
+      FROM exam_anonymized_evaluations ae
+      JOIN examination_subjects es ON (ae.examination_id = es.examination_id AND ae.subject_id = es.subject_id)
+      WHERE ae.examination_id = ? AND ae.subject_id = ?
+    `, [id, subject_id]);
+
+    if (evals.length === 0) {
+      return res.status(404).json({ success: false, message: 'No barcoded evaluations found for this exam and subject.' });
+    }
+
+    let decodedCount = 0;
+
+    for (const ev of evals) {
+      if (ev.marks_obtained === null) continue;
+
+      const extMarks = parseFloat(ev.marks_obtained) || 0.0;
+
+      const [existing] = await pool.query(`
+        SELECT internal_marks FROM student_marks
+        WHERE examination_id = ? AND subject_id = ? AND student_id = ?
+      `, [id, subject_id, ev.student_id]);
+
+      const intMarks = existing.length > 0 ? parseFloat(existing[0].internal_marks || 0) : 0.0;
+      const totalMarks = intMarks + extMarks;
+      const gradeInfo = await calculateGradeAndPoint(totalMarks);
+      const resStatus = totalMarks >= (parseFloat(ev.passing_marks) || 40.0) ? 'PASS' : 'FAIL';
+
+      await pool.query(`
+        INSERT INTO student_marks
+        (examination_id, subject_id, student_id, internal_marks, external_marks, total_marks, grade, grade_point, status, result_status, evaluated_by, submitted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'VERIFIED', ?, ?, CURRENT_TIMESTAMP)
+        ON DUPLICATE KEY UPDATE
+          external_marks = VALUES(external_marks),
+          total_marks = VALUES(total_marks),
+          grade = VALUES(grade),
+          grade_point = VALUES(grade_point),
+          status = 'VERIFIED',
+          result_status = VALUES(result_status),
+          submitted_at = CURRENT_TIMESTAMP
+      `, [id, subject_id, ev.student_id, intMarks, extMarks, totalMarks, gradeInfo.grade, gradeInfo.grade_point, resStatus, req.user.id]);
+
+      await pool.query(`
+        INSERT INTO marks (exam_id, student_id, subject_id, marks_obtained)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE marks_obtained = VALUES(marks_obtained)
+      `, [id, ev.student_id, subject_id, totalMarks]);
+
+      await pool.query(`
+        UPDATE exam_anonymized_evaluations
+        SET status = 'DECODED', decoded_at = CURRENT_TIMESTAMP, decoded_by = ?
+        WHERE id = ?
+      `, [req.user.id, ev.id]);
+
+      decodedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully decoded ${decodedCount} barcoded answer sheets and merged verified marks into official student grade cards.`,
+      decoded_count: decodedCount
+    });
+  } catch (error) {
+    console.error('Error decoding anonymized tokens:', error);
+    res.status(500).json({ success: false, message: 'Failed to decode anonymized tokens', error: error.message });
+  }
+};

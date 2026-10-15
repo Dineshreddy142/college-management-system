@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Award, Download, Calendar, Clock, MapPin, Printer, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import { Award, Download, Calendar, Clock, MapPin, Printer, CheckCircle, AlertCircle, FileText, Barcode, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, Badge, Btn } from "../App";
 import client from "../../api/client";
 import { useAuth } from "../portal/AuthContext";
@@ -11,6 +12,7 @@ export function ExaminationModule() {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHallTicket, setShowHallTicket] = useState(false);
+  const [realTicket, setRealTicket] = useState<any | null>(null);
 
   useEffect(() => {
     fetchExams();
@@ -55,8 +57,17 @@ export function ExaminationModule() {
     }
   };
 
-  const handleDownloadHallTicket = () => {
-    setShowHallTicket(true);
+  const handleDownloadHallTicket = async () => {
+    try {
+      const res = await client.get('/student/my-hall-ticket');
+      if (res.data?.data) {
+        setRealTicket(res.data.data);
+      }
+    } catch (e) {
+      console.log('No official generated hall ticket yet, displaying student card.');
+    } finally {
+      setShowHallTicket(true);
+    }
   };
 
   return (
@@ -141,38 +152,98 @@ export function ExaminationModule() {
       {/* Official Hall Ticket Modal */}
       {showHallTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white text-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
-            <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto print:p-0 print:border-none print:shadow-none">
+            <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-4">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-wider text-slate-900">National Institute of Technology & Science</h2>
-                <p className="text-xs font-semibold text-slate-500 uppercase">Office of the Controller of Examinations (COE)</p>
-                <div className="mt-1 inline-block bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px] font-bold text-indigo-700">
-                  OFFICIAL SEMESTER END EXAMINATION HALL TICKET
+                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900">National Institute of Technology & Science</h2>
+                <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Office of the Controller of Examinations (COE Exam Engine)</p>
+                <div className="mt-2 inline-block bg-indigo-50 border border-indigo-300 px-2.5 py-0.5 rounded text-[11px] font-extrabold text-indigo-900">
+                  OFFICIAL SEMESTER END EXAMINATION ADMIT CARD
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-mono text-xs font-bold text-slate-700">HT-{user?.roll_number || user?.username || 'STU2026'}</p>
-                <p className="text-[10px] text-slate-400">Issue Date: {new Date().toLocaleDateString()}</p>
+              <div className="text-right flex flex-col items-end">
+                <div className="bg-white p-1 border border-slate-300 rounded-lg shadow-2xs">
+                  <QRCodeSVG
+                    value={JSON.stringify({
+                      ticket: realTicket?.ticket?.ticket_number || `HT-${user?.roll_number || 'STU2026'}`,
+                      roll: realTicket?.ticket?.roll_number || user?.roll_number || 'STU2026',
+                      status: realTicket?.ticket?.eligibility_status || 'ELIGIBLE',
+                      barcode: realTicket?.ticket?.barcode_hash || `BARCODE-${Date.now()}`
+                    })}
+                    size={64}
+                  />
+                </div>
+                <p className="font-mono text-[10px] font-extrabold text-slate-800 mt-1">
+                  {realTicket?.ticket?.ticket_number || `HT-${user?.roll_number || user?.username || 'STU2026'}`}
+                </p>
+                <p className="text-[9px] text-slate-400">Issue Date: {new Date().toLocaleDateString()}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs mb-4">
-              <div>
-                <p className="text-slate-500 text-[10px] uppercase font-bold">Candidate Name</p>
-                <p className="font-bold text-slate-900">{user?.full_name || user?.name || "Dinesh Reddy"}</p>
+            <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs mb-4">
+              <div className="col-span-2 space-y-1.5">
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase font-bold">Candidate Name</p>
+                  <p className="font-black text-slate-900 text-sm">
+                    {realTicket?.ticket ? `${realTicket.ticket.first_name} ${realTicket.ticket.last_name || ''}`.trim() : (user?.full_name || user?.name || "Candidate Name")}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold">Roll / Register Number</p>
+                    <p className="font-bold font-mono text-slate-900">
+                      {realTicket?.ticket?.roll_number || user?.roll_number || user?.admission_number || user?.username || "21CS042"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold">Program & Department</p>
+                    <p className="font-bold text-slate-900">
+                      {realTicket?.ticket?.department_name || user?.department || "Computer Science & Engineering"}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold">Examination Center</p>
+                    <p className="font-bold text-indigo-700">
+                      {realTicket?.ticket?.room_number || "Main Campus - Academic Block A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold">Allocated Desk</p>
+                    <p className="font-bold text-indigo-700 font-mono">
+                      {realTicket?.ticket?.seat_number || "Desk #1"}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-slate-500 text-[10px] uppercase font-bold">Roll / Register Number</p>
-                <p className="font-bold font-mono text-slate-900">{user?.roll_number || user?.admission_number || user?.username || "21CS042"}</p>
+
+              <div className="flex flex-col items-center justify-center p-2 bg-white rounded-xl border border-slate-200">
+                <div className="w-18 h-22 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-center p-1">
+                  <Award className="w-5 h-5 text-slate-400 mb-1" />
+                  <span className="text-[9px] font-bold">PHOTO VERIFIED</span>
+                </div>
+                <span className={`mt-2 px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                  (realTicket?.ticket?.eligibility_status || 'ELIGIBLE') === 'ELIGIBLE'
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  {realTicket?.ticket?.eligibility_status || 'ELIGIBLE'}
+                </span>
               </div>
-              <div>
-                <p className="text-slate-500 text-[10px] uppercase font-bold">Program & Department</p>
-                <p className="font-bold text-slate-900">{user?.department || "Computer Science & Engineering"}</p>
+            </div>
+
+            {/* Barcode Strip */}
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-between mb-4 font-mono text-xs">
+              <div className="flex items-center gap-2">
+                <Barcode className="w-6 h-6 text-indigo-400 shrink-0" />
+                <span className="font-bold text-[11px] text-indigo-300">
+                  {realTicket?.ticket?.barcode_hash || `BARCODE-${user?.roll_number || '21CS042'}-SEALED`}
+                </span>
               </div>
-              <div>
-                <p className="text-slate-500 text-[10px] uppercase font-bold">Examination Center</p>
-                <p className="font-bold text-slate-900">Main Campus - Academic Block A</p>
-              </div>
+              <span className="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                Digitally Verified
+              </span>
             </div>
 
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Allocated Exam Papers</h4>
@@ -188,12 +259,14 @@ export function ExaminationModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                  {schedule.map((item, i) => (
+                  {(realTicket?.schedules && realTicket.schedules.length > 0 ? realTicket.schedules : schedule).map((item: any, i: number) => (
                     <tr key={i}>
-                      <td className="py-2 px-3 font-bold text-blue-700">{item.subject_code || "CS60" + (i + 1)}</td>
+                      <td className="py-2 px-3 font-bold text-indigo-700">{item.subject_code || "CS60" + (i + 1)}</td>
                       <td className="py-2 px-3 font-sans text-slate-800">{item.subject_name || item.name}</td>
                       <td className="py-2 px-3">{item.exam_date || "2026-11-" + (15 + i * 3)}</td>
-                      <td className="py-2 px-3">09:30 - 12:30</td>
+                      <td className="py-2 px-3">
+                        {item.start_time ? `${item.start_time.slice(0, 5)} - ${item.end_time?.slice(0, 5)}` : "09:30 - 12:30"}
+                      </td>
                       <td className="py-2 px-3 text-slate-300">___________</td>
                     </tr>
                   ))}
@@ -206,6 +279,20 @@ export function ExaminationModule() {
               <p>1. Candidates must arrive at the examination hall at least 30 minutes before the scheduled start time.</p>
               <p>2. Electronic devices, smartwatches, and programmable calculators are strictly prohibited.</p>
               <p>3. This hall ticket must be retained and produced upon entry along with the University ID Card.</p>
+            </div>
+
+            <div className="flex justify-between items-end border-t border-slate-200 pt-4 mb-4">
+              <div className="text-center">
+                <div className="w-28 border-b border-slate-400 mb-1"></div>
+                <p className="text-[9px] font-bold text-slate-600 uppercase">Candidate Signature</p>
+              </div>
+
+              <div className="text-center flex flex-col items-center">
+                <div className="w-20 h-8 border border-indigo-200 rounded bg-indigo-50/50 flex items-center justify-center text-[9px] font-black text-indigo-800 rotate-[-4deg] mb-1">
+                  COE SEAL
+                </div>
+                <p className="text-[9px] font-bold text-slate-900 uppercase">Controller of Examinations</p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 print:hidden border-t border-slate-100 pt-4">
@@ -222,7 +309,7 @@ export function ExaminationModule() {
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
               >
                 <Printer size={14} />
-                <span>Print / Save PDF</span>
+                <span>Print Official Admit Card</span>
               </button>
             </div>
           </div>
