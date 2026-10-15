@@ -30,6 +30,8 @@ import { AdminExamResultsManagement } from "./admin/exam-management/AdminExamRes
 import { AdminFinanceManagement } from "./admin/finance/AdminFinanceManagement";
 import { AdminLibraryManagement } from "./admin/library/AdminLibraryManagement";
 import { PlacementManagementHub } from "./admin/placement/PlacementManagementHub";
+import { FaceLoginModal } from "../components/FaceLoginModal";
+import { getFaceAuthStatus, deleteFaceBiometrics } from "../api/faceAuthApi";
 import client from "../api/client";
 
 import {
@@ -44,7 +46,7 @@ import {
   Zap, Lock, Key, Smartphone, AlertCircle,
   BookMarked, UserPlus, CalendarDays, Trophy, Map, Compass,
   FileSpreadsheet, Sparkles, Layers, DoorOpen, Edit3, History,
-  Bot, Wallet, Utensils, ShieldCheck, Mic, Loader2
+  Bot, Wallet, Utensils, ShieldCheck, Mic, Loader2, Camera, UserX
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -1887,13 +1889,56 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
   const [tab, setTab] = useState("profile");
   const tabs = ["profile", "security", "notifications", "appearance"];
 
+  // Face Biometrics state
+  const [isFaceEnrolled, setIsFaceEnrolled] = useState<boolean | null>(null);
+  const [showFaceEnrollModal, setShowFaceEnrollModal] = useState(false);
+  const [showDeleteFaceConfirm, setShowDeleteFaceConfirm] = useState(false);
+  const [isDeletingFace, setIsDeletingFace] = useState(false);
+  const [biometricFeedback, setBiometricFeedback] = useState<string | null>(null);
+
+  const fetchBiometricStatus = async () => {
+    try {
+      const res = await getFaceAuthStatus();
+      if (res.success && res.data) {
+        setIsFaceEnrolled(res.data.is_enrolled);
+      } else {
+        setIsFaceEnrolled(false);
+      }
+    } catch {
+      setIsFaceEnrolled(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBiometricStatus();
+  }, []);
+
+  const handleDeleteFace = async () => {
+    setIsDeletingFace(true);
+    try {
+      const res = await deleteFaceBiometrics();
+      if (res.success) {
+        setIsFaceEnrolled(false);
+        setShowDeleteFaceConfirm(false);
+        setBiometricFeedback('🗑️ Face biometrics deleted successfully.');
+        setTimeout(() => setBiometricFeedback(null), 4000);
+      } else {
+        setBiometricFeedback(`❌ ${res.error || 'Failed to delete face biometrics.'}`);
+      }
+    } catch {
+      setBiometricFeedback('❌ Error deleting face biometrics.');
+    } finally {
+      setIsDeletingFace(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={cn("px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all",
-              tab === t ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")}>
+              tab === t ? "bg-white dark:bg-slate-700 text-[#2563EB] dark:text-blue-400 shadow-xs" : "text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-slate-300")}>
             {t}
           </button>
         ))}
@@ -1906,13 +1951,13 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="p-6 text-center">
                 <div className="flex justify-center mb-3"><Avatar name={settingsDisplayName} size="xl" /></div>
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white capitalize">{settingsDisplayName}</h3>
-                <p className="text-sm text-slate-400 capitalize">{user?.role || "System Administrator"}</p>
-                <p className="text-xs text-slate-400 mt-1">{user?.email || "user@techuniv.edu.in"}</p>
+                <h3 className="text-base font-semibold text-[#0F172A] dark:text-white capitalize">{settingsDisplayName}</h3>
+                <p className="text-sm text-[#64748B] dark:text-slate-400 capitalize">{user?.role || "System Administrator"}</p>
+                <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1">{user?.email || "user@techuniv.edu.in"}</p>
                 <Btn variant="outline" size="sm" className="mt-4">Change Photo</Btn>
               </Card>
               <Card className="p-6 lg:col-span-2">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Personal Information</h3>
+                <h3 className="text-sm font-semibold text-[#0F172A] dark:text-white mb-5">Personal Information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <SInput label="Full Name" placeholder="Full Name" defaultValue={settingsDisplayName} />
                   <SInput label="Username" placeholder="User" defaultValue={user?.username || ""} disabled />
@@ -1933,35 +1978,98 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
       )}
 
       {tab === "security" && (
-        <Card className="p-6">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Change Password</h3>
-          <div className="space-y-3 max-w-md">
-            <SInput label="Current Password" type="password" placeholder="Enter current password" icon={<Lock size={14} />} />
-            <SInput label="New Password" type="password" placeholder="Enter new password" icon={<Lock size={14} />} />
-            <SInput label="Confirm New Password" type="password" placeholder="Confirm new password" icon={<Lock size={14} />} />
-            <Btn variant="primary">Update Password</Btn>
-          </div>
-          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
-            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Two-Factor Authentication</h4>
-            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                  <Shield size={16} className="text-emerald-600 dark:text-emerald-400" />
+        <div className="space-y-6">
+          {/* Face Biometrics Authentication Card */}
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "p-3 rounded-2xl border",
+                  isFaceEnrolled ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-[#15803D] dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-[#B45309] dark:text-amber-400"
+                )}>
+                  <Camera className="w-7 h-7" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">2FA is Enabled</p>
-                  <p className="text-xs text-slate-400">Your account is protected with 2FA</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-[#0F172A] dark:text-white text-base">AES-256-GCM Face Biometrics</h3>
+                    {isFaceEnrolled === true && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-[#15803D] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center gap-1">
+                        <UserCheck className="w-3.5 h-3.5" /> Face Registered
+                      </span>
+                    )}
+                    {isFaceEnrolled === false && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-[#B45309] dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-semibold flex items-center gap-1">
+                        <UserX className="w-3.5 h-3.5" /> Face Not Registered
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#64748B] dark:text-slate-400">
+                    {isFaceEnrolled === true
+                      ? 'Your 1:1 facial biometric profile is active and verified for secure passwordless login across all devices.'
+                      : 'Register your facial biometrics to enable instant passwordless verification on the login screen.'}
+                  </p>
                 </div>
               </div>
-              <Badge variant="success">Active</Badge>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowFaceEnrollModal(true)}
+                  className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" /> {isFaceEnrolled ? 'Update Face Profile' : 'Enroll Face ID Now'}
+                </button>
+
+                {isFaceEnrolled === true && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteFaceConfirm(true)}
+                    className="px-3 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 text-[#B91C1C] dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Face ID
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </Card>
+
+            {biometricFeedback && (
+              <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-lg text-xs font-medium text-[#0F172A] dark:text-white">
+                {biometricFeedback}
+              </div>
+            )}
+          </Card>
+
+          {/* Change Password Card */}
+          <Card className="p-6">
+            <h3 className="text-sm font-semibold text-[#0F172A] dark:text-white mb-5">Change Password</h3>
+            <div className="space-y-3 max-w-md">
+              <SInput label="Current Password" type="password" placeholder="Enter current password" icon={<Lock size={14} />} />
+              <SInput label="New Password" type="password" placeholder="Enter new password" icon={<Lock size={14} />} />
+              <SInput label="Confirm New Password" type="password" placeholder="Confirm new password" icon={<Lock size={14} />} />
+              <Btn variant="primary">Update Password</Btn>
+            </div>
+            <div className="mt-6 pt-6 border-t border-[#E2E8F0] dark:border-slate-700">
+              <h4 className="text-sm font-medium text-[#0F172A] dark:text-slate-300 mb-3">Two-Factor Authentication</h4>
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                    <Shield size={16} className="text-[#15803D] dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#0F172A] dark:text-white">2FA is Enabled</p>
+                    <p className="text-xs text-[#64748B] dark:text-slate-400">Your account is protected with 2FA</p>
+                  </div>
+                </div>
+                <Badge variant="success">Active</Badge>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
       {tab === "notifications" && (
         <Card className="p-6">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Notification Preferences</h3>
+          <h3 className="text-sm font-semibold text-[#0F172A] dark:text-white mb-5">Notification Preferences</h3>
           <div className="space-y-3">
             {[
               { title: "Email Notifications", desc: "Receive updates via email", on: true },
@@ -1979,18 +2087,69 @@ function SettingsPage({ theme, toggleTheme }: { theme: string; toggleTheme: () =
 
       {tab === "appearance" && (
         <Card className="p-6">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-5">Theme Mode</h3>
+          <h3 className="text-sm font-semibold text-[#0F172A] dark:text-white mb-5">Theme Mode</h3>
           <div className="flex gap-3">
             {[{ id: "light", label: "Light", icon: <Sun size={18} /> }, { id: "dark", label: "Dark", icon: <Moon size={18} /> }].map(t => (
               <button key={t.id} onClick={toggleTheme}
                 className={cn("flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all w-28",
-                  theme === t.id ? "border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400" : "border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300 dark:hover:border-slate-600")}>
+                  theme === t.id ? "border-[#2563EB] bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400" : "border-[#E2E8F0] dark:border-slate-700 text-[#64748B] hover:border-slate-300 dark:hover:border-slate-600")}>
                 {t.icon}
                 <span className="text-xs font-medium">{t.label}</span>
               </button>
             ))}
           </div>
         </Card>
+      )}
+
+      <FaceLoginModal
+        isOpen={showFaceEnrollModal}
+        onClose={() => setShowFaceEnrollModal(false)}
+        mode="enroll"
+        onSuccess={() => {
+          setIsFaceEnrolled(true);
+          setShowFaceEnrollModal(false);
+          setBiometricFeedback('✅ Face biometrics enrolled successfully!');
+          setTimeout(() => setBiometricFeedback(null), 4000);
+          fetchBiometricStatus();
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteFaceConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex items-center gap-3 text-[#B91C1C] dark:text-rose-400">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#0F172A] dark:text-white">Delete Face Biometrics?</h3>
+                <p className="text-xs text-[#64748B] dark:text-slate-400">Remove registered facial template</p>
+              </div>
+            </div>
+            <p className="text-xs text-[#0F172A] dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-[#E2E8F0] dark:border-slate-700">
+              Are you sure you want to delete your registered face biometrics? You will no longer be able to use Face Unlock for passwordless login until you re-enroll.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteFaceConfirm(false)}
+                disabled={isDeletingFace}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0F172A] dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteFace}
+                disabled={isDeletingFace}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-red-700 text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                {isDeletingFace ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -2092,6 +2251,7 @@ function LoginPage({ onNav }: { onNav: (v: string) => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showFaceModal, setShowFaceModal] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -2107,7 +2267,8 @@ function LoginPage({ onNav }: { onNav: (v: string) => void }) {
       const routes: Record<string, string> = { 
         admin: "admin", student: "student", faculty: "faculty", 
         parent: "parent", principal: "admin", hod: "admin", 
-        accountant: "admin", librarian: "admin", "placement officer": "admin"
+        accountant: "admin", librarian: "admin", "placement officer": "admin",
+        chancellor: "admin", "vice chancellor": "admin"
       };
       onNav(routes[roleStr] || "admin");
     } catch (err: any) {
@@ -2176,11 +2337,40 @@ function LoginPage({ onNav }: { onNav: (v: string) => void }) {
             {loading ? "Signing in..." : "Sign In &rarr;"}
           </button>
 
+          <button 
+            type="button" 
+            onClick={() => setShowFaceModal(true)} 
+            className="w-full mt-3 py-2.5 px-4 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <ShieldCheck size={16} className="text-blue-400" />
+            <span>Instant Face Verification Login</span>
+          </button>
+
           <p className="text-center text-xs text-blue-300/70 mt-4">
             {"Don't have an account? "}
             <button onClick={() => onNav("register")} className="text-white font-medium hover:underline">Register</button>
           </p>
         </div>
+
+        <FaceLoginModal
+          isOpen={showFaceModal}
+          onClose={() => setShowFaceModal(false)}
+          mode="login"
+          onSuccess={(data) => {
+            if (data?.token && data?.user) {
+              localStorage.setItem('token', data.token);
+              localStorage.setItem('user', JSON.stringify(data.user));
+              const roleStr = data.user.role.toLowerCase();
+              const routes: Record<string, string> = { 
+                admin: "admin", student: "student", faculty: "faculty", 
+                parent: "parent", principal: "admin", hod: "admin", 
+                accountant: "admin", librarian: "admin", "placement officer": "admin",
+                chancellor: "admin", "vice chancellor": "admin"
+              };
+              onNav(routes[roleStr] || "admin");
+            }
+          }}
+        />
 
         <p className="text-center text-xs text-blue-400/60 mt-5">
           <button onClick={() => onNav("landing")} className="hover:text-white transition-colors">← Back to homepage</button>
