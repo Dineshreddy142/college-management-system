@@ -125,25 +125,47 @@ export const getStudentTimetable = async (req, res) => {
 
     const [entries] = await pool.query(`
       SELECT te.id, te.day_of_week,
-             s.name as subject_name, s.code as subject_code,
-             f.first_name as faculty_first_name, f.last_name as faculty_last_name,
-             ts.start_time, ts.end_time, ts.title as slot_title,
-             c.room_number, c.building_name
+             s.id as subject_id, s.name as subject_name, s.code as subject_code, s.type as subject_type,
+             COALESCE(u.full_name, f.name, CONCAT(f.first_name, ' ', COALESCE(f.last_name, ''))) as faculty_name,
+             f.id as faculty_id, f.first_name as faculty_first_name, f.last_name as faculty_last_name,
+             ts.start_time, ts.end_time, ts.period_number, ts.title as slot_title,
+             c.room_number, COALESCE(c.building, 'Academic Block') as building_name
       FROM timetable_entries te
+      JOIN timetable_master tm ON te.timetable_master_id = tm.id
       JOIN subjects s ON te.subject_id = s.id
       LEFT JOIN faculty f ON te.faculty_id = f.id
+      LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN time_slots ts ON te.time_slot_id = ts.id
       LEFT JOIN classrooms c ON te.room_id = c.id
-      WHERE (te.section_id = ? OR te.section_id IS NULL)
+      WHERE (te.section_id = ? OR te.section_id IS NULL) AND tm.status = 'Published'
       ORDER BY FIELD(te.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'), ts.start_time ASC
     `, [studentCtx.section_id || 0]).catch(() => [[]]);
+
+    // Build grouped schedule matching WeeklyTimetable DaySchedule interface
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const groupedSchedule = DAYS.map(day => {
+      const dayEntries = entries.filter(e => e.day_of_week === day);
+      return {
+        day,
+        periods: dayEntries.map((e, idx) => ({
+          period: e.period_number || (idx + 1),
+          time: `${e.start_time ? String(e.start_time).substring(0, 5) : '09:00'} - ${e.end_time ? String(e.end_time).substring(0, 5) : '10:00'}`,
+          type: e.subject_type || 'Theory',
+          subject: e.subject_name || 'Subject',
+          code: e.subject_code || 'CODE',
+          faculty: e.faculty_name || 'Assigned Faculty',
+          room: e.room_number || 'Room 101'
+        }))
+      };
+    });
 
     res.json({
       department: studentCtx.department_name || "Computer Science",
       semester: studentCtx.semester_name || studentCtx.semester || "1",
       section: studentCtx.section_name || "A",
       batch: studentCtx.academic_year_name || "2024-2025",
-      schedule: entries
+      schedule: groupedSchedule,
+      raw_entries: entries
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -741,3 +763,32 @@ export const getElectiveAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch elective analytics', error: error.message });
   }
 };
+
+export const bookStudentSlot = async (req, res) => {
+  try {
+    const { subject_id, section_id, semester_id } = req.body;
+    const studentCtx = await resolveStudentContext(req.user.id);
+    if (!studentCtx) {
+      return res.status(404).json({ success: false, message: 'Student context not found.' });
+    }
+
+    const effSectionId = section_id || studentCtx.section_id || 1;
+    const effSemesterId = semester_id || studentCtx.semester_id_resolved || studentCtx.semester || 1;
+
+    await pool.query(`
+      INSERT INTO student_subject_registrations
+        (student_id, subject_id, semester_id, section_id, registration_type, status)
+      VALUES (?, ?, ?, ?, 'MANDATORY', 'REGISTERED')
+      ON DUPLICATE KEY UPDATE section_id = VALUES(section_id), status = 'REGISTERED', updated_at = CURRENT_TIMESTAMP
+    `, [studentCtx.id, subject_id, effSemesterId, effSectionId]);
+
+    res.json({
+      success: true,
+      message: 'Subject and time slot successfully booked with the allocated faculty.'
+    });
+  } catch (error) {
+    console.error('Error booking student slot:', error);
+    res.status(500).json({ success: false, message: 'Failed to book slot', error: error.message });
+  }
+};
+

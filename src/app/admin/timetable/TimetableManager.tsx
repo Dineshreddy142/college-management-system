@@ -1,20 +1,20 @@
 import { useState } from "react";
-import { Calendar, UploadCloud, Grid, Building, Clock, FileCheck } from "lucide-react";
+import { Calendar, UploadCloud, Grid, Building, Clock, FileCheck, PlusCircle } from "lucide-react";
 import { cn } from "../../App";
 import { TimetableUpload } from "./TimetableUpload";
 import { TimetableGrid } from "./TimetableGrid";
 import { ClassroomManager } from "./ClassroomManager";
-// Placeholder for TimeSlotManager for future expansion
+import { CreateSemesterTimetable } from "./CreateSemesterTimetable";
 
 export function TimetableManager() {
-  const [activeTab, setActiveTab] = useState("grid");
+  const [activeTab, setActiveTab] = useState("create");
 
   const renderContent = () => {
     switch (activeTab) {
+      case "create": return <CreateSemesterTimetable onCreated={() => setActiveTab("grid")} />;
       case "upload": return <TimetableUpload />;
       case "grid": return <TimetableGrid />;
       case "rooms": return <ClassroomManager />;
-      // case "slots": return <TimeSlotManager />;
       default: return <TimetableGrid />;
     }
   };
@@ -23,6 +23,7 @@ export function TimetableManager() {
     <div className="space-y-6">
       <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full overflow-x-auto scrollbar-none">
         {[
+          { id: "create", label: "Create Semester Timetable", icon: <PlusCircle size={16} /> },
           { id: "grid", label: "View Timetables", icon: <Grid size={16} /> },
           { id: "upload", label: "Upload & Validate", icon: <UploadCloud size={16} /> },
           { id: "rooms", label: "Classrooms", icon: <Building size={16} /> },
@@ -41,3 +42,4 @@ export function TimetableManager() {
     </div>
   );
 }
+

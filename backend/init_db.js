@@ -3154,6 +3154,12 @@ export async function initializeDatabase() {
         )
       `);
 
+      await pool.query(`
+        ALTER TABLE timetable_entries
+        ADD COLUMN IF NOT EXISTS section_id INT NULL,
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `).catch(() => {});
+
       // Seed classrooms if empty
       const [existingRooms] = await pool.query('SELECT COUNT(*) as cnt FROM classrooms');
       if (existingRooms[0]?.cnt === 0) {

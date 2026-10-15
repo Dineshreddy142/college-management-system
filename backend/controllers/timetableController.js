@@ -294,3 +294,272 @@ export const publishTimetable = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+export const getPredefinedSubjects = async (req, res) => {
+    try {
+        const { department_id, course_id, semester_id, semester } = req.query;
+
+        let query = `
+            SELECT s.id, s.code, s.name, s.credits, s.type, s.department_id, s.semester,
+                   d.name as department_name, d.code as department_code
+            FROM subjects s
+            LEFT JOIN departments d ON s.department_id = d.id
+            WHERE 1=1
+        `;
+        const params = [];
+        if (department_id && department_id !== 'all') {
+            query += ` AND s.department_id = ?`;
+            params.push(department_id);
+        }
+        if (semester && semester !== 'all') {
+            query += ` AND (s.semester = ? OR s.semester IS NULL)`;
+            params.push(semester);
+        } else if (semester_id && semester_id !== 'all') {
+            const [semRows] = await pool.query('SELECT semester_number FROM semesters WHERE id = ?', [semester_id]);
+            if (semRows.length > 0 && semRows[0].semester_number) {
+                query += ` AND (s.semester = ? OR s.semester = ? OR s.semester IS NULL)`;
+                params.push(semRows[0].semester_number, semester_id);
+            } else {
+                query += ` AND (s.semester = ? OR s.semester IS NULL)`;
+                params.push(semester_id);
+            }
+        }
+
+        query += ` ORDER BY s.code ASC`;
+        const [subjects] = await pool.query(query, params);
+
+        // Fetch faculty for this department
+        let facQuery = `
+            SELECT f.id, COALESCE(u.full_name, f.name) as name, f.department_id, d.name as department_name,
+                   f.designation, u.email
+            FROM faculty f
+            LEFT JOIN users u ON f.user_id = u.id
+            LEFT JOIN departments d ON f.department_id = d.id
+            WHERE 1=1
+        `;
+        const facParams = [];
+        if (department_id && department_id !== 'all') {
+            facQuery += ` AND (f.department_id = ? OR f.department_id IS NULL)`;
+            facParams.push(department_id);
+        }
+        facQuery += ` ORDER BY name ASC`;
+        const [facultyList] = await pool.query(facQuery, facParams);
+
+        // Classrooms & Time slots
+        const [classrooms] = await pool.query('SELECT id, room_number, building, capacity, room_type FROM classrooms WHERE status = "Active" ORDER BY room_number ASC');
+        const [timeSlots] = await pool.query('SELECT id, period_number, start_time, end_time, is_break, title FROM time_slots ORDER BY start_time ASC');
+
+        res.json({
+            success: true,
+            subjects,
+            faculty: facultyList,
+            classrooms,
+            timeSlots
+        });
+    } catch (err) {
+        console.error('Error fetching predefined subjects:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch predefined subjects', error: err.message });
+    }
+};
+
+export const createSemesterTimetable = async (req, res) => {
+    let { department_id, course_id, semester_id, section_id, academic_session_id, entries, autoPublish = true } = req.body;
+
+    if (!entries || !Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ success: false, message: 'Timetable schedule entries are required.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        if (!department_id) {
+            const [d] = await connection.query('SELECT id FROM departments LIMIT 1');
+            department_id = d[0]?.id || 1;
+        }
+        if (!course_id) {
+            const [c] = await connection.query('SELECT id FROM courses LIMIT 1');
+            course_id = c[0]?.id || 1;
+        }
+        if (!semester_id) {
+            const [s] = await connection.query('SELECT id FROM semesters LIMIT 1');
+            semester_id = s[0]?.id || 1;
+        }
+        if (!section_id) {
+            const [sec] = await connection.query('SELECT id FROM sections LIMIT 1');
+            section_id = sec[0]?.id || 1;
+        }
+
+        const status = autoPublish ? 'Published' : 'Draft';
+        const publishedAt = autoPublish ? new Date() : null;
+
+        // Check if master exists for this department & semester
+        const [existingMaster] = await connection.query(
+            'SELECT id FROM timetable_master WHERE department_id = ? AND semester_id = ? ORDER BY id DESC LIMIT 1',
+            [department_id, semester_id]
+        );
+
+        let masterId;
+        if (existingMaster.length > 0) {
+            masterId = existingMaster[0].id;
+            await connection.query(
+                'UPDATE timetable_master SET status = ?, published_at = ?, updated_at = NOW() WHERE id = ?',
+                [status, publishedAt, masterId]
+            );
+            await connection.query('DELETE FROM timetable_entries WHERE timetable_master_id = ? AND section_id = ?', [masterId, section_id]);
+        } else {
+            const [masterRes] = await connection.query(
+                'INSERT INTO timetable_master (department_id, course_id, semester_id, academic_session_id, status, published_by, published_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [department_id, course_id, semester_id, academic_session_id || null, status, req.user?.id || null, publishedAt, req.user?.id || null]
+            );
+            masterId = masterRes.insertId;
+        }
+
+        const conflicts = [];
+        const insertedEntries = [];
+        const uniqueAllocations = new Map();
+
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
+            const { day_of_week, time_slot_id, subject_id, faculty_id, room_id } = entry;
+
+            if (!day_of_week || !time_slot_id || !subject_id) {
+                continue;
+            }
+
+            // Conflict check: Faculty clash across published timetables
+            if (faculty_id) {
+                const [facClash] = await connection.query(
+                    `SELECT te.id FROM timetable_entries te
+                     JOIN timetable_master tm ON te.timetable_master_id = tm.id
+                     WHERE te.faculty_id = ? AND te.day_of_week = ? AND te.time_slot_id = ? 
+                       AND (te.section_id != ? OR te.timetable_master_id != ?) AND tm.status = 'Published'`,
+                    [faculty_id, day_of_week, time_slot_id, section_id, masterId]
+                );
+                if (facClash.length > 0) {
+                    conflicts.push(`Faculty conflict on ${day_of_week} (Slot ID ${time_slot_id})`);
+                }
+            }
+
+            // Conflict check: Room clash across published timetables
+            if (room_id) {
+                const [roomClash] = await connection.query(
+                    `SELECT te.id FROM timetable_entries te
+                     JOIN timetable_master tm ON te.timetable_master_id = tm.id
+                     WHERE te.room_id = ? AND te.day_of_week = ? AND te.time_slot_id = ? 
+                       AND (te.section_id != ? OR te.timetable_master_id != ?) AND tm.status = 'Published'`,
+                    [room_id, day_of_week, time_slot_id, section_id, masterId]
+                );
+                if (roomClash.length > 0) {
+                    conflicts.push(`Room conflict on ${day_of_week} (Slot ID ${time_slot_id})`);
+                }
+            }
+
+            const [insertRes] = await connection.query(
+                'INSERT INTO timetable_entries (timetable_master_id, section_id, day_of_week, time_slot_id, subject_id, faculty_id, room_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [masterId, section_id, day_of_week, time_slot_id, subject_id, faculty_id || null, room_id || null]
+            );
+            insertedEntries.push(insertRes.insertId);
+
+            if (faculty_id && subject_id) {
+                const allocKey = `${subject_id}_${faculty_id}_${section_id}`;
+                if (!uniqueAllocations.has(allocKey)) {
+                    uniqueAllocations.set(allocKey, {
+                        department_id,
+                        course_id,
+                        semester_id,
+                        section_id,
+                        subject_id,
+                        faculty_id
+                    });
+                }
+            }
+        }
+
+        // Synchronize subject_allocations table end-to-end
+        for (const alloc of uniqueAllocations.values()) {
+            const [existingAlloc] = await connection.query(
+                'SELECT id FROM subject_allocations WHERE subject_id = ? AND section_id = ? AND faculty_id = ?',
+                [alloc.subject_id, alloc.section_id, alloc.faculty_id]
+            );
+
+            if (existingAlloc.length === 0) {
+                await connection.query(
+                    `INSERT INTO subject_allocations 
+                     (department_id, course_id, semester_id, section_id, subject_id, faculty_id, weekly_hours, status)
+                     VALUES (?, ?, ?, ?, ?, ?, 3, 'Active')`,
+                    [alloc.department_id, alloc.course_id, alloc.semester_id, alloc.section_id, alloc.subject_id, alloc.faculty_id]
+                );
+            } else {
+                await connection.query(
+                    'UPDATE subject_allocations SET status = "Active", updated_at = NOW() WHERE id = ?',
+                    [existingAlloc[0].id]
+                );
+            }
+        }
+
+        await connection.commit();
+
+        res.status(201).json({
+            success: true,
+            message: `Semester timetable saved and published successfully. Allocated ${uniqueAllocations.size} faculty course assignments.`,
+            masterId,
+            entriesCreated: insertedEntries.length,
+            allocationsSynced: uniqueAllocations.size,
+            conflicts: conflicts.length > 0 ? conflicts : undefined
+        });
+    } catch (err) {
+        await connection.rollback();
+        console.error('Error creating semester timetable:', err);
+        res.status(500).json({ success: false, message: 'Failed to create semester timetable', error: err.message });
+    } finally {
+        connection.release();
+    }
+};
+
+export const getFacultyTimetable = async (req, res) => {
+    try {
+        let facultyId = req.query.faculty_id;
+        if (!facultyId && req.user) {
+            const [facRows] = await pool.query('SELECT id FROM faculty WHERE user_id = ?', [req.user.id]);
+            if (facRows.length > 0) {
+                facultyId = facRows[0].id;
+            }
+        }
+
+        if (!facultyId) {
+            return res.json({ success: true, schedule: [] });
+        }
+
+        const [entries] = await pool.query(`
+            SELECT te.id, te.day_of_week,
+                   s.name as subject_name, s.code as subject_code, s.type as subject_type,
+                   ts.start_time, ts.end_time, ts.period_number, ts.title as slot_title,
+                   c.room_number, c.building,
+                   sec.name as section_name, sec.id as section_id,
+                   sem.name as semester_name,
+                   d.name as department_name,
+                   (SELECT COUNT(*) FROM students stu WHERE stu.section_id = sec.id) as student_count
+            FROM timetable_entries te
+            JOIN timetable_master tm ON te.timetable_master_id = tm.id
+            JOIN subjects s ON te.subject_id = s.id
+            LEFT JOIN time_slots ts ON te.time_slot_id = ts.id
+            LEFT JOIN classrooms c ON te.room_id = c.id
+            LEFT JOIN sections sec ON te.section_id = sec.id
+            LEFT JOIN semesters sem ON tm.semester_id = sem.id
+            LEFT JOIN departments d ON tm.department_id = d.id
+            WHERE te.faculty_id = ? AND tm.status = 'Published'
+            ORDER BY FIELD(te.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'), ts.start_time ASC
+        `, [facultyId]);
+
+        res.json({
+            success: true,
+            faculty_id: facultyId,
+            schedule: entries
+        });
+    } catch (err) {
+        console.error('Error fetching faculty timetable:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch faculty timetable', error: err.message });
+    }
+};
+

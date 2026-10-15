@@ -13,6 +13,7 @@ import {
   getMyRegisteredSubjects,
   validateElectiveSelection,
   confirmRegistration,
+  bookStudentSlot,
   getAdminRegistrationReport,
   toggleRegistrationPeriod,
   adminOverrideRegistration,
@@ -34,6 +35,7 @@ router.get('/my-curriculum', authenticateToken, getStudentCurriculumSubjects);
 router.get('/my-subjects', authenticateToken, getMyRegisteredSubjects);
 router.post('/registration/validate', authenticateToken, validateElectiveSelection);
 router.post('/registration/confirm', authenticateToken, confirmRegistration);
+router.post('/registration/book-slot', authenticateToken, bookStudentSlot);
 
 // --- ADMIN / MANAGEMENT ENDPOINTS FOR STUDENTS ---
 router.get('/', authenticateToken, authorizeRole(['Admin', 'HOD', 'Faculty']), getAllStudents);
