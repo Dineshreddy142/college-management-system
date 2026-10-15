@@ -86,7 +86,7 @@ export function Badge({ children, variant = "default", size = "md", className = 
     indigo: "bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800/60",
     purple: "bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60",
   };
-  const s = { sm: "px-2 py-0.5 text-[11px] rounded-md font-semibold", md: "px-2.5 py-0.5 text-xs rounded-lg font-semibold" };
+  const s = { sm: "px-2 py-0.5 text-[11px] rounded-md font-medium", md: "px-2.5 py-0.5 text-xs rounded-md font-medium" };
   return <span className={cn("inline-flex items-center gap-1 font-medium", v[variant] || v.default, s[size], className)}>{children}</span>;
 }
 
@@ -94,7 +94,7 @@ export function Card({ children, className = "", hover = false, onClick }: {
   children: React.ReactNode; className?: string; hover?: boolean; onClick?: React.MouseEventHandler<HTMLDivElement>;
 }) {
   return (
-    <div onClick={onClick} className={cn("bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs", hover && "hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 cursor-pointer", className)}>
+    <div onClick={onClick} className={cn("bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs", hover && "hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-150 cursor-pointer", className)}>
       {children}
     </div>
   );
@@ -112,8 +112,7 @@ export function Avatar({ name, src, size = "md" }: { name: string; src?: string;
   const initials = (name || 'User').split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const sizes = { xs: "w-6 h-6 text-xs", sm: "w-8 h-8 text-xs", md: "w-9 h-9 text-sm", lg: "w-11 h-11 text-base", xl: "w-14 h-14 text-lg" };
   return (
-    <div className={cn("rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 bg-indigo-600 border border-indigo-500/40 shadow-xs", sizes[size])}>
-
+    <div className={cn("rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 bg-[#1E3A5F] border border-[#1E3A5F]/40 shadow-xs", sizes[size])}>
       {initials}
     </div>
   );
@@ -291,21 +290,21 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
 
       {/* Sidebar Container */}
       <div className={cn(
-        "h-screen bg-[#0A0F1D] text-slate-100 border-r border-white/10 flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
+        "h-screen bg-[#1E3A5F] text-slate-100 border-r border-white/10 flex flex-col transition-all duration-200 ease-in-out flex-shrink-0 z-50",
         "lg:static fixed top-0 bottom-0 left-0",
         mobileOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         collapsed ? "lg:w-16" : "lg:w-64"
       )}>
         {/* Logo */}
-        <div className={cn("flex items-center h-16 bg-[#060A14] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
+        <div className={cn("flex items-center h-16 bg-[#13263E] border-b border-white/10 flex-shrink-0 px-4", (collapsed && !mobileOpen) ? "lg:justify-center justify-between" : "justify-between px-4")}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-500/30">
+            <div className="w-8 h-8 bg-[#2563EB] rounded-md flex items-center justify-center flex-shrink-0 shadow-xs">
               <GraduationCap size={16} className="text-white" />
             </div>
             {(!collapsed || mobileOpen) && (
               <div className="min-w-0">
-                <p className="text-sm font-bold text-white tracking-tight leading-none">EduERP</p>
-                <p className="text-xs text-indigo-300 mt-1 truncate">{user?.role || 'Admin'} Console</p>
+                <p className="text-sm font-bold text-white tracking-tight leading-none">SmartCampus360</p>
+                <p className="text-[11px] text-slate-300 mt-1 truncate capitalize">{user?.role || 'Admin'} Console</p>
               </div>
             )}
           </div>
@@ -318,7 +317,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                 onToggle();
               }
             }} 
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+            className="p-1.5 rounded-md text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Toggle Sidebar"
           >
             {mobileOpen ? <X size={18} /> : (collapsed ? <ChevronRight size={15} className="hidden lg:block" /> : <ChevronLeft size={15} className="hidden lg:block" />)}
@@ -347,8 +346,8 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     }}
                     title={isCollapsedDesktop ? item.label : undefined}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
-                      isActive ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-150",
+                      isActive ? "bg-[#2563EB] text-white shadow-xs font-semibold" : "text-slate-200 hover:bg-white/[0.08] hover:text-white",
                       isCollapsedDesktop && "lg:justify-center"
                     )}
                   >
@@ -356,7 +355,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                     {(!collapsed || mobileOpen) && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-400", (menuExpanded || isChildActive) && "rotate-180")} />
+                        <ChevronDown size={14} className={cn("transition-transform duration-150 text-slate-300", (menuExpanded || isChildActive) && "rotate-180")} />
                       </>
                     )}
                   </button>
@@ -372,16 +371,16 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
                             key={child.id}
                             onClick={() => handleItemClick(child.id)}
                             className={cn(
-                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
+                              "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-150",
                               isSubActive
-                                ? "bg-indigo-600 text-white shadow-xs font-semibold"
-                                : "text-slate-400 hover:bg-white/[0.08] hover:text-white"
+                                ? "bg-[#2563EB] text-white shadow-xs font-semibold"
+                                : "text-slate-300 hover:bg-white/[0.08] hover:text-white"
                             )}
                           >
                             <ChildIcon size={14} className="flex-shrink-0" />
                             <span className="flex-1 text-left truncate">{child.label}</span>
                             {child.badge && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-white/20 text-white">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider bg-white/20 text-white">
                                 {child.badge}
                               </span>
                             )}
@@ -397,8 +396,8 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
             return (
               <button key={item.id} onClick={() => handleItemClick(item.id)}
                 title={isCollapsedDesktop ? item.label : undefined}
-                className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
-                  isActive ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30" : "text-slate-300 hover:bg-white/[0.08] hover:text-white",
+                className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-150",
+                  isActive ? "bg-[#2563EB] text-white shadow-xs font-semibold" : "text-slate-200 hover:bg-white/[0.08] hover:text-white",
                   isCollapsedDesktop && "lg:justify-center")}>
                 <Icon size={16} className="flex-shrink-0" />
                 {(!collapsed || mobileOpen) && (
@@ -417,17 +416,17 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
         </nav>
 
         {/* User Footer */}
-        <div className="border-t border-white/10 bg-[#060A14] p-3">
+        <div className="border-t border-white/10 bg-[#13263E] p-3">
           {(!collapsed || mobileOpen) ? (
             <div 
               onClick={() => handleItemClick("profile")}
-              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/[0.08] cursor-pointer transition-colors"
+              className="flex items-center gap-3 p-1.5 rounded-md hover:bg-white/[0.08] cursor-pointer transition-colors"
               title="Open Security & Profile"
             >
               <Avatar name={user?.name || user?.full_name || user?.username || "Admin User"} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-white truncate capitalize">{user?.name || user?.full_name || user?.username || "Admin User"}</p>
-                <p className="text-[11px] text-indigo-300 truncate">{user?.role || 'Administrator'}</p>
+                <p className="text-[11px] text-slate-300 truncate capitalize">{user?.role || 'Administrator'}</p>
               </div>
               <button onClick={(e) => { e.stopPropagation(); logout(); onNav("landing"); }} className="text-slate-400 hover:text-rose-400 p-1 transition-colors" title="Logout">
                 <LogOut size={15} />
@@ -525,13 +524,13 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
       <div className="flex items-center gap-3">
         <button 
           onClick={onToggleSidebar} 
-          className="p-2 -ml-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-2 -ml-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={18} />
         </button>
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white capitalize tracking-tight leading-tight">{labels[module] || module}</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white capitalize tracking-tight leading-tight">{labels[module] || module}</h2>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">University Enterprise Management Platform</p>
         </div>
       </div>
@@ -545,7 +544,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => { if(safeSearchResults.length > 0) setShowSearch(true) }}
-            className="bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs sm:text-sm w-48 lg:w-64 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-xs" 
+            className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md pl-9 pr-3 py-1.5 text-xs sm:text-sm w-48 lg:w-64 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent transition-all shadow-xs" 
           />
 
           
@@ -635,19 +634,19 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
   return (
     <div className="space-y-5">
       {/* Quick Access Security & Governance Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/50">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 flex-shrink-0 text-2xl">
-            {isChancellor ? '🏛️' : <Shield size={26} />}
+      <div className="p-5 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-[#2563EB] flex-shrink-0">
+            {isChancellor ? <Award size={22} /> : <Shield size={22} />}
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <span>{isChancellor ? 'Chancellor Executive Governance & Convocation Hub' : 'University Administration & Governance Console'}</span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 uppercase tracking-wider">
+              <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-emerald-50 text-[#15803D] dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 uppercase tracking-wider">
                 {isChancellor ? 'Chief Governance' : 'Institutional Ops'}
               </span>
             </h2>
-            <p className="text-xs text-indigo-200/80 mt-1 max-w-xl">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-xl">
               {isChancellor
                 ? 'Supreme institutional oversight, convocation degree authorizations, financial governance, and full user credential control across all 14 roles.'
                 : 'Enterprise Identity & Access Management (IAM), academic calendar cutoffs, registration windows, and system security telemetry.'}
@@ -655,31 +654,31 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {onNavigate && (
             <button
               onClick={() => onNavigate("users")}
-              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Shield size={15} />
+              <Shield size={14} />
               <span>Identity & Access (IAM)</span>
             </button>
           )}
           {onNavigate && !isChancellor && (
             <button
               onClick={() => onNavigate("registration-control")}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 font-bold text-xs transition-all border border-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs transition-colors border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <UserCheck size={15} />
+              <UserCheck size={14} className="text-[#15803D]" />
               <span>Academic Windows</span>
             </button>
           )}
           {onNavigate && !isChancellor && (
             <button
               onClick={() => onNavigate("audit-logs")}
-              className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs transition-all border border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs transition-colors border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <ShieldAlert size={15} />
+              <ShieldAlert size={14} className="text-[#B45309]" />
               <span>Forensic Audit</span>
             </button>
           )}
@@ -688,26 +687,26 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
 
       {/* Convocation & Degree Approval Highlight for Chancellor */}
       {isChancellor && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-900/40 via-slate-900 to-indigo-950 border border-emerald-500/30 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-slate-900 dark:text-white shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-              <Award size={22} />
+            <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/50 text-[#15803D] dark:text-emerald-300 rounded-md">
+              <Award size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-white">Degree Convocation Approval Portal</h3>
-              <p className="text-xs text-slate-300 mt-0.5">1,240 Verified graduating candidates pending Chancellor digital convocation signature.</p>
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Degree Convocation Approval Portal</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">1,240 Verified graduating candidates pending Chancellor digital convocation signature.</p>
             </div>
           </div>
           <button
             onClick={() => setDegreeCleared(true)}
             disabled={degreeCleared}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs ${
               degreeCleared
-                ? 'bg-emerald-600 text-white border border-emerald-400/50'
-                : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                ? 'bg-[#15803D] text-white'
+                : 'bg-[#15803D] hover:bg-emerald-800 text-white'
             }`}
           >
-            <CheckCircle size={15} />
+            <CheckCircle size={14} />
             <span>{degreeCleared ? '✓ Convocation Degrees Approved & Locked' : 'Authorize & Sign Convocation Degrees'}</span>
           </button>
         </div>

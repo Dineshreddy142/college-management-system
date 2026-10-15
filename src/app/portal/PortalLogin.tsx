@@ -273,14 +273,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   return (
     <div className="min-h-screen flex bg-[#F1F5F9] dark:bg-slate-950 text-[#0F172A] dark:text-white">
       {/* Left side branding - Institutional Welcome */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#102A43] text-white p-12 flex-col justify-between relative border-r border-[#243B53]">
+      <div className="hidden lg:flex lg:w-1/2 bg-[#1E3A5F] text-white p-12 flex-col justify-between relative border-r border-[#13263E]">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-[#2563EB] rounded-lg flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 bg-[#2563EB] rounded-md flex items-center justify-center shadow-xs">
               <GraduationCap size={22} className="text-white" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight block">EduERP</span>
+              <span className="text-xl font-bold tracking-tight block">SmartCampus360</span>
               <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">{config.badge}</span>
             </div>
           </div>
@@ -295,14 +295,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
             </p>
 
             <div className="space-y-3">
-              <div className="p-3.5 rounded-lg bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+              <div className="p-3.5 rounded-md bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
                 <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
                 <div>
                   <span className="font-semibold block text-white">Enterprise Role-Based Access Control</span>
                   <span className="text-slate-300 text-[11px]">Strict multi-tier authorization & encrypted telemetry audit logs</span>
                 </div>
               </div>
-              <div className="p-3.5 rounded-lg bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
+              <div className="p-3.5 rounded-md bg-[#243B53]/80 border border-white/10 flex items-center gap-3 text-xs">
                 <KeyRound size={18} className="text-sky-400 shrink-0" />
                 <div>
                   <span className="font-semibold block text-white">Biometric & Multi-Factor Support</span>
@@ -314,7 +314,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
         </div>
         
         <div className="relative z-10 text-slate-400 text-xs flex items-center justify-between border-t border-white/10 pt-4">
-          <span>&copy; {new Date().getFullYear()} University Management System</span>
+          <span>&copy; {new Date().getFullYear()} SmartCampus360 Enterprise ERP</span>
           <span>Version 2.4 Enterprise</span>
         </div>
       </div>
@@ -322,16 +322,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
       {/* Right side - Login Form Container */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8 min-h-screen overflow-y-auto">
 
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-[#E2E8F0] dark:border-slate-800 p-6 sm:p-8 my-auto">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-lg shadow-xs border border-[#E2E8F0] dark:border-slate-800 p-6 sm:p-8 my-auto">
           
           {/* Mobile Branding Header */}
           <div className="lg:hidden flex items-center justify-between mb-6 pb-4 border-b border-[#E2E8F0] dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-[#2563EB] text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-xs">
+              <div className="w-8 h-8 bg-[#2563EB] text-white rounded-md flex items-center justify-center font-bold text-sm shadow-xs">
                 <GraduationCap size={18} />
               </div>
               <div>
-                <span className="font-bold text-sm text-[#0F172A] dark:text-white leading-none block">EduERP System</span>
+                <span className="font-bold text-sm text-[#0F172A] dark:text-white leading-none block">SmartCampus360</span>
                 <span className="text-[10px] font-semibold text-[#2563EB] dark:text-blue-400 uppercase tracking-wider">{config.badge}</span>
               </div>
             </div>

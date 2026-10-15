@@ -101,14 +101,14 @@ export function HostelManagement() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 p-6 rounded-2xl text-white shadow-xl border border-purple-900/40">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-400">
-            <Home size={24} />
+          <div className="w-10 h-10 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-[#2563EB]">
+            <Home size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Hostel & Accommodation Governance</h2>
-            <p className="text-xs text-slate-300 mt-0.5">Manage hostel blocks, warden assignments, room allocations, and student occupancy.</p>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Hostel & Accommodation Governance</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage hostel blocks, warden assignments, room allocations, and student occupancy.</p>
           </div>
         </div>
         <Btn variant="primary" icon={<Plus size={14} />} onClick={() => { setErrorMsg(""); setShowModal(true); }}>
@@ -117,14 +117,14 @@ export function HostelManagement() {
       </div>
 
       {successMsg && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-md text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
           <CheckCircle size={15} />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+        <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-md text-red-600 dark:text-red-400 text-xs font-medium flex items-center gap-2">
           <AlertCircle size={15} />
           <span>{errorMsg}</span>
         </div>
@@ -134,40 +134,40 @@ export function HostelManagement() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Total Hostel Blocks</p>
+            <p className="text-xs text-slate-500 font-medium">Total Hostel Blocks</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{blocks.length}</p>
           </div>
-          <div className="p-2.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl">
+          <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-[#1E3A5F] dark:text-slate-300 rounded-md">
             <Building size={20} />
           </div>
         </Card>
 
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Total Bed Capacity</p>
+            <p className="text-xs text-slate-500 font-medium">Total Bed Capacity</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{totalBedsCount}</p>
           </div>
-          <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+          <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-400 rounded-md">
             <Bed size={20} />
           </div>
         </Card>
 
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Occupied Beds</p>
+            <p className="text-xs text-slate-500 font-medium">Occupied Beds</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{occupiedBedsCount}</p>
           </div>
-          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-[#15803D] dark:text-emerald-400 rounded-md">
             <Users size={20} />
           </div>
         </Card>
 
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Campus Occupancy Rate</p>
+            <p className="text-xs text-slate-500 font-medium">Campus Occupancy Rate</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{occupancyRate}%</p>
           </div>
-          <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
+          <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 text-[#B45309] dark:text-amber-400 rounded-md">
             <ShieldCheck size={20} />
           </div>
         </Card>

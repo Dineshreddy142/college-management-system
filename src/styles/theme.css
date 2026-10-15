@@ -2,30 +2,30 @@
 
 :root {
   --font-size: 16px;
-  --navy-primary: #0A0F1D;
-  --navy-secondary: #151E32;
+  --navy-primary: #1E3A5F;
+  --navy-secondary: #243B53;
   --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  --primary: #4F46E5;
-  --primary-hover: #4338CA;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
   --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
   --secondary-foreground: #1E293B;
-  --muted: #F1F5F9;
+  --muted: #F8FAFC;
   --muted-foreground: #64748B;
-  --accent: #EEF2FF;
-  --accent-foreground: #4338CA;
-  --destructive: #E11D48;
+  --accent: #EFF6FF;
+  --accent-foreground: #1D4ED8;
+  --destructive: #B91C1C;
   --destructive-foreground: #FFFFFF;
-  --success: #059669;
+  --success: #15803D;
   --success-foreground: #FFFFFF;
-  --warning: #D97706;
+  --warning: #B45309;
   --warning-foreground: #FFFFFF;
-  --info: #0284C7;
+  --info: #1D4ED8;
   --info-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #E2E8F0;
@@ -33,23 +33,23 @@
   --switch-background: #CBD5E1;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #6366F1;
-  --chart-1: #4F46E5;
-  --chart-2: #06B6D4;
-  --chart-3: #10B981;
-  --chart-4: #F59E0B;
-  --chart-5: #EC4899;
-  --radius: 0.625rem;
-  --sidebar: #0A0F1D;
-  --sidebar-header: #060A14;
+  --ring: #2563EB;
+  --chart-1: #2563EB;
+  --chart-2: #0284C7;
+  --chart-3: #15803D;
+  --chart-4: #B45309;
+  --chart-5: #1E3A5F;
+  --radius: 0.5rem;
+  --sidebar: #1E3A5F;
+  --sidebar-header: #13263E;
   --sidebar-foreground: #F8FAFC;
   --sidebar-muted: #94A3B8;
-  --sidebar-primary: #6366F1;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: rgba(99, 102, 241, 0.12);
+  --sidebar-accent: rgba(37, 99, 235, 0.15);
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #6366F1;
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --sidebar-ring: #2563EB;
 }
 
 .dark {

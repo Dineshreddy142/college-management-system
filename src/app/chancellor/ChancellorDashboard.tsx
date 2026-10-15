@@ -302,29 +302,29 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {/* 12 EXECUTIVE KPI CARDS GRID */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiCard title="Total Students" value={kpiData?.totalStudents ?? 'Data unavailable'} subtitle="Total enrolled learners" icon={<GraduationCap size={18} />} color="indigo" />
-        <KpiCard title="Total Faculty" value={kpiData?.totalFaculty ?? 'Data unavailable'} subtitle="Teaching professors" icon={<Users size={18} />} color="blue" />
-        <KpiCard title="Total Departments" value={kpiData?.totalDepartments ?? 'Data unavailable'} subtitle="Academic departments" icon={<Building size={18} />} color="emerald" />
-        <KpiCard title="Total Programs" value={kpiData?.totalPrograms ?? 'Data unavailable'} subtitle="Degree courses offered" icon={<Award size={18} />} color="amber" />
-        <KpiCard title="Active Academic Year" value={kpiData?.activeAcademicYear ?? '2026-27'} subtitle="Current cycle" icon={<Sparkles size={18} />} color="cyan" />
-        <KpiCard title="Average Attendance" value={kpiData?.avgAttendance ?? '88.4%'} subtitle="University attendance" icon={<CheckCircle2 size={18} />} color="teal" />
-        <KpiCard title="Pass Percentage" value={kpiData?.passPercentage ?? '92.6%'} subtitle="Overall academic pass" icon={<TrendingUp size={18} />} color="emerald" />
-        <KpiCard title="Graduation Rate" value={kpiData?.graduationRate ?? '94.1%'} subtitle="Degree completion rate" icon={<Award size={18} />} color="indigo" />
-        <KpiCard title="Placement Rate" value={kpiData?.placementPercentage ?? '86.5%'} subtitle="Corporate recruitment" icon={<Award size={18} />} color="blue" />
-        <KpiCard title="Pending Approvals" value={kpiData?.pendingApprovals ?? approvals.length} subtitle="Governance proposals" icon={<Clock size={18} />} color="amber" highlight />
-        <KpiCard title="Pending Fees" value={kpiData?.pendingFees ?? '₹0'} subtitle="Outstanding fee sum" icon={<DollarSign size={18} />} color="rose" />
-        <KpiCard title="Critical Alerts" value={auditLogs.length > 0 ? `${auditLogs.length} Events` : '0 Alerts'} subtitle="Security audit events" icon={<AlertTriangle size={18} />} color="purple" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3.5">
+        <KpiCard title="Total Students" value={kpiData?.totalStudents ?? 'Data unavailable'} subtitle="Total enrolled learners" icon={<GraduationCap size={16} />} color="indigo" />
+        <KpiCard title="Total Faculty" value={kpiData?.totalFaculty ?? 'Data unavailable'} subtitle="Teaching professors" icon={<Users size={16} />} color="blue" />
+        <KpiCard title="Total Departments" value={kpiData?.totalDepartments ?? 'Data unavailable'} subtitle="Academic departments" icon={<Building size={16} />} color="emerald" />
+        <KpiCard title="Total Programs" value={kpiData?.totalPrograms ?? 'Data unavailable'} subtitle="Degree courses offered" icon={<Award size={16} />} color="amber" />
+        <KpiCard title="Active Academic Year" value={kpiData?.activeAcademicYear ?? '2026-27'} subtitle="Current cycle" icon={<Sparkles size={16} />} color="cyan" />
+        <KpiCard title="Average Attendance" value={kpiData?.avgAttendance ?? '88.4%'} subtitle="University attendance" icon={<CheckCircle2 size={16} />} color="teal" />
+        <KpiCard title="Pass Percentage" value={kpiData?.passPercentage ?? '92.6%'} subtitle="Overall academic pass" icon={<TrendingUp size={16} />} color="emerald" />
+        <KpiCard title="Graduation Rate" value={kpiData?.graduationRate ?? '94.1%'} subtitle="Degree completion rate" icon={<Award size={16} />} color="indigo" />
+        <KpiCard title="Placement Rate" value={kpiData?.placementPercentage ?? '86.5%'} subtitle="Corporate recruitment" icon={<Award size={16} />} color="blue" />
+        <KpiCard title="Pending Approvals" value={kpiData?.pendingApprovals ?? approvals.length} subtitle="Governance proposals" icon={<Clock size={16} />} color="amber" highlight />
+        <KpiCard title="Pending Fees" value={kpiData?.pendingFees ?? '₹0'} subtitle="Outstanding fee sum" icon={<DollarSign size={16} />} color="rose" />
+        <KpiCard title="Critical Alerts" value={auditLogs.length > 0 ? `${auditLogs.length} Events` : '0 Alerts'} subtitle="Security audit events" icon={<AlertTriangle size={16} />} color="purple" />
       </div>
 
       {/* Navigation Tabs Bar */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
-        <TabButton label="University Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon="📊" />
-        <TabButton label="Academic Performance" active={activeTab === 'academics'} onClick={() => setActiveTab('academics')} icon="🎓" />
-        <TabButton label="Department Performance" active={activeTab === 'departments'} onClick={() => setActiveTab('departments')} icon="🏛️" />
-        <TabButton label="Governance Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon="⚖️" badge={approvals.filter(a => a.status !== 'Approved').length} />
-        <TabButton label="Communications & Notices" active={activeTab === 'communications'} onClick={() => setActiveTab('communications')} icon="📢" />
-        <TabButton label="Security & Audit Logs" active={activeTab === 'audits'} onClick={() => setActiveTab('audits')} icon="🛡️" />
+        <TabButton label="University Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<BarChart3 size={14} />} />
+        <TabButton label="Academic Performance" active={activeTab === 'academics'} onClick={() => setActiveTab('academics')} icon={<GraduationCap size={14} />} />
+        <TabButton label="Department Performance" active={activeTab === 'departments'} onClick={() => setActiveTab('departments')} icon={<Building size={14} />} />
+        <TabButton label="Governance Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckCircle2 size={14} />} badge={approvals.filter(a => a.status !== 'Approved').length} />
+        <TabButton label="Communications & Notices" active={activeTab === 'communications'} onClick={() => setActiveTab('communications')} icon={<Bell size={14} />} />
+        <TabButton label="Security & Audit Logs" active={activeTab === 'audits'} onClick={() => setActiveTab('audits')} icon={<Shield size={14} />} />
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────────── */}
@@ -334,7 +334,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Chart 1: Student Distribution by Department */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-base">
@@ -359,7 +359,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
             </div>
 
             {/* Chart 2: Department Proportion Pie */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Department Weightage</h3>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
@@ -392,7 +392,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'academics' && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white text-base">
@@ -428,7 +428,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       {/* TAB 3: DEPARTMENT PERFORMANCE MATRIX TABLE */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'departments' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden space-y-4 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base">
@@ -505,7 +505,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
       {/* TAB 4: CHANCELLOR GOVERNANCE APPROVAL CENTER */}
       {/* ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'approvals' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs p-5 space-y-4">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white text-base">
               Chancellor Governance Approval Center
@@ -549,7 +549,7 @@ export function ChancellorDashboard({ onNav, theme, toggleTheme }: { onNav: (pat
                     ) : (
                       <button
                         onClick={() => { setSelectedApproval(a); setApprovalDecision('Approved'); }}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all shadow-md"
+                        className="px-3.5 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-medium rounded-md cursor-pointer transition-all shadow-xs"
                       >
                         Review Proposal & Decide
                       </button>
@@ -805,18 +805,18 @@ function KpiCard({ title, value, subtitle, icon, color, highlight }: {
 }
 
 function TabButton({ label, active, onClick, icon, badge }: {
-  label: string; active: boolean; onClick: () => void; icon: string; badge?: number;
+  label: string; active: boolean; onClick: () => void; icon: React.ReactNode; badge?: number;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+      className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
         active
           ? 'bg-[#2563EB] text-white shadow-xs font-semibold'
           : 'bg-slate-100 dark:bg-slate-800 text-[#0F172A] dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
       }`}
     >
-      <span>{icon}</span>
+      <span className="flex items-center">{icon}</span>
       <span>{label}</span>
       {badge !== undefined && badge > 0 && (
         <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#B45309] text-white font-bold">
