@@ -445,7 +445,7 @@ export function CreateSemesterTimetable({ onCreated }: CreateSemesterTimetablePr
             <Clock size={16} className="text-indigo-500" />
             Weekly Time Slot & Faculty Allocation Matrix
           </h3>
-          <Badge variant={assignedCount > 0 ? "success" : "neutral"} size="sm">
+          <Badge variant={assignedCount > 0 ? "success" : "default"} size="sm">
             {assignedCount} Periods Scheduled
           </Badge>
         </div>
