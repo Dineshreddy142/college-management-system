@@ -2179,6 +2179,8 @@ export async function initializeDatabase() {
         ('Introduction to Algorithms & Data Structures E-Book', 'EBOOK', 'Thomas H. Cormen', 'https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/', 'Complete open courseware & textbook reference for algorithms.', 'STUDENT'),
         ('Distributed Systems Architecture Research Paper', 'RESEARCH_PAPER', 'Leslie Lamport', 'https://lamport.azurewebsites.net/pubs/time-clocks.pdf', 'Foundational paper on logical clocks and process ordering.', 'FACULTY')
       `);
+    }
+
     // 21. Placement Drives Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS placement_drives (
