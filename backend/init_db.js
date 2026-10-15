@@ -2284,6 +2284,155 @@ export async function initializeDatabase() {
       `);
     }
 
+    // 22. Leaves & Applications Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_leaves (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        student_id INT NULL,
+        faculty_id INT NULL,
+        leave_type VARCHAR(100) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        reason TEXT NOT NULL,
+        status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+        reviewer_id INT NULL,
+        reviewer_remarks TEXT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 23. Coursework Assignments & Submissions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS coursework_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        subject_id INT NULL,
+        faculty_id INT NULL,
+        title VARCHAR(200) NOT NULL,
+        description TEXT NULL,
+        due_date DATE NOT NULL,
+        max_score INT DEFAULT 100,
+        attachment_url VARCHAR(500) NULL,
+        status ENUM('Active', 'Closed') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS coursework_submissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        assignment_id INT NOT NULL,
+        student_id INT NOT NULL,
+        submission_notes TEXT NULL,
+        file_url VARCHAR(500) NULL,
+        score DECIMAL(5,2) NULL,
+        feedback TEXT NULL,
+        status ENUM('Submitted', 'Graded', 'Late') DEFAULT 'Submitted',
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (assignment_id) REFERENCES coursework_assignments(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 24. Grievance & Complaints Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS grievances (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_code VARCHAR(50) NOT NULL UNIQUE,
+        user_id INT NOT NULL,
+        student_id INT NULL,
+        category VARCHAR(100) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        description TEXT NOT NULL,
+        status ENUM('Open', 'In Progress', 'Resolved', 'Rejected') DEFAULT 'Open',
+        priority ENUM('Low', 'Medium', 'High', 'Urgent') DEFAULT 'Medium',
+        resolution_notes TEXT NULL,
+        resolved_by INT NULL,
+        resolved_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 25. Hostel & Accommodation Governance Tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS hostel_blocks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL UNIQUE,
+        type ENUM('Boys', 'Girls') NOT NULL,
+        warden_name VARCHAR(150) NOT NULL,
+        warden_phone VARCHAR(50) NULL,
+        total_rooms INT DEFAULT 50,
+        occupied_beds INT DEFAULT 0,
+        total_beds INT DEFAULT 150,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS hostel_rooms (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        block_id INT NOT NULL,
+        room_number VARCHAR(50) NOT NULL,
+        floor_number INT DEFAULT 1,
+        capacity INT DEFAULT 3,
+        occupied_beds INT DEFAULT 0,
+        status ENUM('Available', 'Full', 'Maintenance') DEFAULT 'Available',
+        FOREIGN KEY (block_id) REFERENCES hostel_blocks(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS hostel_allocations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        block_id INT NOT NULL,
+        room_id INT NULL,
+        bed_number INT DEFAULT 1,
+        status ENUM('Active', 'Vacated') DEFAULT 'Active',
+        allocated_date DATE NOT NULL,
+        vacated_date DATE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (block_id) REFERENCES hostel_blocks(id) ON DELETE CASCADE,
+        FOREIGN KEY (room_id) REFERENCES hostel_rooms(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 26. Official Certificates & Documents Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS official_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        document_type VARCHAR(100) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        description VARCHAR(255) NULL,
+        file_url VARCHAR(500) NULL,
+        status ENUM('Available', 'Pending', 'Unavailable') DEFAULT 'Available',
+        issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Seed Initial Hostel Blocks if empty
+    const [hBlocks] = await pool.query('SELECT id FROM hostel_blocks LIMIT 1');
+    if (hBlocks.length === 0) {
+      await pool.query(`
+        INSERT INTO hostel_blocks (name, type, warden_name, warden_phone, total_rooms, occupied_beds, total_beds) VALUES
+        ('Block A - Ramanujan Hall', 'Boys', 'Dr. K. V. Sharma', '+91 98765 43210', 80, 210, 240),
+        ('Block B - Visvesvaraya Hall', 'Boys', 'Prof. Rajesh Kumar', '+91 98765 43211', 100, 285, 300),
+        ('Block C - Kalpana Chawla Hall', 'Girls', 'Dr. Ananya Roy', '+91 98765 43212', 90, 250, 270),
+        ('Block D - Sarojini Naidu Hall', 'Girls', 'Mrs. Meenakshi S.', '+91 98765 43213', 75, 200, 225)
+      `);
+    }
+
     // Ensure face authentication and webauthn biometric tables exist
     try {
       await pool.query('DROP TABLE IF EXISTS face_embeddings');
@@ -2801,7 +2950,10 @@ export async function initializeDatabase() {
     ];
 
     for (const r of roles) {
-      await pool.query('INSERT IGNORE INTO roles (name) VALUES (?)', [r]);
+      const [exRole] = await pool.query('SELECT id FROM roles WHERE name = ? LIMIT 1', [r]);
+      if (exRole.length === 0) {
+        await pool.query('INSERT INTO roles (name) VALUES (?)', [r]);
+      }
     }
 
     // --- PERMANENT ADMIN ACCOUNT CHECK ---

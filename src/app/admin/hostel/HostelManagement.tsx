@@ -1,37 +1,102 @@
-import { useState } from "react";
-import { Home, Users, Building, Plus, Search, ShieldCheck, DoorOpen, Bed, Key } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Home, Users, Building, Plus, Search, ShieldCheck, DoorOpen, Bed, Key, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Card, Badge, Btn } from "../../App";
+import client from "../../../api/client";
 
 interface HostelBlock {
   id: number;
   name: string;
   type: "Boys" | "Girls";
-  warden: string;
-  totalRooms: number;
-  occupiedBeds: number;
-  totalBeds: number;
+  warden_name: string;
+  warden_phone?: string;
+  total_rooms: number;
+  occupied_beds: number;
+  total_beds: number;
 }
 
 export function HostelManagement() {
+  const [blocks, setBlocks] = useState<HostelBlock[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<string>("ALL");
 
-  const [blocks] = useState<HostelBlock[]>([
-    { id: 1, name: "Block A - Ramanujan Hall", type: "Boys", warden: "Dr. K. V. Sharma", totalRooms: 80, occupiedBeds: 210, totalBeds: 240 },
-    { id: 2, name: "Block B - Visvesvaraya Hall", type: "Boys", warden: "Prof. Rajesh Kumar", totalRooms: 100, occupiedBeds: 285, totalBeds: 300 },
-    { id: 3, name: "Block C - Kalpana Chawla Hall", type: "Girls", warden: "Dr. Ananya Roy", totalRooms: 90, occupiedBeds: 250, totalBeds: 270 },
-    { id: 4, name: "Block D - Sarojini Naidu Hall", type: "Girls", warden: "Mrs. Meenakshi S.", totalRooms: 75, occupiedBeds: 200, totalBeds: 225 },
-  ]);
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // New Block form state
+  const [blockName, setBlockName] = useState("");
+  const [blockType, setBlockType] = useState<"Boys" | "Girls">("Boys");
+  const [wardenName, setWardenName] = useState("");
+  const [wardenPhone, setWardenPhone] = useState("");
+  const [totalRooms, setTotalRooms] = useState(80);
+  const [totalBeds, setTotalBeds] = useState(240);
+
+  const fetchHostels = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await client.get('/hostels/blocks');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setBlocks(res.data.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to load hostel blocks:", err);
+      setErrorMsg("Failed to retrieve hostel blocks from database");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHostels();
+  }, [fetchHostels]);
+
+  const handleCreateBlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blockName.trim() || !wardenName.trim()) {
+      setErrorMsg("Block name and warden name are required");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setErrorMsg("");
+      const res = await client.post('/hostels/blocks', {
+        name: blockName.trim(),
+        type: blockType,
+        warden_name: wardenName.trim(),
+        warden_phone: wardenPhone.trim(),
+        total_rooms: Number(totalRooms),
+        total_beds: Number(totalBeds)
+      });
+
+      if (res.data?.success) {
+        setSuccessMsg(`Hostel block "${blockName}" successfully added to university registry!`);
+        setShowModal(false);
+        setBlockName("");
+        setWardenName("");
+        setWardenPhone("");
+        await fetchHostels();
+        setTimeout(() => setSuccessMsg(""), 4000);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Failed to create hostel block");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredBlocks = blocks.filter((b) => {
-    const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || b.warden.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (b.warden_name && b.warden_name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = selectedType === "ALL" || b.type.toUpperCase() === selectedType.toUpperCase();
     return matchesSearch && matchesType;
   });
 
-  const totalBeds = blocks.reduce((acc, b) => acc + b.totalBeds, 0);
-  const occupiedBeds = blocks.reduce((acc, b) => acc + b.occupiedBeds, 0);
-  const occupancyRate = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : "0";
+  const totalBedsCount = blocks.reduce((acc, b) => acc + (b.total_beds || 0), 0);
+  const occupiedBedsCount = blocks.reduce((acc, b) => acc + (b.occupied_beds || 0), 0);
+  const occupancyRate = totalBedsCount > 0 ? ((occupiedBedsCount / totalBedsCount) * 100).toFixed(1) : "0";
 
   return (
     <div className="space-y-6">
@@ -46,10 +111,24 @@ export function HostelManagement() {
             <p className="text-xs text-slate-300 mt-0.5">Manage hostel blocks, warden assignments, room allocations, and student occupancy.</p>
           </div>
         </div>
-        <Btn variant="primary" icon={<Plus size={14} />}>
+        <Btn variant="primary" icon={<Plus size={14} />} onClick={() => { setErrorMsg(""); setShowModal(true); }}>
           New Hostel Block
         </Btn>
       </div>
+
+      {successMsg && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle size={15} />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle size={15} />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -66,7 +145,7 @@ export function HostelManagement() {
         <Card className="p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-medium">Total Bed Capacity</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{totalBeds}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{totalBedsCount}</p>
           </div>
           <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
             <Bed size={20} />
@@ -76,7 +155,7 @@ export function HostelManagement() {
         <Card className="p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-medium">Occupied Beds</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{occupiedBeds}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{occupiedBedsCount}</p>
           </div>
           <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
             <Users size={20} />
@@ -85,7 +164,7 @@ export function HostelManagement() {
 
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Occupancy Rate</p>
+            <p className="text-xs text-slate-400 font-medium">Campus Occupancy Rate</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{occupancyRate}%</p>
           </div>
           <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl">
@@ -124,48 +203,157 @@ export function HostelManagement() {
       </Card>
 
       {/* Hostel Blocks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {filteredBlocks.map((b) => {
-          const blockRate = ((b.occupiedBeds / b.totalBeds) * 100).toFixed(0);
-          return (
-            <Card key={b.id} className="p-5 hover:shadow-md transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">{b.name}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Warden: {b.warden}</p>
+      {loading ? (
+        <Card className="p-12 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+          <Loader2 className="animate-spin" size={18} />
+          <span>Loading hostel blocks from database...</span>
+        </Card>
+      ) : filteredBlocks.length === 0 ? (
+        <Card className="p-8 text-center text-slate-400 text-sm">
+          No hostel blocks found. Click "New Hostel Block" to register one.
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredBlocks.map((b) => {
+            const blockRate = b.total_beds > 0 ? ((b.occupied_beds / b.total_beds) * 100).toFixed(0) : "0";
+            return (
+              <Card key={b.id} className="p-5 hover:shadow-md transition-all">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base">{b.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Warden: {b.warden_name} {b.warden_phone ? `(${b.warden_phone})` : ''}</p>
+                  </div>
+                  <Badge variant={b.type === "Boys" ? "indigo" : "purple"}>{b.type} Hostel</Badge>
                 </div>
-                <Badge variant={b.type === "Boys" ? "indigo" : "purple"}>{b.type} Hostel</Badge>
+
+                <div className="space-y-3 mt-4">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-slate-500">Bed Occupancy:</span>
+                    <span className="text-slate-900 dark:text-white font-bold">
+                      {b.occupied_beds} / {b.total_beds} ({blockRate}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        Number(blockRate) > 90 ? "bg-amber-500" : "bg-purple-600"
+                      }`}
+                      style={{ width: `${blockRate}%` }}
+                    />
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <DoorOpen size={14} className="text-slate-400" /> {b.total_rooms} Rooms
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Key size={14} className="text-slate-400" /> {Math.max(0, b.total_beds - b.occupied_beds)} Vacant Beds
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* New Hostel Block Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button 
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Add Hostel Block</h3>
+            <p className="text-xs text-slate-500 mb-4">Register a new residential hall and warden assignment.</p>
+
+            <form onSubmit={handleCreateBlock} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Block Name</label>
+                <input 
+                  type="text" 
+                  value={blockName} 
+                  onChange={(e) => setBlockName(e.target.value)}
+                  placeholder="e.g. Block E - Aryabhata Hall"
+                  required
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
 
-              <div className="space-y-3 mt-4">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="text-slate-500">Bed Occupancy:</span>
-                  <span className="text-slate-900 dark:text-white font-bold">
-                    {b.occupiedBeds} / {b.totalBeds} ({blockRate}%)
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      Number(blockRate) > 90 ? "bg-amber-500" : "bg-purple-600"
-                    }`}
-                    style={{ width: `${blockRate}%` }}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Hostel Category</label>
+                <select 
+                  value={blockType} 
+                  onChange={(e: any) => setBlockType(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="Boys">Boys Hostel</option>
+                  <option value="Girls">Girls Hostel</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Warden Name</label>
+                  <input 
+                    type="text" 
+                    value={wardenName} 
+                    onChange={(e) => setWardenName(e.target.value)}
+                    placeholder="Prof. / Dr."
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <DoorOpen size={14} className="text-slate-400" /> {b.totalRooms} Rooms
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Key size={14} className="text-slate-400" /> {b.totalBeds - b.occupiedBeds} Vacant Beds
-                  </span>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Warden Phone</label>
+                  <input 
+                    type="text" 
+                    value={wardenPhone} 
+                    onChange={(e) => setWardenPhone(e.target.value)}
+                    placeholder="+91..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
                 </div>
               </div>
-            </Card>
-          );
-        })}
-      </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Total Rooms</label>
+                  <input 
+                    type="number" 
+                    value={totalRooms} 
+                    onChange={(e) => setTotalRooms(Number(e.target.value))}
+                    min={1}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Total Bed Capacity</label>
+                  <input 
+                    type="number" 
+                    value={totalBeds} 
+                    onChange={(e) => setTotalBeds(Number(e.target.value))}
+                    min={1}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Btn variant="outline" type="button" onClick={() => setShowModal(false)}>Cancel</Btn>
+                <Btn variant="primary" type="submit" disabled={submitting}>
+                  {submitting ? 'Creating Block...' : 'Save Hostel Block'}
+                </Btn>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

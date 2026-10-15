@@ -39,6 +39,11 @@ import libraryRoutes from './routes/libraryRoutes.js';
 import placementRoutes from './routes/placementRoutes.js';
 import admissionRoutes from './routes/admissionRoutes.js';
 import mcqRoutes from './routes/mcqRoutes.js';
+import leaveRoutes from './routes/leaveRoutes.js';
+import assignmentRoutes from './routes/assignmentRoutes.js';
+import grievanceRoutes from './routes/grievanceRoutes.js';
+import hostelRoutes from './routes/hostelRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
 import { initializeDatabase } from './init_db.js';
 import { getAnalyticsSummary } from './controllers/dashboardController.js';
 
@@ -128,6 +133,11 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/mcq', mcqRoutes);
 app.use('/api/chancellor', chancellorRoutes);
 app.use('/api/admission', admissionRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/grievances', grievanceRoutes);
+app.use('/api/hostels', hostelRoutes);
+app.use('/api/documents', documentRoutes);
 
 // --- DASHBOARD ANALYTICS & AUDIT LOGS ---
 app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), getAnalyticsSummary);
