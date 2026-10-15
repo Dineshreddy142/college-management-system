@@ -438,14 +438,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Sign In'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowFaceModal(true)}
-                className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#243B53] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <ShieldCheck size={16} className="text-[#2563EB] dark:text-blue-400" />
-                <span>Instant Face Verification Login</span>
-              </button>
+              {effectiveRole !== 'admin' ? (
+                <button
+                  type="button"
+                  onClick={() => setShowFaceModal(true)}
+                  className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#243B53] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ShieldCheck size={16} className="text-[#2563EB] dark:text-blue-400" />
+                  <span>Instant Face Verification Login</span>
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1 font-medium">
+                  <ShieldCheck size={14} className="text-emerald-500" />
+                  <span>Institutional IAM & Session Encryption Enforced</span>
+                </div>
+              )}
             </div>
           </form>
 

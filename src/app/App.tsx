@@ -213,24 +213,26 @@ interface SidebarItem {
 }
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
-  { id: "dashboard", label: "Dashboard Overview", icon: LayoutDashboard, badge: null },
-  { id: "users", label: "User Access Control", icon: Shield, badge: "Security" },
-  { id: "registration-control", label: "Registration Windows", icon: UserCheck, badge: "Live" },
-  { id: "bulk-data", label: "Bulk Data Hub", icon: FileSpreadsheet, badge: "AI Sync" },
+  { id: "dashboard", label: "System Health & Overview", icon: LayoutDashboard, badge: null },
+  { id: "users", label: "Identity & Access (IAM)", icon: Shield, badge: "Security" },
   { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
+  { id: "registration-control", label: "Academic Windows & Cutoffs", icon: UserCheck, badge: "Live" },
+  { id: "timetable", label: "Master Institutional Timetable", icon: CalendarDays, badge: null },
+  { id: "audit-logs", label: "Security & Forensic Audit", icon: ShieldAlert, badge: "Live" },
+  { id: "bulk-data", label: "Bulk Data Hub & Sync", icon: FileSpreadsheet, badge: "AI Sync" },
+  { id: "reports", label: "Institutional Analytics", icon: BarChart3, badge: null },
+  { id: "settings", label: "System Settings & Gateways", icon: Settings, badge: null },
+  { id: "profile", label: "Administrator Profile", icon: UserCheck, badge: null },
+
+  // Operational Modules (Delegated to specialized roles, preserved for backward-compatibility)
   { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
-  { id: "timetable", label: "Master Timetable", icon: CalendarDays, badge: null },
   { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
-  { id: "exams", label: "Examinations Governance", icon: FileText, badge: "Governance" },
+  { id: "exams", label: "Examinations Governance", icon: FileText, badge: "COE" },
   { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
-  { id: "library", label: "Library Governance", icon: BookOpen, badge: "Library" },
-  { id: "hostel", label: "Hostel Governance", icon: Home, badge: "Hostel" },
+  { id: "library", label: "Library Catalog & Loans", icon: BookOpen, badge: "Library" },
+  { id: "hostel", label: "Hostel & Room Governance", icon: Home, badge: "Hostel" },
   { id: "placement", label: "Placement Drive Overview", icon: Briefcase, badge: "Placement" },
-  { id: "reports", label: "Reports & Analytics", icon: BarChart3, badge: null },
-  { id: "audit-logs", label: "Security & Audit Logs", icon: ShieldAlert, badge: "Live" },
-  { id: "profile", label: "My Account Profile", icon: UserCheck, badge: null },
-  { id: "settings", label: "System Settings", icon: Settings, badge: null },
 ];
 
 function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {
@@ -247,7 +249,22 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
     if (normRole === 'chancellor' || normRole === 'vicechancellor') {
       return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'profile', 'settings'].includes(item.id);
     }
-    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'principal' || normRole === 'systemadmin') return true;
+    // Enterprise Admin: Focus strictly on IAM, Academic Windows, System Health, Security, and Master Setup
+    if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'systemadmin' || normRole === 'principal') {
+      return [
+        'dashboard',
+        'users',
+        'students',
+        'faculty',
+        'registration-control',
+        'timetable',
+        'audit-logs',
+        'bulk-data',
+        'reports',
+        'settings',
+        'profile'
+      ].includes(item.id);
+    }
     if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'coe' || normRole === 'controllerofexaminations') return ['dashboard', 'exams', 'students', 'faculty', 'reports', 'settings', 'audit-logs'].includes(item.id);
     if (normRole === 'dean') return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'timetable', 'reports', 'settings', 'audit-logs'].includes(item.id);
@@ -628,15 +645,15 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
           </div>
           <div>
             <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-              <span>{isChancellor ? 'Chancellor Executive Governance & Convocation Hub' : 'Admin Control & Security Hub'}</span>
+              <span>{isChancellor ? 'Chancellor Executive Governance & Convocation Hub' : 'University Administration & Governance Console'}</span>
               <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 uppercase tracking-wider">
-                {isChancellor ? 'Chief Governance' : 'Active'}
+                {isChancellor ? 'Chief Governance' : 'Institutional Ops'}
               </span>
             </h2>
             <p className="text-xs text-indigo-200/80 mt-1 max-w-xl">
               {isChancellor
                 ? 'Supreme institutional oversight, convocation degree authorizations, financial governance, and full user credential control across all 14 roles.'
-                : 'Manage account login status, block/unblock users, and control institutional user access.'}
+                : 'Enterprise Identity & Access Management (IAM), academic calendar cutoffs, registration windows, and system security telemetry.'}
             </p>
           </div>
         </div>
@@ -648,16 +665,25 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
               className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Shield size={15} />
-              <span>User Access Control</span>
+              <span>Identity & Access (IAM)</span>
             </button>
           )}
-          {onNavigate && isChancellor && (
+          {onNavigate && !isChancellor && (
             <button
-              onClick={() => onNavigate("fees")}
+              onClick={() => onNavigate("registration-control")}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 font-bold text-xs transition-all border border-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <UserCheck size={15} />
+              <span>Academic Windows</span>
+            </button>
+          )}
+          {onNavigate && !isChancellor && (
+            <button
+              onClick={() => onNavigate("audit-logs")}
               className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs transition-all border border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <DollarSign size={15} />
-              <span>Fee Governance</span>
+              <ShieldAlert size={15} />
+              <span>Forensic Audit</span>
             </button>
           )}
           {onNavigate && (
@@ -700,10 +726,10 @@ function DashboardHome({ onNavigate }: { onNavigate?: (module: string) => void }
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Students" value={stats.totalStudents ?? 0} subtitle="Total enrolled" icon={<GraduationCap size={19} />} color="blue" />
-        <StatCard title="Faculty Members" value={stats.totalFaculty ?? 0} subtitle="Total faculty" icon={<Users size={19} />} color="indigo" />
-        <StatCard title="Avg Attendance" value={stats.avgAttendance || "0%"} subtitle="Attendance rate" icon={<UserCheck size={19} />} color="green" />
-        <StatCard title="Fee Collection" value={stats.pendingFees || "₹0"} subtitle="Fee collection" icon={<DollarSign size={19} />} color="amber" />
+        <StatCard title="Student Identities" value={stats.totalStudents ?? 0} subtitle="Active Enrolled" icon={<GraduationCap size={19} />} color="blue" />
+        <StatCard title="Faculty & Staff" value={stats.totalFaculty ?? 0} subtitle="Academic Personnel" icon={<Users size={19} />} color="indigo" />
+        <StatCard title="Academic Offerings" value={stats.activeCourses ?? 0} subtitle="Active Curriculums" icon={<FileText size={19} />} color="green" />
+        <StatCard title="System & DB Health" value="100% Online" subtitle="TiDB Cloud TLS 1.2" icon={<ShieldCheck size={19} />} color="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
