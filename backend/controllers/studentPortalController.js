@@ -172,7 +172,7 @@ export const createStudent = async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const { first_name, last_name, email, admission_number, password } = req.body;
+    const { first_name, last_name, email, admission_number, roll_number, password, department_id, section_id, academic_year_id, semester, phone } = req.body;
 
     if (!email || !admission_number || !first_name) {
       return res.status(400).json({ error: 'First name, email, and admission number are required' });
@@ -194,8 +194,8 @@ export const createStudent = async (req, res) => {
     const userId = userRes.insertId;
     
     const [studentRes] = await conn.execute(
-      'INSERT INTO students (user_id, admission_number, first_name, last_name) VALUES (?, ?, ?, ?)',
-      [userId, admission_number, first_name, last_name || '']
+      'INSERT INTO students (user_id, admission_number, roll_number, first_name, last_name, name, email, phone, department_id, section_id, academic_year_id, semester, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Active")',
+      [userId, admission_number, roll_number || admission_number, first_name, last_name || '', fullName, email, phone || null, department_id || null, section_id || null, academic_year_id || null, semester || 1]
     );
     
     await conn.commit();
@@ -219,6 +219,85 @@ export const deleteStudent = async (req, res) => {
     res.json({ message: 'Student deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// --- UPDATE STUDENT ---
+export const updateStudent = async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const studentId = req.params.id;
+    const { first_name, last_name, email, admission_number, roll_number, department_id, section_id, academic_year_id, semester, status, phone } = req.body;
+
+    // Verify student exists
+    const [existing] = await conn.execute('SELECT id, user_id FROM students WHERE id = ?', [studentId]);
+    if (existing.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const student = existing[0];
+
+    // Update students table
+    const updateFields = [];
+    const updateValues = [];
+    if (first_name !== undefined) { updateFields.push('first_name = ?'); updateValues.push(first_name); }
+    if (last_name !== undefined) { updateFields.push('last_name = ?'); updateValues.push(last_name); }
+    if (email !== undefined) { updateFields.push('email = ?'); updateValues.push(email); }
+    if (admission_number !== undefined) { updateFields.push('admission_number = ?'); updateValues.push(admission_number); }
+    if (roll_number !== undefined) { updateFields.push('roll_number = ?'); updateValues.push(roll_number); }
+    if (department_id !== undefined) { updateFields.push('department_id = ?'); updateValues.push(department_id); }
+    if (section_id !== undefined) { updateFields.push('section_id = ?'); updateValues.push(section_id); }
+    if (academic_year_id !== undefined) { updateFields.push('academic_year_id = ?'); updateValues.push(academic_year_id); }
+    if (semester !== undefined) { updateFields.push('semester = ?'); updateValues.push(semester); }
+    if (status !== undefined) { updateFields.push('status = ?'); updateValues.push(status); }
+    if (phone !== undefined) { updateFields.push('phone = ?'); updateValues.push(phone); }
+
+    if (updateFields.length > 0) {
+      updateValues.push(studentId);
+      await conn.execute(`UPDATE students SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
+    }
+
+    // Update users table if email or name changed
+    const userUpdateFields = [];
+    const userUpdateValues = [];
+    if (email !== undefined) { userUpdateFields.push('email = ?'); userUpdateValues.push(email); }
+    if (first_name !== undefined || last_name !== undefined) {
+      const [studentRow] = await conn.execute('SELECT first_name, last_name FROM students WHERE id = ?', [studentId]);
+      const fn = studentRow[0]?.first_name || '';
+      const ln = studentRow[0]?.last_name || '';
+      const fullName = `${fn} ${ln}`.trim();
+      userUpdateFields.push('full_name = ?');
+      userUpdateValues.push(fullName);
+    }
+    if (userUpdateFields.length > 0) {
+      userUpdateValues.push(student.user_id);
+      await conn.execute(`UPDATE users SET ${userUpdateFields.join(', ')} WHERE id = ?`, userUpdateValues);
+    }
+
+    await conn.commit();
+
+    // Return fresh updated record
+    const [updated] = await pool.execute(`
+      SELECT s.*, u.email, u.full_name as user_full_name, u.status as user_status,
+             d.name as department_name, d.code as department_code,
+             sec.name as section_name, ay.name as academic_year_name
+      FROM students s
+      JOIN users u ON s.user_id = u.id
+      LEFT JOIN departments d ON s.department_id = d.id
+      LEFT JOIN sections sec ON s.section_id = sec.id
+      LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
+      WHERE s.id = ?
+    `, [studentId]);
+
+    res.json({ success: true, message: 'Student updated successfully', data: updated[0] });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Update student error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
   }
 };
 

@@ -6,6 +6,7 @@ import {
   getStudentTimetable,
   getAllStudents,
   createStudent,
+  updateStudent,
   deleteStudent,
   getStudentAcademicContext,
   getStudentCurriculumSubjects,
@@ -37,6 +38,7 @@ router.post('/registration/confirm', authenticateToken, confirmRegistration);
 // --- ADMIN / MANAGEMENT ENDPOINTS FOR STUDENTS ---
 router.get('/', authenticateToken, authorizeRole(['Admin', 'HOD', 'Faculty']), getAllStudents);
 router.post('/', authenticateToken, authorizeRole(['Admin', 'HOD']), createStudent);
+router.put('/:id', authenticateToken, authorizeRole(['Admin', 'HOD']), updateStudent);
 router.delete('/:id', authenticateToken, authorizeRole(['Admin']), deleteStudent);
 router.get('/admin/registrations', authenticateToken, authorizeRole(['Admin', 'HOD']), getAdminRegistrationReport);
 router.post('/admin/registration-periods/toggle', authenticateToken, authorizeRole(['Admin', 'HOD']), toggleRegistrationPeriod);

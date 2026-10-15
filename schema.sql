@@ -27,9 +27,14 @@ CREATE TABLE role_permissions (
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
+    full_name VARCHAR(150) NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     role_id INT,
+    department VARCHAR(150) NULL,
+    phone VARCHAR(25) NULL,
+    designation VARCHAR(100) NULL,
+    avatar VARCHAR(255) NULL,
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
     must_change_password TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -263,16 +268,26 @@ CREATE TABLE program_subjects (
 );
 
 -- 3. Faculty & Classrooms
-CREATE TABLE faculties (
+CREATE TABLE faculty (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    employee_id VARCHAR(50) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    hire_date DATE,
+    name VARCHAR(100) NULL,
+    email VARCHAR(100) NULL,
+    phone VARCHAR(20) NULL,
     department_id INT,
+    designation VARCHAR(100) DEFAULT 'Assistant Professor',
+    hire_date DATE,
+    status ENUM('Active', 'On Leave', 'Inactive') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
 );
+
+-- Compatibility view so both 'faculty' and 'faculties' queries succeed
+CREATE OR REPLACE VIEW faculties AS SELECT * FROM faculty;
 
 CREATE TABLE faculty_departments (
     faculty_id INT NOT NULL,
@@ -280,36 +295,6 @@ CREATE TABLE faculty_departments (
     PRIMARY KEY (faculty_id, department_id),
     FOREIGN KEY (faculty_id) REFERENCES faculties(id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
-);
-
--- Classrooms table defined in Timetable Management System section
-
-CREATE TABLE regulations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    effective_year INT NOT NULL,
-    description TEXT,
-    status ENUM('Active', 'Inactive') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE curriculums (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    department_id INT NULL,
-    course_id INT NULL,
-    regulation_id INT NULL,
-    academic_year_id INT NULL,
-    semester_id INT NULL,
-    total_credits DECIMAL(5,1) DEFAULT 0,
-    total_subjects INT DEFAULT 0,
-    status ENUM('Active', 'Inactive') DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    FOREIGN KEY (regulation_id) REFERENCES regulations(id) ON DELETE CASCADE,
-    FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL,
-    FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE SET NULL
 );
 
 CREATE TABLE curriculum_subjects (
@@ -399,10 +384,21 @@ CREATE TABLE students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     admission_number VARCHAR(50) NOT NULL UNIQUE,
+    roll_number VARCHAR(50) NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NULL,
+    email VARCHAR(100) NULL,
+    phone VARCHAR(20) NULL,
     section_id INT,
     academic_year_id INT,
+    department_id INT NULL,
+    course_id INT NULL,
+    semester INT DEFAULT 1,
+    section VARCHAR(10) DEFAULT 'A',
+    cgpa DECIMAL(3,2) DEFAULT 0.00,
+    status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL,
     FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE SET NULL
@@ -1134,26 +1130,6 @@ CREATE TABLE fee_categories (
     is_active TINYINT(1) DEFAULT 1
 );
 
--- Fee Structures Table
-CREATE TABLE fee_structures (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    department_id INT NULL,
-    course_id INT NULL,
-    regulation_id INT NULL,
-    academic_year_id INT NULL,
-    semester_id INT NULL,
-    fee_category_id INT NOT NULL,
-    amount DECIMAL(12,2) NOT NULL,
-    due_date DATE NULL,
-    is_mandatory TINYINT(1) DEFAULT 1,
-    installment_allowed TINYINT(1) DEFAULT 1,
-    status ENUM('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
-    created_by INT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (fee_category_id) REFERENCES fee_categories(id) ON DELETE CASCADE
-);
-
 -- Student Fee Accounts Table
 CREATE TABLE student_fee_accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1304,14 +1280,6 @@ CREATE TABLE library_shelves (
     FOREIGN KEY (section_id) REFERENCES library_sections(id) ON DELETE CASCADE
 );
 
--- Book Categories Table
-CREATE TABLE book_categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT NULL
-);
-
 -- Authors Table
 CREATE TABLE authors (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1326,29 +1294,6 @@ CREATE TABLE publishers (
     name VARCHAR(150) NOT NULL UNIQUE,
     contact VARCHAR(100) NULL,
     website VARCHAR(200) NULL
-);
-
--- Books Table (Bibliographic Entry)
-CREATE TABLE books (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    isbn VARCHAR(50) NOT NULL UNIQUE,
-    title VARCHAR(255) NOT NULL,
-    subtitle VARCHAR(255) NULL,
-    edition VARCHAR(50) NULL,
-    language VARCHAR(50) DEFAULT 'English',
-    category_id INT NOT NULL,
-    publisher_id INT NULL,
-    publication_year INT NULL,
-    pages INT NULL,
-    description TEXT NULL,
-    shelf_id INT NULL,
-    branch_id INT NULL,
-    status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES book_categories(id),
-    FOREIGN KEY (publisher_id) REFERENCES publishers(id),
-    FOREIGN KEY (shelf_id) REFERENCES library_shelves(id),
-    FOREIGN KEY (branch_id) REFERENCES library_branches(id)
 );
 
 -- Book Authors Table (Many-to-Many)
