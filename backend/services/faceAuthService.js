@@ -435,6 +435,16 @@ export async function extractFaceEmbedding(frameBuffer) {
       let ymax = Math.max(0, Math.min(1, boxes[maxFaceIndex * 4 + 3]));
 
       if (xmax > xmin && ymax > ymin) {
+        const faceCenterX = (xmin + xmax) / 2;
+        const faceCenterY = (ymin + ymax) / 2;
+
+        // Guard against severely off-center or frame-clipped faces
+        if (xmin <= 0.015 || xmax >= 0.985 || ymin <= 0.015 || ymax >= 0.985 || faceCenterX < 0.18 || faceCenterX > 0.82 || faceCenterY < 0.14 || faceCenterY > 0.86) {
+          const err = new Error('Face was off-center or cut off at the edge. Please center your face inside the green oval and hold still.');
+          err.code = 'FACE_OFF_CENTER';
+          throw err;
+        }
+
         let rawX = Math.floor(xmin * srcW);
         let rawY = Math.floor(ymin * srcH);
         let rawW = Math.max(1, Math.floor((xmax - xmin) * srcW));

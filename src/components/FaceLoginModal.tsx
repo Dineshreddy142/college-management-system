@@ -66,8 +66,32 @@ export function FaceLoginModal({
     }
   };
 
+  // Alignment state for real-time centering feedback
+  const [alignment, setAlignment] = useState<{
+    status: 'searching' | 'adjust' | 'centered';
+    message: string;
+    isCentered: boolean;
+    holdProgress: number;
+  }>({
+    status: 'searching',
+    message: 'Align face in the oval...',
+    isCentered: false,
+    holdProgress: 0
+  });
+
+  const steadyStartRef = useRef<number | null>(null);
+  const isCapturingRef = useRef<boolean>(false);
+  const detectionLoopRef = useRef<number | null>(null);
+
   // Clean camera tracks unconditionally
   const stopCamera = () => {
+    if (detectionLoopRef.current) {
+      cancelAnimationFrame(detectionLoopRef.current);
+      detectionLoopRef.current = null;
+    }
+    isCapturingRef.current = false;
+    steadyStartRef.current = null;
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         track.stop();
@@ -94,6 +118,12 @@ export function FaceLoginModal({
       setErrorMessage('');
       setEnrollmentStatus('idle');
       setMatchedDetails(null);
+      setAlignment({
+        status: 'searching',
+        message: 'Align face in the oval...',
+        isCentered: false,
+        holdProgress: 0
+      });
     } else if (isOpen && mode === 'login') {
       // Instant Auto-Start camera scan as soon as modal opens
       const autoStartTimer = setTimeout(() => {
@@ -110,10 +140,243 @@ export function FaceLoginModal({
     onClose();
   };
 
+  // Execute frame capture and verification
+  const executeCaptureAndVerify = async () => {
+    if (isCapturingRef.current && status === 'verifying') return;
+    isCapturingRef.current = true;
+
+    try {
+      const capturedFrames = await captureFramesFromVideo();
+      stopCamera();
+
+      if (capturedFrames.length === 0) {
+        setStatus('error');
+        setErrorMessage('Camera feed not ready or face frame capture failed. Please retry.');
+        return;
+      }
+
+      setStatus('verifying');
+
+      if (mode === 'login') {
+        const verifyRes = await verifyFaceLogin(
+          accountIdentifier.trim() || undefined,
+          nonceRef.current!,
+          capturedFrames
+        );
+
+        if (verifyRes.success && verifyRes.data) {
+          setMatchedDetails({
+            name: verifyRes.data.user?.full_name || verifyRes.data.matchDetails?.matched_name || verifyRes.data.user?.username,
+            college_id: verifyRes.data.user?.college_id || verifyRes.data.matchDetails?.student_id || verifyRes.data.user?.username,
+            role: verifyRes.data.user?.role || verifyRes.data.matchDetails?.role || 'Student',
+            similarity: verifyRes.data.matchDetails?.similarity_percent || '98.5',
+            stored_face_image: verifyRes.data.matchDetails?.stored_face_image || verifyRes.data.user?.stored_face_image
+          });
+          setStatus('success');
+          
+          // Flash match popup card with stored face image & Student ID (1200ms) then auto login!
+          setTimeout(() => {
+            onSuccess(verifyRes.data);
+            handleClose();
+          }, 1200);
+        } else {
+          setStatus('error');
+          setErrorMessage(verifyRes.error || verifyRes.message || 'Face not matched or off-center. Please center face in frame and retry.');
+        }
+      } else {
+        // Enroll mode
+        const enrollRes = await enrollFaceBiometrics(capturedFrames);
+        if (enrollRes.success) {
+          setStatus('success');
+          setTimeout(() => {
+            onSuccess(enrollRes.data);
+            handleClose();
+          }, 600);
+        } else {
+          setStatus('error');
+          setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed. Please align face clearly.');
+        }
+      }
+    } catch (procErr: any) {
+      stopCamera();
+      setStatus('error');
+      setErrorMessage(procErr.message || 'Error processing face verification payload');
+    }
+  };
+
+  // Real-time Centering Inspector Loop
+  const startCenteringLoop = () => {
+    if (detectionLoopRef.current) {
+      cancelAnimationFrame(detectionLoopRef.current);
+    }
+    isCapturingRef.current = false;
+    steadyStartRef.current = null;
+
+    let lastCheckTime = 0;
+    const checkIntervalMs = 70; // ~14 fps check for smooth UI & low CPU load
+
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 120;
+    sampleCanvas.height = 90;
+    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+    const step = async (timestamp: number) => {
+      const video = videoRef.current;
+      if (!video || video.paused || video.ended || status === 'verifying' || isCapturingRef.current) {
+        return;
+      }
+
+      if (timestamp - lastCheckTime >= checkIntervalMs && video.readyState >= 2) {
+        lastCheckTime = timestamp;
+
+        try {
+          let faceBox: { x: number; y: number; width: number; height: number } | null = null;
+
+          // 1. Native Browser FaceDetector API (Chrome, Edge, Android)
+          if ('FaceDetector' in window) {
+            try {
+              const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+              const detected = await detector.detect(video);
+              if (detected && detected.length > 0) {
+                const b = detected[0].boundingBox;
+                faceBox = { x: b.x, y: b.y, width: b.width, height: b.height };
+              }
+            } catch {}
+          }
+
+          // 2. Optical Center-of-Mass & Skin/Luminance Centroid Fallback
+          if (!faceBox && sampleCtx) {
+            sampleCtx.drawImage(video, 0, 0, 120, 90);
+            const imgData = sampleCtx.getImageData(0, 0, 120, 90);
+            const data = imgData.data;
+
+            let totalWeight = 0;
+            let sumX = 0;
+            let sumY = 0;
+
+            for (let y = 0; y < 90; y += 2) {
+              for (let x = 0; x < 120; x += 2) {
+                const idx = (y * 120 + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+
+                // Heuristic skin-tone chrominance check
+                const isSkin = r > 80 && g > 40 && b > 20 && r > g && (r - g) > 10;
+                if (isSkin) {
+                  totalWeight += 1;
+                  sumX += x;
+                  sumY += y;
+                }
+              }
+            }
+
+            if (totalWeight >= 180) { // Enough face pixels found
+              const avgX = (sumX / totalWeight) / 120; // 0 to 1
+              const avgY = (sumY / totalWeight) / 90;  // 0 to 1
+              faceBox = {
+                x: (avgX - 0.20) * video.videoWidth,
+                y: (avgY - 0.25) * video.videoHeight,
+                width: 0.40 * video.videoWidth,
+                height: 0.50 * video.videoHeight
+              };
+            }
+          }
+
+          if (!faceBox) {
+            steadyStartRef.current = null;
+            setAlignment({
+              status: 'searching',
+              message: 'Look into camera & position face inside oval',
+              isCentered: false,
+              holdProgress: 0
+            });
+          } else {
+            const vW = video.videoWidth || 640;
+            const vH = video.videoHeight || 480;
+            const cx = (faceBox.x + faceBox.width / 2) / vW;
+            const cy = (faceBox.y + faceBox.height / 2) / vH;
+            const widthRatio = faceBox.width / vW;
+
+            // In mirrored mode, left/right direction in camera view
+            let isOff = false;
+            let guide = '';
+
+            if (cx < 0.35) {
+              isOff = true;
+              guide = isMirrored ? 'Shift Left 👈' : '👈 Shift Right';
+            } else if (cx > 0.65) {
+              isOff = true;
+              guide = isMirrored ? '👉 Shift Right' : 'Shift Left 👉';
+            } else if (cy < 0.26) {
+              isOff = true;
+              guide = 'Move Down 👇';
+            } else if (cy > 0.74) {
+              isOff = true;
+              guide = 'Move Up 👆';
+            } else if (widthRatio < 0.22) {
+              isOff = true;
+              guide = '🔍 Move Closer to Camera';
+            } else if (widthRatio > 0.85) {
+              isOff = true;
+              guide = 'Step Back A Little';
+            }
+
+            if (isOff) {
+              steadyStartRef.current = null;
+              setAlignment({
+                status: 'adjust',
+                message: guide,
+                isCentered: false,
+                holdProgress: 0
+              });
+            } else {
+              // Perfectly centered! Calculate hold stabilization
+              const now = Date.now();
+              if (!steadyStartRef.current) {
+                steadyStartRef.current = now;
+              }
+
+              const elapsed = now - steadyStartRef.current;
+              const progress = Math.min(100, Math.round((elapsed / 650) * 100));
+
+              setAlignment({
+                status: 'centered',
+                message: progress >= 100 ? 'Capturing... Hold steady! 📸' : `🎯 Centered! Hold still... ${progress}%`,
+                isCentered: true,
+                holdProgress: progress
+              });
+
+              if (elapsed >= 650 && !isCapturingRef.current) {
+                isCapturingRef.current = true;
+                await executeCaptureAndVerify();
+                return;
+              }
+            }
+          }
+        } catch {
+          // Keep loop running on minor frame glitches
+        }
+      }
+
+      if (!isCapturingRef.current && status === 'scanning') {
+        detectionLoopRef.current = requestAnimationFrame(step);
+      }
+    };
+
+    detectionLoopRef.current = requestAnimationFrame(step);
+  };
+
   const startFaceProcess = async () => {
     setErrorMessage('');
     setCameraError(false);
     setMatchedDetails(null);
+    setAlignment({
+      status: 'searching',
+      message: 'Initializing camera...',
+      isCentered: false,
+      holdProgress: 0
+    });
 
     try {
       setStatus('camera_init');
@@ -163,67 +426,8 @@ export function FaceLoginModal({
       }
 
       setStatus('scanning');
-
-      // 1000ms stabilization window so user has time to position face inside circle
-      setTimeout(async () => {
-        try {
-          const capturedFrames = await captureFramesFromVideo();
-          stopCamera();
-
-          if (capturedFrames.length === 0) {
-            setStatus('error');
-            setErrorMessage('Camera feed not ready or face frame capture failed. Please retry.');
-            return;
-          }
-
-          setStatus('verifying');
-
-          if (mode === 'login') {
-            const verifyRes = await verifyFaceLogin(
-              accountIdentifier.trim() || undefined,
-              nonceRef.current!,
-              capturedFrames
-            );
-
-            if (verifyRes.success && verifyRes.data) {
-              setMatchedDetails({
-                name: verifyRes.data.user?.full_name || verifyRes.data.matchDetails?.matched_name || verifyRes.data.user?.username,
-                college_id: verifyRes.data.user?.college_id || verifyRes.data.matchDetails?.student_id || verifyRes.data.user?.username,
-                role: verifyRes.data.user?.role || verifyRes.data.matchDetails?.role || 'Student',
-                similarity: verifyRes.data.matchDetails?.similarity_percent || '98.5',
-                stored_face_image: verifyRes.data.matchDetails?.stored_face_image || verifyRes.data.user?.stored_face_image
-              });
-              setStatus('success');
-              
-              // Flash match popup card with stored face image & Student ID (1200ms) then auto login!
-              setTimeout(() => {
-                onSuccess(verifyRes.data);
-                handleClose();
-              }, 1200);
-            } else {
-              setStatus('error');
-              setErrorMessage(verifyRes.error || verifyRes.message || 'Face not matched or off-center. Please center face in frame and retry.');
-            }
-          } else {
-            // Enroll mode
-            const enrollRes = await enrollFaceBiometrics(capturedFrames);
-            if (enrollRes.success) {
-              setStatus('success');
-              setTimeout(() => {
-                onSuccess(enrollRes.data);
-                handleClose();
-              }, 600);
-            } else {
-              setStatus('error');
-              setErrorMessage(enrollRes.error || enrollRes.message || 'Face biometric enrollment failed. Please align face clearly.');
-            }
-          }
-        } catch (procErr: any) {
-          stopCamera();
-          setStatus('error');
-          setErrorMessage(procErr.message || 'Error processing face verification payload');
-        }
-      }, 1000);
+      // Start intelligent real-time centering loop
+      startCenteringLoop();
 
     } catch (camErr: any) {
       stopCamera();
@@ -372,32 +576,76 @@ export function FaceLoginModal({
               </div>
             )}
 
-            {/* Mobile-Style Oval Scanner Overlay */}
+            {/* Intelligent Centered Oval Scanner Overlay */}
             {status === 'scanning' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                {/* Face Target Oval */}
-                <div className="w-56 h-72 rounded-[50%] border-2 border-indigo-400/80 shadow-[0_0_30px_rgba(99,102,241,0.3)] flex flex-col items-center justify-center relative overflow-hidden animate-pulse pointer-events-none">
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                {/* Face Target Oval with dynamic alignment styling */}
+                <div 
+                  className={`w-52 h-68 rounded-[50%] border-3 transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden ${
+                    alignment.isCentered 
+                      ? 'border-emerald-400 shadow-[0_0_35px_rgba(16,185,129,0.8)] scale-102 bg-emerald-500/5' 
+                      : alignment.status === 'adjust'
+                      ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.6)] bg-amber-500/5'
+                      : 'border-indigo-400/80 shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+                  }`}
+                >
                   {/* Laser Scanning Line */}
-                  <div className="w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_15px_#818cf8] animate-bounce" />
+                  <div 
+                    className={`w-full h-1 bg-gradient-to-r from-transparent ${
+                      alignment.isCentered ? 'via-emerald-400' : 'via-indigo-400'
+                    } to-transparent shadow-[0_0_15px_#10b981] animate-bounce`} 
+                  />
+
+                  {/* Hold-Still Progress Bar inside Oval */}
+                  {alignment.isCentered && (
+                    <div className="absolute bottom-6 left-6 right-6 flex flex-col items-center gap-1.5 animate-in fade-in duration-150">
+                      <div className="w-full bg-slate-900/80 rounded-full h-2 p-0.5 border border-emerald-500/50">
+                        <div 
+                          className="bg-emerald-400 h-full rounded-full transition-all duration-75 shadow-[0_0_10px_#10b981]"
+                          style={{ width: `${alignment.holdProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-300 drop-shadow">
+                        Holding Still... {alignment.holdProgress}%
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="absolute top-4 left-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-400 flex items-center gap-2 border border-slate-800 pointer-events-none">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  Live Face & AI Scan...
+                {/* Top Alignment Guidance Badge */}
+                <div 
+                  className={`absolute top-3 left-1/2 -translate-x-1/2 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border backdrop-blur-md transition-all shadow-lg pointer-events-none z-10 max-w-[85%] text-center ${
+                    alignment.isCentered
+                      ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/60 animate-pulse'
+                      : alignment.status === 'adjust'
+                      ? 'bg-amber-950/90 text-amber-300 border-amber-500/60'
+                      : 'bg-slate-950/80 text-indigo-300 border-indigo-500/40'
+                  }`}
+                >
+                  <div 
+                    className={`w-2 h-2 rounded-full ${
+                      alignment.isCentered 
+                        ? 'bg-emerald-400 animate-ping' 
+                        : alignment.status === 'adjust'
+                        ? 'bg-amber-400'
+                        : 'bg-indigo-400'
+                    }`} 
+                  />
+                  <span>{alignment.message}</span>
                 </div>
 
                 {/* Normal / Mirror Mode Toggle */}
                 <button
                   type="button"
                   onClick={() => setIsMirrored(!isMirrored)}
-                  className="absolute top-4 right-4 z-20 pointer-events-auto bg-slate-950/80 hover:bg-slate-900 text-slate-200 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-slate-700 backdrop-blur-md flex items-center gap-1.5 transition shadow-lg"
+                  className="absolute bottom-3 left-3 z-20 pointer-events-auto bg-slate-950/80 hover:bg-slate-900 text-slate-200 text-[10px] font-semibold px-2.5 py-1 rounded-full border border-slate-700 backdrop-blur-md flex items-center gap-1.5 transition shadow-lg"
                 >
-                  <RefreshCw size={12} className={isMirrored ? "rotate-180 transition-transform" : "transition-transform"} />
-                  {isMirrored ? 'Mirrored' : 'Normal View'}
+                  <RefreshCw size={11} className={isMirrored ? "rotate-180 transition-transform" : "transition-transform"} />
+                  {isMirrored ? 'Mirrored' : 'Normal'}
                 </button>
 
                 {mode === 'login' && (
-                  <div className="absolute bottom-4 right-4 bg-slate-950/80 text-slate-300 text-[10px] px-3 py-1 rounded-full border border-slate-800 backdrop-blur-md pointer-events-none">
+                  <div className="absolute bottom-3 right-3 bg-slate-950/80 text-slate-300 text-[10px] px-2.5 py-1 rounded-full border border-slate-800 backdrop-blur-md pointer-events-none">
                     Nonce: {timeLeft}s
                   </div>
                 )}
@@ -494,6 +742,17 @@ export function FaceLoginModal({
             >
               Cancel
             </button>
+
+            {status === 'scanning' && (
+              <button
+                type="button"
+                onClick={() => executeCaptureAndVerify()}
+                className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all"
+              >
+                <Camera size={16} />
+                Capture Now
+              </button>
+            )}
 
             {(status === 'idle' || status === 'error') && (
               <button

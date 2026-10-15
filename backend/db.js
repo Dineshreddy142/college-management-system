@@ -32,6 +32,10 @@ const pool = mysql.createPool({
   database: dbName,
   waitForConnections: true,
   connectionLimit: 10,
+  maxIdle: 10,
+  idleTimeout: 60000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
   queueLimit: 0,
   ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true }
 });

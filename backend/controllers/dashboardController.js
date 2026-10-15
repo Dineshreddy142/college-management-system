@@ -2,43 +2,31 @@ import pool from '../db.js';
 
 export const getAdminDashboardStats = async (req, res) => {
     try {
-        const [students] = await pool.execute('SELECT COUNT(*) as count FROM students').catch(() => [[{ count: 0 }]]);
-        
-        let facultyCount = 0;
-        try {
-            const [faculties] = await pool.execute('SELECT COUNT(*) as count FROM faculty');
-            facultyCount = faculties[0]?.count || 0;
-        } catch {
-            try {
-                const [faculties] = await pool.execute('SELECT COUNT(*) as count FROM faculties');
-                facultyCount = faculties[0]?.count || 0;
-            } catch {}
-        }
-        
-        let deptCount = 0;
-        try {
-            const [depts] = await pool.execute('SELECT COUNT(*) as count FROM departments');
-            deptCount = depts[0]?.count || 0;
-        } catch {}
+        const [studentsRes, facultyRes, deptsRes, subjectsRes, attRes] = await Promise.all([
+            pool.execute('SELECT COUNT(*) as count FROM students').catch(() => [[{ count: 0 }]]),
+            pool.execute('SELECT COUNT(*) as count FROM faculty').catch(() => 
+                pool.execute('SELECT COUNT(*) as count FROM faculties').catch(() => [[{ count: 0 }]])
+            ),
+            pool.execute('SELECT COUNT(*) as count FROM departments').catch(() => [[{ count: 0 }]]),
+            pool.execute('SELECT COUNT(*) as count FROM subjects').catch(() => [[{ count: 0 }]]),
+            pool.execute('SELECT COUNT(*) as total, SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present FROM attendance_details').catch(() => [[{ total: 0, present: 0 }]])
+        ]);
 
-        let activeCourses = 0;
-        try {
-            const [courses] = await pool.execute('SELECT COUNT(*) as count FROM subjects');
-            activeCourses = courses[0]?.count || 0;
-        } catch {}
+        const totalStudents = studentsRes[0]?.[0]?.count || 0;
+        const totalFaculty = facultyRes[0]?.[0]?.count || 0;
+        const departments = deptsRes[0]?.[0]?.count || 0;
+        const activeCourses = subjectsRes[0]?.[0]?.count || 0;
 
         let avgAtt = '0%';
-        try {
-            const [att] = await pool.execute('SELECT COUNT(*) as total, SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present FROM attendance_details');
-            if (att[0]?.total > 0) {
-                avgAtt = `${((att[0].present / att[0].total) * 100).toFixed(1)}%`;
-            }
-        } catch {}
+        const attData = attRes[0]?.[0];
+        if (attData && attData.total > 0) {
+            avgAtt = `${((attData.present / attData.total) * 100).toFixed(1)}%`;
+        }
 
         const stats = {
-            totalStudents: students[0]?.count || 0,
-            totalFaculty: facultyCount,
-            departments: deptCount,
+            totalStudents,
+            totalFaculty,
+            departments,
             activeCourses,
             pendingFees: '₹0',
             avgAttendance: avgAtt,
