@@ -29,6 +29,7 @@ import { HODAdminAttendanceDashboard } from "./admin/attendance-dashboard/HODAdm
 import { AdminExamResultsManagement } from "./admin/exam-management/AdminExamResultsManagement";
 import { AdminFinanceManagement } from "./admin/finance/AdminFinanceManagement";
 import { AdminLibraryManagement } from "./admin/library/AdminLibraryManagement";
+import { PlacementManagementHub } from "./admin/placement/PlacementManagementHub";
 import client from "../api/client";
 
 import {
@@ -2026,7 +2027,7 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
       case "fees": return <AdminFinanceManagement />;
       case "library": return <AdminLibraryManagement />;
       case "hostel": return <HostelManagement />;
-      case "placement": return <PlacementModule />;
+      case "placement": return <PlacementManagementHub />;
 
       case "reports": return <ReportsAnalytics />;
       case "audit-logs": return <AuditLogsModule />;

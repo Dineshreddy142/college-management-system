@@ -36,6 +36,7 @@ import attendanceRoutes from './routes/attendanceRoutes.js';
 import examRoutes from './routes/examRoutes.js';
 import feeRoutes from './routes/feeRoutes.js';
 import libraryRoutes from './routes/libraryRoutes.js';
+import placementRoutes from './routes/placementRoutes.js';
 import admissionRoutes from './routes/admissionRoutes.js';
 import mcqRoutes from './routes/mcqRoutes.js';
 import { initializeDatabase } from './init_db.js';
@@ -110,6 +111,7 @@ app.use('/api', attendanceRoutes);
 app.use('/api', examRoutes);
 app.use('/api', feeRoutes);
 app.use('/api', libraryRoutes);
+app.use('/api/placement', placementRoutes);
 app.use('/api/academic', authenticateToken, authorizeRole(['Admin', 'HOD']), academicRoutes);
 
 // --- TIMETABLE, DASHBOARD, NOTIFICATIONS, SEARCH & PROFILE ---

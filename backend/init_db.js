@@ -2179,6 +2179,107 @@ export async function initializeDatabase() {
         ('Introduction to Algorithms & Data Structures E-Book', 'EBOOK', 'Thomas H. Cormen', 'https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/', 'Complete open courseware & textbook reference for algorithms.', 'STUDENT'),
         ('Distributed Systems Architecture Research Paper', 'RESEARCH_PAPER', 'Leslie Lamport', 'https://lamport.azurewebsites.net/pubs/time-clocks.pdf', 'Foundational paper on logical clocks and process ordering.', 'FACULTY')
       `);
+    // 21. Placement Drives Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS placement_drives (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        company_name VARCHAR(150) NOT NULL,
+        job_title VARCHAR(150) NOT NULL,
+        job_description TEXT NULL,
+        ctc_lpa DECIMAL(6,2) NOT NULL,
+        tier ENUM('REGULAR', 'DREAM', 'SUPER_DREAM') DEFAULT 'REGULAR',
+        min_cgpa DECIMAL(4,2) DEFAULT 6.50,
+        max_backlogs INT DEFAULT 0,
+        eligible_departments VARCHAR(255) DEFAULT 'All',
+        drive_date DATE NOT NULL,
+        registration_deadline DATE NULL,
+        status ENUM('UPCOMING', 'ACTIVE', 'INTERVIEWING', 'COMPLETED') DEFAULT 'ACTIVE',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 21.a Placement Applications & Resume Shortlisting Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS placement_applications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        drive_id INT NOT NULL,
+        student_id INT NOT NULL,
+        resume_url VARCHAR(255) NULL,
+        portfolio_url VARCHAR(255) NULL,
+        reviewer_rating INT DEFAULT 0,
+        reviewer_feedback TEXT NULL,
+        status ENUM('APPLIED', 'RESUME_SHORTLISTED', 'TECHNICAL_ROUND', 'HR_ROUND', 'OFFERED', 'REJECTED') DEFAULT 'APPLIED',
+        offered_ctc DECIMAL(6,2) NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_drive_student (drive_id, student_id),
+        FOREIGN KEY (drive_id) REFERENCES placement_drives(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 21.b Placement On-Campus Slot Bookings Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS placement_slot_bookings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        company_name VARCHAR(150) NOT NULL,
+        contact_person VARCHAR(100) NULL,
+        contact_email VARCHAR(120) NULL,
+        slot_date DATE NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        venue_hall VARCHAR(100) NOT NULL,
+        purpose ENUM('PRE_PLACEMENT_TALK', 'ONLINE_ASSESSMENT', 'INTERVIEWS', 'FULL_DAY_DRIVE') DEFAULT 'FULL_DAY_DRIVE',
+        status ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED') DEFAULT 'CONFIRMED',
+        notes TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 21.c Placement Alumni Mentors Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS placement_alumni_mentors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(120) NOT NULL,
+        company VARCHAR(120) NOT NULL,
+        role_title VARCHAR(120) NOT NULL,
+        graduation_year INT NOT NULL,
+        department VARCHAR(100) NOT NULL,
+        linkedin_url VARCHAR(255) NULL,
+        email VARCHAR(120) NULL,
+        domain_expertise VARCHAR(150) NOT NULL,
+        mentorship_focus VARCHAR(150) NOT NULL,
+        availability_status ENUM('AVAILABLE', 'BUSY') DEFAULT 'AVAILABLE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed Initial Placement Drives & Alumni Mentors if empty
+    const [pDrives] = await pool.query('SELECT id FROM placement_drives LIMIT 1');
+    if (pDrives.length === 0) {
+      await pool.query(`
+        INSERT INTO placement_drives (company_name, job_title, job_description, ctc_lpa, tier, min_cgpa, max_backlogs, eligible_departments, drive_date, registration_deadline, status) VALUES
+        ('Google Cloud', 'Associate Cloud Engineer', 'Architect and deploy scalable microservices, Kubernetes clusters, and multi-region infra on GCP.', 28.50, 'SUPER_DREAM', 8.50, 0, 'Computer Science, Electronics', '2026-11-20', '2026-11-10', 'ACTIVE'),
+        ('Microsoft', 'Software Engineer - Core Platform', 'Develop high-throughput asynchronous services in C# and Azure cloud infrastructure.', 24.00, 'SUPER_DREAM', 8.00, 0, 'Computer Science, Information Technology', '2026-11-25', '2026-11-15', 'ACTIVE'),
+        ('Amazon Web Services', 'DevOps Solutions Architect', 'Work with cloud automation, infrastructure as code, and enterprise client architectures.', 18.50, 'DREAM', 7.50, 0, 'Computer Science, Electronics, Mechanical Eng', '2026-12-02', '2026-11-20', 'UPCOMING'),
+        ('Deloitte Consulting', 'Technology Analyst - Systems', 'Enterprise digital transformation, fullstack Java/React solutions, and business data analytics.', 11.20, 'DREAM', 7.00, 0, 'All', '2026-12-08', '2026-11-28', 'UPCOMING'),
+        ('TCS Digital', 'Full Stack Developer', 'Design and implement REST APIs, modern web user interfaces, and continuous integration pipelines.', 7.50, 'REGULAR', 6.50, 1, 'All', '2026-12-15', '2026-12-05', 'UPCOMING')
+      `);
+
+      await pool.query(`
+        INSERT INTO placement_slot_bookings (company_name, contact_person, contact_email, slot_date, start_time, end_time, venue_hall, purpose, status, notes) VALUES
+        ('Google Cloud', 'Sarah Jenkins', 'sjenkins@google.com', '2026-11-20', '09:00:00', '18:00:00', 'Placement Auditorium & CS Lab 2', 'FULL_DAY_DRIVE', 'CONFIRMED', 'PPT in Auditorium 09:30-10:30 followed by 4 coding interview panels in CS Lab 2.'),
+        ('Microsoft', 'Kunal Verma', 'kunalv@microsoft.com', '2026-11-25', '10:00:00', '17:00:00', 'Main Seminar Hall & Interview Cabins 1-4', 'INTERVIEWS', 'CONFIRMED', 'Final round technical & behavioral interviews for shortlisted candidates.')
+      `);
+
+      await pool.query(`
+        INSERT INTO placement_alumni_mentors (name, company, role_title, graduation_year, department, linkedin_url, email, domain_expertise, mentorship_focus, availability_status) VALUES
+        ('Aditya Srinivas', 'Google', 'Senior Staff Software Engineer', 2019, 'Computer Science', 'https://linkedin.com/in/aditya-srinivas-demo', 'adityas@alumni.college.edu', 'Distributed Systems & Cloud', 'System Design & Mock Tech Rounds', 'AVAILABLE'),
+        ('Pooja Nambiar', 'Microsoft', 'Principal Product Manager', 2020, 'Electronics & Comm', 'https://linkedin.com/in/pooja-nambiar-demo', 'poojan@alumni.college.edu', 'AI Products & Cloud Services', 'Product Sense & Resume Reviews', 'AVAILABLE'),
+        ('Rahul Deshmukh', 'Amazon', 'SDE II (AWS DynamoDB)', 2021, 'Computer Science', 'https://linkedin.com/in/rahul-deshmukh-demo', 'rahuld@alumni.college.edu', 'High Throughput DBs & Go', 'DSA Problem Solving & Referral Reviews', 'AVAILABLE'),
+        ('Sneha Kulkarni', 'Goldman Sachs', 'Vice President - Quantitative Tech', 2018, 'Computer Science', 'https://linkedin.com/in/sneha-kulkarni-demo', 'snehak@alumni.college.edu', 'FinTech & Low Latency Systems', 'Mock Technical & Behavioral Interview Prep', 'AVAILABLE')
+      `);
     }
 
     // Ensure face authentication and webauthn biometric tables exist
