@@ -8,23 +8,33 @@ import {
 import { cn } from "../App";
 
 export const FACULTY_SIDEBAR_ITEMS = [
+  // 1. Overview
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
   { id: "mentor", label: "Mentor Portal", icon: Shield, badge: "New" },
+
+  // 2. Teaching & Courses
   { id: "offered-subjects", label: "My Offered Subjects", icon: Layers, badge: "Offerings" },
   { id: "classes", label: "Classes", icon: BookOpen, badge: null },
+  { id: "timetable", label: "Timetable", icon: Clock, badge: null },
+  { id: "students", label: "Students", icon: Users, badge: null },
 
+  // 3. Evaluation & Marks
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "Pending" },
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3" },
   { id: "exams", label: "Exams & Marks Entry", icon: Award, badge: null },
-  { id: "students", label: "Students", icon: Users, badge: null },
-  { id: "leaves", label: "Leaves", icon: CalendarDays, badge: null },
-  { id: "timetable", label: "Timetable", icon: Clock, badge: null },
+
+  // 4. Collaboration & Governance
   { id: "announcements", label: "Announcements", icon: Bell, badge: null },
   { id: "communication", label: "Communication", icon: MessageSquare, badge: null },
   { id: "meetings", label: "Meetings", icon: Phone, badge: null },
+  { id: "leaves", label: "Leaves", icon: CalendarDays, badge: null },
   { id: "reports", label: "Reports", icon: BarChart3, badge: null },
-  { id: "profile", label: "Profile", icon: Settings, badge: null },
+
+  // 5. Tools & Intelligence
   { id: "ai", label: "AI Assistant", icon: Zap, badge: "New" },
+
+  // 6. Account & Settings (Bottom)
+  { id: "profile", label: "Profile", icon: Settings, badge: null },
 ];
 
 export function FacultySidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {

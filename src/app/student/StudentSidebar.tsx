@@ -9,27 +9,35 @@ import {
 import { cn } from "../App";
 
 export const STUDENT_SIDEBAR_ITEMS = [
+  // 1. Overview & Academics
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
   { id: "registration", label: "Course Registration", icon: BookOpen, badge: null },
   { id: "my-subjects", label: "My Subjects", icon: Layers, badge: null },
-  { id: "profile", label: "My Profile", icon: User, badge: null },
+  { id: "timetable", label: "Timetable", icon: Clock, badge: null },
   { id: "attendance", label: "Attendance", icon: UserCheck, badge: "88%" },
   { id: "daily-mcqs", label: "Daily Topic MCQs", icon: Sparkles, badge: "Daily" },
 
-  { id: "timetable", label: "Timetable", icon: Clock, badge: null },
+  // 2. Assessments & Performance
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3 Due" },
   { id: "examination", label: "Examination", icon: Award, badge: null },
   { id: "results", label: "Results", icon: BarChart3, badge: "New" },
+  { id: "analytics", label: "Analytics", icon: TrendingUp, badge: null },
+
+  // 3. Campus Facilities & Career
   { id: "fees", label: "Fees", icon: DollarSign, badge: null },
   { id: "library", label: "Library", icon: LibraryIcon, badge: null },
   { id: "placement", label: "Placement", icon: Briefcase, badge: null },
   { id: "events", label: "Events", icon: CalendarDays, badge: null },
   { id: "leaves", label: "Leave Management", icon: Calendar, badge: null },
+
+  // 4. Support & Services
   { id: "communication", label: "Communication", icon: MessageSquare, badge: null },
   { id: "documents", label: "Documents", icon: Folder, badge: null },
   { id: "complaints", label: "Complaints", icon: AlertCircle, badge: null },
-  { id: "analytics", label: "Analytics", icon: TrendingUp, badge: null },
   { id: "ai", label: "AI Assistant", icon: Zap, badge: "Beta" },
+
+  // 5. Account & Settings (Bottom)
+  { id: "profile", label: "My Profile", icon: User, badge: null },
 ];
 
 export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {

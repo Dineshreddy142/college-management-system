@@ -212,25 +212,32 @@ interface SidebarItem {
 }
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
+  // 1. Overview
   { id: "dashboard", label: "System Health & Overview", icon: LayoutDashboard, badge: null },
+
+  // 2. Directory & Governance
   { id: "users", label: "Identity & Access (IAM)", icon: Shield, badge: "Security" },
   { id: "students", label: "Student Directory", icon: GraduationCap, badge: null },
   { id: "faculty", label: "Faculty Directory", icon: Users, badge: null },
+  { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
+
+  // 3. Academics & Operations
   { id: "registration-control", label: "Academic Windows & Cutoffs", icon: UserCheck, badge: "Live" },
   { id: "timetable", label: "Master Institutional Timetable", icon: CalendarDays, badge: null },
-  { id: "audit-logs", label: "Security & Forensic Audit", icon: ShieldAlert, badge: "Live" },
-  { id: "reports", label: "Institutional Analytics", icon: BarChart3, badge: null },
-  { id: "settings", label: "System Settings & Gateways", icon: Settings, badge: null },
-  { id: "profile", label: "Administrator Profile", icon: UserCheck, badge: null },
-
-  // Operational Modules (Delegated to specialized roles, preserved for backward-compatibility)
-  { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
   { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
   { id: "exams", label: "Examinations Governance", icon: FileText, badge: "COE" },
   { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
   { id: "library", label: "Library Catalog & Loans", icon: BookOpen, badge: "Library" },
   { id: "hostel", label: "Hostel & Room Governance", icon: Home, badge: "Hostel" },
   { id: "placement", label: "Placement Drive Overview", icon: Briefcase, badge: "Placement" },
+
+  // 4. Analytics & Governance
+  { id: "reports", label: "Institutional Analytics", icon: BarChart3, badge: null },
+  { id: "audit-logs", label: "Security & Forensic Audit", icon: ShieldAlert, badge: "Live" },
+
+  // 5. System Administration & Profile (Bottom)
+  { id: "settings", label: "System Settings & Gateways", icon: Settings, badge: null },
+  { id: "profile", label: "Administrator Profile", icon: UserCheck, badge: null },
 ];
 
 function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {

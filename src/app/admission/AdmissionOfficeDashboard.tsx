@@ -544,25 +544,36 @@ export function AdmissionOfficeDashboard({ onNav, theme = 'light', toggleTheme }
 
   // Full Admission Navigation Tree
   const tabsNav: { id: TabType; label: string; icon: any; badge?: number }[] = [
+    // 1. Intake & CRM
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'campaigns', label: 'Campaign Tracker', icon: Megaphone },
     { id: 'enquiries', label: 'Enquiries / CRM', icon: PhoneCall, badge: enquiries.length },
     { id: 'counselling', label: 'Counselling Management', icon: UserPlus },
+
+    // 2. Candidate Screening & Verification
     { id: 'applications', label: 'Application Registry', icon: FileText, badge: stats.newApplications },
     { id: 'applicants', label: 'Candidate Profiles', icon: Users },
     { id: 'documents', label: 'Document Verification', icon: FileCheck, badge: stats.pendingDocuments },
     { id: 'eligibility', label: 'Cutoff Eligibility', icon: Filter },
+
+    // 3. Merit & Shortlisting
     { id: 'merit', label: 'Merit & Ranking Engine', icon: RankingIcon },
     { id: 'shortlist', label: 'Shortlisting Center', icon: ListFilter, badge: shortlist.length },
     { id: 'interviews', label: 'Interview Scheduler', icon: CalendarDays, badge: stats.scheduledInterviews },
+
+    // 4. Admissions & Enrollment
     { id: 'seat_intake', label: 'Seat & Quotas', icon: GraduationCap },
     { id: 'admissions', label: 'Selection & Decisions', icon: CheckCircle2 },
-    { id: 'enrollment', label: 'Student Conversion', icon: UserCheck, badge: stats.confirmedAdmissions },
-    { id: 'communications', label: 'Communication Center', icon: Mail },
     { id: 'offer_letters', label: 'Offer Letter Generator', icon: Award },
+    { id: 'enrollment', label: 'Student Conversion', icon: UserCheck, badge: stats.confirmedAdmissions },
     { id: 'bulk_import', label: 'Bulk Admission Import', icon: FileSpreadsheet },
-    { id: 'campaigns', label: 'Campaign Tracker', icon: Megaphone },
-    { id: 'analytics', label: 'Reports & Analytics', icon: PieChart },
+
+    // 5. Communications & Operations
+    { id: 'communications', label: 'Communication Center', icon: Mail },
     { id: 'sla', label: 'SLA Workload Monitor', icon: Timer, badge: slaData?.overdueApplicationsCount },
+
+    // 6. Analytics & Audit (Bottom)
+    { id: 'analytics', label: 'Reports & Analytics', icon: PieChart },
     { id: 'audit', label: 'Admission Audit Logs', icon: History },
   ];
 

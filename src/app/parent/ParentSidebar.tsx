@@ -15,19 +15,28 @@ export function ParentSidebar({ active, onChange, collapsed, onToggle, onNav, mo
   onMobileClose?: () => void;
 }) {
   const menu = [
+    // 1. Overview
     { id: "dashboard", label: "Dashboard", icon: <Home size={20} /> },
     { id: "children", label: "My Children", icon: <Users size={20} /> },
-    { id: "attendance", label: "Attendance", icon: <UserCheck size={20} /> },
+
+    // 2. Academics & Schedule
     { id: "academics", label: "Academics", icon: <Award size={20} /> },
     { id: "timetable", label: "Timetable", icon: <Calendar size={20} /> },
+    { id: "attendance", label: "Attendance", icon: <UserCheck size={20} /> },
     { id: "assignments", label: "Assignments", icon: <FileText size={20} /> },
     { id: "examination", label: "Examination", icon: <CheckCircle size={20} /> },
+
+    // 3. Finances & Campus Life
     { id: "fees", label: "Fee Management", icon: <DollarSign size={20} /> },
     { id: "library", label: "Library", icon: <BookOpen size={20} /> },
     { id: "placement", label: "Placement", icon: <Trophy size={20} /> },
     { id: "events", label: "Events & Meetings", icon: <Flag size={20} /> },
+
+    // 4. Requests & Comms
     { id: "leaves", label: "Leave Requests", icon: <Clock size={20} /> },
     { id: "communication", label: "Communication", icon: <MessageSquare size={20} /> },
+
+    // 5. Account & Settings (Bottom)
     { id: "profile", label: "Profile", icon: <Settings size={20} /> },
   ];
 
