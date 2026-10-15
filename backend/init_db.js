@@ -3097,6 +3097,100 @@ export async function initializeDatabase() {
       console.warn('[DATABASE INIT] Note on dropping block tables:', dropErr.message);
     }
 
+    // --- TIMETABLE INFRASTRUCTURE SCHEMA & SEEDS ---
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS classrooms (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          room_number VARCHAR(50) NOT NULL UNIQUE,
+          building VARCHAR(100) NOT NULL,
+          floor VARCHAR(50),
+          capacity INT DEFAULT 60,
+          room_type VARCHAR(50) DEFAULT 'Lecture Hall',
+          status ENUM('Active', 'Maintenance', 'Inactive') DEFAULT 'Active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS time_slots (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          period_number INT,
+          start_time TIME NOT NULL,
+          end_time TIME NOT NULL,
+          is_break BOOLEAN DEFAULT FALSE,
+          title VARCHAR(100)
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS timetable_master (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          department_id INT NULL,
+          course_id INT NULL,
+          semester_id INT NULL,
+          academic_session_id INT NULL,
+          version VARCHAR(20) DEFAULT '1.0',
+          status ENUM('Draft', 'Under Review', 'Approved', 'Published', 'Archived') DEFAULT 'Draft',
+          published_by INT NULL,
+          published_at DATETIME NULL,
+          created_by INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS timetable_entries (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          timetable_master_id INT NOT NULL,
+          section_id INT NULL,
+          day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') NOT NULL,
+          time_slot_id INT NULL,
+          subject_id INT NULL,
+          faculty_id INT NULL,
+          room_id INT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Seed classrooms if empty
+      const [existingRooms] = await pool.query('SELECT COUNT(*) as cnt FROM classrooms');
+      if (existingRooms[0]?.cnt === 0) {
+        await pool.query(`
+          INSERT INTO classrooms (room_number, building, floor, capacity, room_type, status) VALUES
+          ('CS-101', 'Computer Science Block', 'Ground Floor', 60, 'Lecture Hall', 'Active'),
+          ('CS-102', 'Computer Science Block', 'Ground Floor', 60, 'Lecture Hall', 'Active'),
+          ('CS-Lab1', 'Computer Science Block', 'First Floor', 35, 'Computer Lab', 'Active'),
+          ('CS-Lab2', 'Computer Science Block', 'First Floor', 35, 'Computer Lab', 'Active'),
+          ('SH-201', 'Main Academic Block', 'Second Floor', 120, 'Seminar Hall', 'Active'),
+          ('ME-101', 'Mechanical Block', 'Ground Floor', 60, 'Lecture Hall', 'Active'),
+          ('EC-201', 'Electronics Block', 'Second Floor', 60, 'Lecture Hall', 'Active')
+        `);
+        console.log('[DATABASE INIT] Seeded default classrooms.');
+      }
+
+      // Seed time slots if empty
+      const [existingSlots] = await pool.query('SELECT COUNT(*) as cnt FROM time_slots');
+      if (existingSlots[0]?.cnt === 0) {
+        await pool.query(`
+          INSERT INTO time_slots (period_number, start_time, end_time, is_break, title) VALUES
+          (1, '09:00:00', '10:00:00', FALSE, 'Period 1'),
+          (2, '10:00:00', '11:00:00', FALSE, 'Period 2'),
+          (0, '11:00:00', '11:15:00', TRUE, 'Tea Break'),
+          (3, '11:15:00', '12:15:00', FALSE, 'Period 3'),
+          (0, '12:15:00', '13:00:00', TRUE, 'Lunch Break'),
+          (4, '13:00:00', '14:00:00', FALSE, 'Period 4'),
+          (5, '14:00:00', '15:00:00', FALSE, 'Period 5'),
+          (6, '15:00:00', '16:00:00', FALSE, 'Period 6'),
+          (7, '16:00:00', '17:00:00', FALSE, 'Period 7')
+        `);
+        console.log('[DATABASE INIT] Seeded default standard academic time slots.');
+      }
+    } catch (ttInitErr) {
+      console.warn('[DATABASE INIT] Timetable schema check warning:', ttInitErr.message);
+    }
+
     console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');
     return { success: true, message: 'Database schema and permanent admin ready' };
   } catch (err) {

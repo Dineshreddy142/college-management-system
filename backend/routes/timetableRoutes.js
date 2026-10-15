@@ -6,7 +6,8 @@ import {
     createTimeSlot,
     getMasterTimetables,
     uploadTimetable,
-    publishTimetable
+    publishTimetable,
+    getTimetableTemplate
 } from '../controllers/timetableController.js';
 import { authenticateToken } from '../middleware.js';
 
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+router.get('/template', getTimetableTemplate);
 router.get('/classrooms', getClassrooms);
 router.post('/classrooms', createClassroom);
 router.get('/timeslots', getTimeSlots);

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import client from '../../api/client';
 
-type User = {
+export type User = {
   id: number;
   username: string;
   name?: string;
@@ -10,6 +10,11 @@ type User = {
   role: string;
   avatar?: string | null;
   must_change_password?: boolean;
+  department?: string;
+  department_name?: string;
+  roll_number?: string;
+  admission_number?: string;
+  [key: string]: any;
 };
 
 type AuthContextType = {

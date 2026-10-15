@@ -1544,6 +1544,7 @@ function FacultyManagement({ onGoBulk }: { onGoBulk?: () => void }) {
 function AttendanceModule({ onGoBulk }: { onGoBulk?: () => void }) {
   const [tab, setTab] = useState("daily");
   const [stats, setStats] = useState({ todayAttendance: '0%', classesToday: 0, defaulters: 0, avgMonthly: '0%' });
+  const [students, setStudents] = useState<any[]>([]);
   const tabs = ["daily", "monthly", "analytics", "defaulters"];
 
   useEffect(() => {
@@ -1556,7 +1557,18 @@ function AttendanceModule({ onGoBulk }: { onGoBulk?: () => void }) {
         avgMonthly: data.avg_monthly || data.avgMonthly || '0%'
       });
     }).catch(() => setStats({ todayAttendance: '0%', classesToday: 0, defaulters: 0, avgMonthly: '0%' }));
+
+    client.get('/students').then(res => {
+      const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data?.students) ? res.data.students : []));
+      setStudents(raw);
+    }).catch(() => setStudents([]));
   }, []);
+
+  const safeStudents = (Array.isArray(students) ? students : []).map(s => ({
+    id: s.admission_number || s.roll_number || `STU${s.id}`,
+    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || 'Student',
+    dept: s.department_name || s.dept || 'Engineering'
+  }));
 
   return (
     <div className="space-y-5">
