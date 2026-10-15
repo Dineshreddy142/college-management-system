@@ -235,9 +235,8 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "reports", label: "Institutional Analytics", icon: BarChart3, badge: null },
   { id: "audit-logs", label: "Security & Forensic Audit", icon: ShieldAlert, badge: "Live" },
 
-  // 5. System Administration & Profile (Bottom)
-  { id: "settings", label: "System Settings & Gateways", icon: Settings, badge: null },
-  { id: "profile", label: "Administrator Profile", icon: UserCheck, badge: null },
+  // 5. System Administration (Bottom)
+  { id: "settings", label: "System Settings", icon: Settings, badge: null },
 ];
 
 function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onMobileClose }: {
@@ -252,7 +251,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
   const filteredItems = SIDEBAR_ITEMS.filter(item => {
     const normRole = (user?.role || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (normRole === 'chancellor' || normRole === 'vicechancellor') {
-      return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'profile', 'settings'].includes(item.id);
+      return ['dashboard', 'users', 'students', 'faculty', 'attendance', 'exams', 'fees', 'reports', 'audit-logs', 'settings'].includes(item.id);
     }
     // Enterprise Admin: Focus strictly on IAM, Academic Windows, System Health, Security, and Master Setup
     if (!normRole || normRole === 'admin' || normRole === 'administrator' || normRole === 'systemadmin' || normRole === 'principal') {
@@ -265,8 +264,7 @@ function Sidebar({ active, onChange, collapsed, onToggle, onNav, mobileOpen, onM
         'timetable',
         'audit-logs',
         'reports',
-        'settings',
-        'profile'
+        'settings'
       ].includes(item.id);
     }
     if (normRole === 'registrar') return ['dashboard', 'users', 'students', 'faculty', 'registration-control', 'reports', 'settings', 'audit-logs'].includes(item.id);
