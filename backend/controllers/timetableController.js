@@ -300,7 +300,10 @@ export const getPredefinedSubjects = async (req, res) => {
         const { department_id, course_id, semester_id, semester } = req.query;
 
         let query = `
-            SELECT s.id, s.code, s.name, s.credits, s.type, s.department_id, s.semester,
+            SELECT s.id, s.code, s.name, s.credits,
+                   COALESCE(s.offering_type, 'Theory') as type,
+                   s.department_id,
+                   COALESCE(s.semester_id, 1) as semester,
                    d.name as department_name, d.code as department_code
             FROM subjects s
             LEFT JOIN departments d ON s.department_id = d.id
@@ -308,19 +311,19 @@ export const getPredefinedSubjects = async (req, res) => {
         `;
         const params = [];
         if (department_id && department_id !== 'all') {
-            query += ` AND s.department_id = ?`;
+            query += ` AND (s.department_id = ? OR s.department_id IS NULL)`;
             params.push(department_id);
         }
         if (semester && semester !== 'all') {
-            query += ` AND (s.semester = ? OR s.semester IS NULL)`;
+            query += ` AND (s.semester_id = ? OR s.semester_id IS NULL)`;
             params.push(semester);
         } else if (semester_id && semester_id !== 'all') {
             const [semRows] = await pool.query('SELECT semester_number FROM semesters WHERE id = ?', [semester_id]);
             if (semRows.length > 0 && semRows[0].semester_number) {
-                query += ` AND (s.semester = ? OR s.semester = ? OR s.semester IS NULL)`;
-                params.push(semRows[0].semester_number, semester_id);
+                query += ` AND (s.semester_id = ? OR s.semester_id = ? OR s.semester_id IS NULL)`;
+                params.push(semester_id, semRows[0].semester_number);
             } else {
-                query += ` AND (s.semester = ? OR s.semester IS NULL)`;
+                query += ` AND (s.semester_id = ? OR s.semester_id IS NULL)`;
                 params.push(semester_id);
             }
         }
@@ -533,7 +536,7 @@ export const getFacultyTimetable = async (req, res) => {
 
         const [entries] = await pool.query(`
             SELECT te.id, te.day_of_week,
-                   s.name as subject_name, s.code as subject_code, s.type as subject_type,
+                   s.name as subject_name, s.code as subject_code, COALESCE(s.offering_type, 'Theory') as subject_type,
                    ts.start_time, ts.end_time, ts.period_number, ts.title as slot_title,
                    c.room_number, c.building,
                    sec.name as section_name, sec.id as section_id,

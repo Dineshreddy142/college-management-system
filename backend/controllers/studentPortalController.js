@@ -125,7 +125,7 @@ export const getStudentTimetable = async (req, res) => {
 
     const [entries] = await pool.query(`
       SELECT te.id, te.day_of_week,
-             s.id as subject_id, s.name as subject_name, s.code as subject_code, s.type as subject_type,
+             s.id as subject_id, s.name as subject_name, s.code as subject_code, COALESCE(s.offering_type, 'Theory') as subject_type,
              COALESCE(u.full_name, f.name, CONCAT(f.first_name, ' ', COALESCE(f.last_name, ''))) as faculty_name,
              f.id as faculty_id, f.first_name as faculty_first_name, f.last_name as faculty_last_name,
              ts.start_time, ts.end_time, ts.period_number, ts.title as slot_title,

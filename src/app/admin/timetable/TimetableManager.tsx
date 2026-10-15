@@ -1,19 +1,27 @@
-import { useState } from "react";
-import { Calendar, UploadCloud, Grid, Building, Clock, FileCheck, PlusCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar, UploadCloud, Grid, Building, Clock, FileCheck, PlusCircle, UserCheck } from "lucide-react";
 import { cn } from "../../App";
 import { TimetableUpload } from "./TimetableUpload";
 import { TimetableGrid } from "./TimetableGrid";
 import { ClassroomManager } from "./ClassroomManager";
 import { CreateSemesterTimetable } from "./CreateSemesterTimetable";
+import { AdminOfferingRegistrationControl } from "../offering-management/AdminOfferingRegistrationControl";
 
-export function TimetableManager() {
-  const [activeTab, setActiveTab] = useState("create");
+export function TimetableManager({ initialTab = "create" }: { initialTab?: string }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const renderContent = () => {
     switch (activeTab) {
       case "create": return <CreateSemesterTimetable onCreated={() => setActiveTab("grid")} />;
-      case "upload": return <TimetableUpload />;
+      case "windows": return <AdminOfferingRegistrationControl />;
       case "grid": return <TimetableGrid />;
+      case "upload": return <TimetableUpload />;
       case "rooms": return <ClassroomManager />;
       default: return <TimetableGrid />;
     }
@@ -24,6 +32,7 @@ export function TimetableManager() {
       <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full overflow-x-auto scrollbar-none">
         {[
           { id: "create", label: "Create Semester Timetable", icon: <PlusCircle size={16} /> },
+          { id: "windows", label: "Registration Windows & Cutoffs", icon: <UserCheck size={16} /> },
           { id: "grid", label: "View Timetables", icon: <Grid size={16} /> },
           { id: "upload", label: "Upload & Validate", icon: <UploadCloud size={16} /> },
           { id: "rooms", label: "Classrooms", icon: <Building size={16} /> },
@@ -42,4 +51,5 @@ export function TimetableManager() {
     </div>
   );
 }
+
 

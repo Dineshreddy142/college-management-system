@@ -224,8 +224,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "mentors", label: "Mentors & Faculty Advisory", icon: Users, badge: "Mentorship" },
 
   // 3. Academics & Operations
-  { id: "registration-control", label: "Academic Windows & Cutoffs", icon: UserCheck, badge: "Live" },
-  { id: "timetable", label: "Master Institutional Timetable", icon: CalendarDays, badge: null },
+  { id: "timetable", label: "Academic Timetable & Course Setup", icon: CalendarDays, badge: "Master" },
   { id: "attendance", label: "Attendance Overview", icon: UserCheck, badge: "Governance" },
   { id: "exams", label: "Examinations Governance", icon: FileText, badge: "COE" },
   { id: "fees", label: "Fee Governance", icon: DollarSign, badge: "Finance" },
@@ -505,8 +504,8 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
   const labels: Record<string, string> = {
     dashboard: "Dashboard Overview",
     users: "User Access Control",
-    "registration-control": "Course Registration Windows",
-    "subject-offerings": "Curriculum Offering Control",
+    "registration-control": "Academic Timetable & Course Setup",
+    "subject-offerings": "Academic Timetable & Course Setup",
     academic: "Curriculum & Subjects",
     "subject-management": "Subject Master Management",
     profile: "Security & Profile",
@@ -515,7 +514,7 @@ function TopNav({ module, theme, toggleTheme, collapsed, onToggleSidebar }: {
     mentors: "Mentor Management",
     attendance: "Attendance Records",
     exams: "Examination Operations",
-    timetable: "Master Timetable",
+    timetable: "Academic Timetable & Course Setup",
     fees: "Fee Accounts",
     library: "Library Records",
     hostel: "Hostel Management",
@@ -2328,8 +2327,8 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
         }
         return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
-      case "registration-control": return <AdminOfferingRegistrationControl />;
-      case "subject-offerings": return <AdminOfferingRegistrationControl />;
+      case "registration-control": return <TimetableManager initialTab="windows" />;
+      case "subject-offerings": return <TimetableManager initialTab="windows" />;
       case "academic": return <SubjectManagement />;
       case "subject-management": return <SubjectManagement />;
       case "profile": return <ProfileModule />;
