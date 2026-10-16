@@ -44,6 +44,7 @@ import assignmentRoutes from './routes/assignmentRoutes.js';
 import grievanceRoutes from './routes/grievanceRoutes.js';
 import hostelRoutes from './routes/hostelRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
+import onlineExamRoutes from './routes/onlineExamRoutes.js';
 import { initializeDatabase } from './init_db.js';
 import { getAnalyticsSummary } from './controllers/dashboardController.js';
 
@@ -114,6 +115,7 @@ app.use('/api/academic', facultyAssignmentRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', attendanceRoutes);
 app.use('/api', examRoutes);
+app.use('/api/online-exams', onlineExamRoutes);
 app.use('/api', feeRoutes);
 app.use('/api', libraryRoutes);
 app.use('/api/placement', placementRoutes);

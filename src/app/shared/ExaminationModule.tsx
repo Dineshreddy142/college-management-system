@@ -80,9 +80,19 @@ export function ExaminationModule() {
           </h2>
           <p className="text-sm text-slate-500">View published end-term examination timetables and print verified hall tickets.</p>
         </div>
-        <Btn variant="primary" icon={<Download size={14} />} onClick={handleDownloadHallTicket}>
-          Download Hall Ticket
-        </Btn>
+        <div className="flex items-center gap-2">
+          <a
+            href="/exam-portal"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+          >
+            <span>Launch CBT Exam Portal</span>
+          </a>
+          <Btn variant="primary" icon={<Download size={14} />} onClick={handleDownloadHallTicket}>
+            Download Hall Ticket
+          </Btn>
+        </div>
       </div>
 
       <Card className="p-5">
