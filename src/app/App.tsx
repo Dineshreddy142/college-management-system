@@ -3084,8 +3084,8 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           {/* Secure Proctored Online CBT Exam Portal Routes */}
           <Route path="/exam-portal" element={<ExamPortalGatekeeper />} />
           <Route path="/exam-portal/take/:examId" element={<SecureExamRunner />} />
-          <Route path="/exam-portal/proctor/:examId" element={<ProtectedRoute allowedRole={["Admin", "Controller of Examinations", "Faculty", "HOD", "Dean", "Principal"]}><ProctorLiveConsole /></ProtectedRoute>} />
-          <Route path="/exam-portal/admin" element={<ProtectedRoute allowedRole={["Admin", "Controller of Examinations", "Faculty", "HOD", "Dean", "Principal"]}><ExamStudioHub /></ProtectedRoute>} />
+          <Route path="/exam-portal/proctor/:examId" element={<ProtectedRoute allowedRole={["Admin", "Super Admin", "Chancellor", "Vice Chancellor", "Registrar", "COE", "Controller of Examinations", "Exam Controller", "Placement Officer", "Placement", "Faculty", "HOD", "Dean", "Principal"]}><ProctorLiveConsole /></ProtectedRoute>} />
+          <Route path="/exam-portal/admin" element={<ProtectedRoute allowedRole={["Admin", "Super Admin", "Chancellor", "Vice Chancellor", "Registrar", "COE", "Controller of Examinations", "Exam Controller", "Placement Officer", "Placement", "Faculty", "HOD", "Dean", "Principal"]}><ExamStudioHub /></ProtectedRoute>} />
           
           {/* Protected Dashboards */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
