@@ -20,6 +20,7 @@ export const STUDENT_SIDEBAR_ITEMS = [
   // 2. Assessments & Performance
   { id: "assignments", label: "Assignments", icon: FileText, badge: "3 Due" },
   { id: "examination", label: "Examination", icon: Award, badge: null },
+  { id: "exam-portal", label: "Exam Browser", icon: ShieldCheck, badge: "CBT Live" },
   { id: "results", label: "Results", icon: BarChart3, badge: "New" },
   { id: "analytics", label: "Analytics", icon: TrendingUp, badge: null },
 
@@ -197,6 +198,33 @@ export function StudentSidebar({ active, onChange, collapsed, onToggle, onNav, m
             );
           })}
         </nav>
+
+        {/* Small Exam Browser Gateway Button */}
+        <div className="p-2.5 border-t border-white/10 bg-[#13263E]/80 flex-shrink-0">
+          <a
+            href="/exam-portal"
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-md shadow-indigo-950/40 transition-all group cursor-pointer",
+              collapsed && !mobileOpen ? "justify-center px-0" : ""
+            )}
+            title="Launch Secure CBT Exam Browser"
+          >
+            <ShieldCheck size={17} className="text-emerald-300 flex-shrink-0 animate-pulse" />
+            {(!collapsed || mobileOpen) && (
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold truncate">Exam Browser</span>
+                  <span className="text-[9px] font-mono uppercase bg-white/20 text-white px-1.5 py-0.5 rounded leading-none">
+                    Open
+                  </span>
+                </div>
+                <p className="text-[10px] text-emerald-200/80 truncate">Secure CBT Portal</p>
+              </div>
+            )}
+          </a>
+        </div>
       </div>
     </>
   );
