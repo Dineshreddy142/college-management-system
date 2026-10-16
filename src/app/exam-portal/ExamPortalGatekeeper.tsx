@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import {
   ShieldCheck, Lock, Key, Camera, User, CheckCircle2, AlertTriangle,
   ArrowRight, RefreshCw, Eye, EyeOff, Sparkles, Monitor, Wifi, Zap,
-  FileCheck, HelpCircle, XCircle
+  FileCheck, HelpCircle, XCircle, Mail
 } from 'lucide-react';
 import client from '../../api/client';
 
@@ -13,9 +13,9 @@ export const ExamPortalGatekeeper: React.FC = () => {
   // Wizard Steps: 1 = Email & Password, 2 = Exam & Passkey, 3 = Face Biometric, 4 = Lockdown Launch
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Factor 1 State: Account Credentials
-  const [identifier, setIdentifier] = useState('dineshreddy');
-  const [password, setPassword] = useState('Admin@123');
+  // Factor 1 State: Account Credentials (Strictly Institutional Email & Account Password)
+  const [email, setEmail] = useState('nuthanakalvadineshreddy@gmail.com');
+  const [password, setPassword] = useState('Dinesh@123');
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifyingLogin, setIsVerifyingLogin] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -93,7 +93,7 @@ export const ExamPortalGatekeeper: React.FC = () => {
     setIsVerifyingLogin(true);
 
     try {
-      const res = await client.post('/online-exams/verify-login', { identifier, password });
+      const res = await client.post('/online-exams/verify-login', { email: email.trim(), password });
       if (res.data?.success) {
         setCandidateData(res.data.candidate);
         setCandidateToken(res.data.candidateAuthToken);
@@ -304,7 +304,7 @@ export const ExamPortalGatekeeper: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-bold text-white">Factor 1: Candidate Authentication</h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Enter your registered college email or roll number and password
+                  Enter your registered institutional email address and account password
                 </p>
               </div>
 
@@ -318,16 +318,16 @@ export const ExamPortalGatekeeper: React.FC = () => {
               <form onSubmit={handleVerifyLogin} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Institutional Email / Roll Number
+                    Institutional Email Address
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+                    <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
                     <input
-                      type="text"
+                      type="email"
                       required
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. STU202601 or student@college.edu"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="e.g. nuthanakalvadineshreddy@gmail.com"
                       className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
                   </div>

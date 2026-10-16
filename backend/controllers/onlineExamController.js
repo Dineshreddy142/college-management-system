@@ -16,7 +16,7 @@ const SIMILARITY_THRESHOLD = parseFloat(process.env.FACE_SIMILARITY_THRESHOLD ||
 // Helper to find student record from user ID
 async function resolveStudentInfo(userId) {
   const [rows] = await pool.query(`
-    SELECT s.id as student_id, s.roll_number, s.admission_number, s.department_id, s.current_semester,
+    SELECT s.id as student_id, s.roll_number, s.admission_number, s.department_id, s.semester, s.current_semester_id,
            u.id as user_id, u.username, u.full_name, u.email
     FROM users u
     LEFT JOIN students s ON s.user_id = u.id
@@ -26,30 +26,31 @@ async function resolveStudentInfo(userId) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. FACTOR 1: CANDIDATE LOGIN (EMAIL/IDENTIFIER + PASSWORD)
+// 1. FACTOR 1: CANDIDATE LOGIN (STRICTLY INSTITUTIONAL EMAIL + USERS PASSWORD)
 // ─────────────────────────────────────────────────────────────────────────────
 export const verifyCandidateLogin = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
-      return res.status(400).json({ success: false, message: 'Institutional email/username and password are required' });
+    const { email, identifier, password } = req.body;
+    const targetEmail = (email || identifier || '').trim().toLowerCase();
+
+    if (!targetEmail || !password) {
+      return res.status(400).json({ success: false, message: 'Institutional email address and password are required' });
     }
 
-    const cleanId = identifier.trim().toLowerCase();
-
-    // Query user
+    // Query user strictly by email from central users table
     const [users] = await pool.query(`
-      SELECT u.*, r.name as role_name,
-             s.id as student_id, s.roll_number, s.department_id, s.current_semester
+      SELECT u.id, u.username, u.full_name, u.email, u.password, u.status, u.role_id,
+             r.name as role_name,
+             s.id as student_id, s.roll_number, s.department_id, s.semester, s.current_semester_id
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
       LEFT JOIN students s ON s.user_id = u.id
-      WHERE LOWER(u.email) = ? OR LOWER(u.username) = ? OR LOWER(s.roll_number) = ?
+      WHERE LOWER(TRIM(u.email)) = LOWER(TRIM(?))
       LIMIT 1
-    `, [cleanId, cleanId, cleanId]);
+    `, [targetEmail]);
 
     if (users.length === 0) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. Account not found.' });
+      return res.status(401).json({ success: false, message: 'No account registered with this institutional email address.' });
     }
 
     const user = users[0];
@@ -57,7 +58,7 @@ export const verifyCandidateLogin = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Account is suspended or inactive. Contact administrator.' });
     }
 
-    // Verify Password
+    // Verify Password directly against users.password
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
       return res.status(401).json({ success: false, message: 'Invalid credentials. Password incorrect.' });
