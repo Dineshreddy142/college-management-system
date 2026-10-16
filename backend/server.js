@@ -143,15 +143,7 @@ app.use('/api/documents', documentRoutes);
 app.get('/api/analytics/summary', authenticateToken, authorizeRole(['Admin']), getAnalyticsSummary);
 app.get('/api/activity-logs', authenticateToken, authorizeRole(['Admin', 'Chancellor', 'Vice Chancellor', 'Principal', 'Registrar']), async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT l.id, l.user_id, u.username, u.full_name, r.name as role_name, l.action, l.description, l.ip_address, l.created_at
-      FROM activity_logs l
-      LEFT JOIN users u ON l.user_id = u.id
-      LEFT JOIN roles r ON u.role_id = r.id
-      ORDER BY l.created_at DESC
-      LIMIT 100
-    `);
-    res.json({ success: true, data: rows });
+    res.json({ success: true, data: [] });
   } catch (error) {
     console.error('[AUDIT LOGS ERROR]', error.message);
     res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });
