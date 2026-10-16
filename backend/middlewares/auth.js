@@ -29,9 +29,7 @@ export const authorizeRole = (allowedRoles) => {
             if (roleNorm === userRoleNorm) return true;
             
             const executiveRoles = [
-                'admin', 'administrator', 'systemadmin', 'principal', 
-                'chancellor', 'vicechancellor', 'registrar', 'coe', 
-                'controllerofexaminations', 'dean', 'hod'
+                'admin', 'administrator', 'systemadmin', 'dean', 'hod'
             ];
             
             if (executiveRoles.includes(userRoleNorm) && (roleNorm === 'admin' || roleNorm === 'administrator' || executiveRoles.includes(roleNorm))) {

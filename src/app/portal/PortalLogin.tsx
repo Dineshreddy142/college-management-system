@@ -43,7 +43,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
   
   // Extract role from URL pathname (e.g. /student/login -> 'student')
   const getRoleFromPath = (pathname: string): string => {
-    const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'chancellor', 'vicechancellor', 'registrar', 'coe', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+    const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'parent', 'placement'];
     const segments = pathname.toLowerCase().split('/').filter(Boolean);
     for (const segment of segments) {
       if (validRoles.includes(segment)) {
@@ -59,7 +59,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     const parts = host.split('.');
     if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
       const sub = parts[0];
-      const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'chancellor', 'vicechancellor', 'registrar', 'coe', 'parent', 'principal', 'office', 'accountant', 'librarian', 'placement'];
+      const validRoles = ['admin', 'student', 'faculty', 'hod', 'dean', 'parent', 'placement'];
       if (validRoles.includes(sub)) {
         return sub;
       }
@@ -126,26 +126,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ role: propRole }) => {
     const rawRole = (userRole || effectiveRole || 'student').toLowerCase().replace(/[^a-z0-9]/g, '');
     const roleMap: Record<string, string> = {
       admin: 'admin',
-      chancellor: 'chancellor',
-      vicechancellor: 'vicechancellor',
-      registrar: 'registrar',
-      coe: 'coe',
-      controllerofexaminations: 'coe',
       dean: 'dean',
       hod: 'hod',
       student: 'student',
       faculty: 'faculty',
       parent: 'parent',
-      accountant: 'accountant',
-      librarian: 'librarian',
       placement: 'placement',
-      placementofficer: 'placement',
-      principal: 'admin',
-      office: 'officestaff',
-      officestaff: 'officestaff',
-      staff: 'officestaff',
-      admission: 'admission',
-      admissionofficer: 'admission'
+      placementofficer: 'placement'
     };
     const dest = roleMap[rawRole] || 'student';
     navigate(`/${dest}/dashboard`);

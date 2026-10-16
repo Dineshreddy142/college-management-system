@@ -45,17 +45,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
       const isAdmin = userRoleNorm === 'admin' || userRoleNorm.includes('admin');
       const isExact = userRoleNorm === allowedRoleNorm;
       const isSubMatch = userRoleNorm.includes(allowedRoleNorm) || allowedRoleNorm.includes(userRoleNorm);
-      const isOfficeMatch = (allowedRoleNorm.includes('office') || allowedRoleNorm.includes('staff')) &&
-                            (userRoleNorm.includes('office') || userRoleNorm.includes('staff'));
-
-      const isAdmissionMatch = (allowedRoleNorm.includes('admission') && userRoleNorm.includes('admission'));
       const isPlacementMatch = (allowedRoleNorm.includes('placement') && userRoleNorm.includes('placement'));
-      const isCOEMatch = (allowedRoleNorm.includes('coe') || allowedRoleNorm.includes('controller')) &&
-                         (userRoleNorm.includes('coe') || userRoleNorm.includes('controller'));
-      const isGovernanceMatch = (allowedRoleNorm === 'admin') &&
-                                (userRoleNorm.includes('chancellor') || userRoleNorm.includes('registrar'));
 
-      return isAdmin || isExact || isSubMatch || isOfficeMatch || isAdmissionMatch || isPlacementMatch || isCOEMatch || isGovernanceMatch;
+      return isAdmin || isExact || isSubMatch || isPlacementMatch;
     });
 
     if (!isMatch) {

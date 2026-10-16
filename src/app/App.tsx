@@ -10,9 +10,6 @@ import { AccessDenied, NotFound } from './portal/ErrorPages';
 import { FacultyDashboard } from "./faculty/FacultyDashboard";
 import { StudentDashboard } from "./student/StudentDashboard";
 import { ParentDashboard } from "./parent/ParentDashboard";
-import { ChancellorDashboard } from "./chancellor/ChancellorDashboard";
-import { OfficeStaffDashboard } from "./officestaff/OfficeStaffDashboard";
-import { AdmissionOfficeDashboard } from "./admission/AdmissionOfficeDashboard";
 import { PublicAdmissionPortal } from "./admission/PublicAdmissionPortal";
 import { TimetableManager } from "./admin/timetable/TimetableManager";
 
@@ -2317,14 +2314,9 @@ function AdminDashboard({ onNav, theme, toggleTheme }: { onNav: (v: string) => v
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const roleName = (user?.role || '').toLowerCase();
-  const isChancellor = roleName.includes('chancellor');
-
   const render = () => {
     switch (mod) {
       case "dashboard": 
-        if (isChancellor) {
-          return <ChancellorDashboard onNav={(m) => setMod(m)} theme={theme} toggleTheme={toggleTheme} />;
-        }
         return <DashboardHome onNavigate={(m) => setMod(m)} />;
       case "users": return <UserControlModule />;
       case "registration-control": return <TimetableManager initialTab="windows" />;
@@ -3045,20 +3037,12 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<PortalLogin />} />
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-          <Route path="/chancellor/login" element={<Navigate to="/login" replace />} />
-          <Route path="/vicechancellor/login" element={<Navigate to="/login" replace />} />
-          <Route path="/registrar/login" element={<Navigate to="/login" replace />} />
-          <Route path="/coe/login" element={<Navigate to="/login" replace />} />
           <Route path="/dean/login" element={<Navigate to="/login" replace />} />
           <Route path="/student/login" element={<Navigate to="/login" replace />} />
           <Route path="/faculty/login" element={<Navigate to="/login" replace />} />
           <Route path="/hod/login" element={<Navigate to="/login" replace />} />
           <Route path="/parent/login" element={<Navigate to="/login" replace />} />
-          <Route path="/accountant/login" element={<Navigate to="/login" replace />} />
-          <Route path="/librarian/login" element={<Navigate to="/login" replace />} />
           <Route path="/placement/login" element={<Navigate to="/login" replace />} />
-          <Route path="/principal/login" element={<Navigate to="/login" replace />} />
-          <Route path="/office/login" element={<Navigate to="/login" replace />} />
           <Route path="/:role/login" element={<Navigate to="/login" replace />} />
           <Route path="/login/:role" element={<Navigate to="/login" replace />} />
 
@@ -3081,22 +3065,6 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/admin/dashboard/*" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          
-          <Route path="/chancellor/dashboard" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/chancellor/dashboard/*" element={<ProtectedRoute allowedRole="Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/chancellor" element={<Navigate to="/chancellor/dashboard" replace />} />
-
-          <Route path="/vicechancellor/dashboard" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/vicechancellor/dashboard/*" element={<ProtectedRoute allowedRole="Vice Chancellor"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/vicechancellor" element={<Navigate to="/vicechancellor/dashboard" replace />} />
-
-          <Route path="/registrar/dashboard" element={<ProtectedRoute allowedRole="Registrar"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/registrar/dashboard/*" element={<ProtectedRoute allowedRole="Registrar"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/registrar" element={<Navigate to="/registrar/dashboard" replace />} />
-
-          <Route path="/coe/dashboard" element={<ProtectedRoute allowedRole="Controller of Examinations"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/coe/dashboard/*" element={<ProtectedRoute allowedRole="Controller of Examinations"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/coe" element={<Navigate to="/coe/dashboard" replace />} />
 
           <Route path="/dean/dashboard" element={<ProtectedRoute allowedRole="Dean"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/dean/dashboard/*" element={<ProtectedRoute allowedRole="Dean"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
@@ -3106,28 +3074,9 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/hod/dashboard/*" element={<ProtectedRoute allowedRole="HOD"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
           
-          <Route path="/accountant/dashboard" element={<ProtectedRoute allowedRole="Accountant"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/accountant/dashboard/*" element={<ProtectedRoute allowedRole="Accountant"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          
-          <Route path="/librarian/dashboard" element={<ProtectedRoute allowedRole="Librarian"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/librarian/dashboard/*" element={<ProtectedRoute allowedRole="Librarian"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          
           <Route path="/placement/dashboard" element={<ProtectedRoute allowedRole="Placement"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/placement/dashboard/*" element={<ProtectedRoute allowedRole="Placement"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-
-          <Route path="/officestaff/dashboard" element={<ProtectedRoute allowedRole="Office Staff"><OfficeStaffDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/officestaff/dashboard/*" element={<ProtectedRoute allowedRole="Office Staff"><OfficeStaffDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/officestaff" element={<Navigate to="/officestaff/dashboard" replace />} />
-          <Route path="/office/dashboard" element={<ProtectedRoute allowedRole="Office Staff"><OfficeStaffDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/office/dashboard/*" element={<ProtectedRoute allowedRole="Office Staff"><OfficeStaffDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/office" element={<Navigate to="/officestaff/dashboard" replace />} />
-
-          <Route path="/admission/dashboard" element={<ProtectedRoute allowedRole="Admission Officer"><AdmissionOfficeDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/admission/dashboard/*" element={<ProtectedRoute allowedRole="Admission Officer"><AdmissionOfficeDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/admission" element={<Navigate to="/admission/dashboard" replace />} />
-          <Route path="/admissionofficer/dashboard" element={<ProtectedRoute allowedRole="Admission Officer"><AdmissionOfficeDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/admissionofficer/dashboard/*" element={<ProtectedRoute allowedRole="Admission Officer"><AdmissionOfficeDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
-          <Route path="/admissionofficer" element={<Navigate to="/admission/dashboard" replace />} />
+          <Route path="/placement" element={<Navigate to="/placement/dashboard" replace />} />
 
           <Route path="/faculty/dashboard" element={<ProtectedRoute allowedRole="Faculty"><FacultyDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />
           <Route path="/faculty/dashboard/*" element={<ProtectedRoute allowedRole="Faculty"><FacultyDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />

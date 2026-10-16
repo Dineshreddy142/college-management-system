@@ -65,7 +65,7 @@ import {
 import { authenticateToken, authorizeRole } from '../middleware.js';
 
 const router = express.Router();
-const allowedRoles = ['Admin', 'Registrar', 'Admission Officer', 'Admission'];
+const allowedRoles = ['Admin', 'Dean'];
 
 // All routes protected by JWT and RBAC
 router.use(authenticateToken);

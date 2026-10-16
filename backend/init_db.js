@@ -2932,21 +2932,12 @@ export async function initializeDatabase() {
     // --- SEED ESSENTIAL ROLES & PERMANENT ADMIN ---
     const roles = [
       'Admin',
-      'Chancellor',
-      'Vice Chancellor',
-      'Registrar',
-      'Controller of Examinations',
       'Dean',
       'HOD',
       'Faculty',
       'Student',
       'Parent',
-      'Principal',
-      'Accountant',
-      'Librarian',
-      'Placement Officer',
-      'Office Staff',
-      'Admission Officer'
+      'Placement Officer'
     ];
 
     for (const r of roles) {
