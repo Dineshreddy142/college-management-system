@@ -30,10 +30,6 @@ import { AdminExamResultsManagement } from "./admin/exam-management/AdminExamRes
 import { AdminFinanceManagement } from "./admin/finance/AdminFinanceManagement";
 import { AdminLibraryManagement } from "./admin/library/AdminLibraryManagement";
 import { PlacementManagementHub } from "./admin/placement/PlacementManagementHub";
-import { ExamPortalGatekeeper } from "./exam-portal/ExamPortalGatekeeper";
-import { SecureExamRunner } from "./exam-portal/SecureExamRunner";
-import { ProctorLiveConsole } from "./exam-portal/ProctorLiveConsole";
-import { ExamStudioHub } from "./exam-portal/ExamStudioHub";
 import { FaceLoginModal } from "../components/FaceLoginModal";
 import { getFaceAuthStatus, deleteFaceBiometrics } from "../api/faceAuthApi";
 import client from "../api/client";
@@ -3080,12 +3076,6 @@ function AppContent({ initialPortalName, initialPortalRole }: { initialPortalNam
           <Route path="/apply" element={<PublicAdmissionPortal />} />
           <Route path="/admission-apply" element={<PublicAdmissionPortal />} />
           <Route path="/apply/status" element={<PublicAdmissionPortal />} />
-
-          {/* Secure Proctored Online CBT Exam Portal Routes */}
-          <Route path="/exam-portal" element={<ExamPortalGatekeeper />} />
-          <Route path="/exam-portal/take/:examId" element={<SecureExamRunner />} />
-          <Route path="/exam-portal/proctor/:examId" element={<ProtectedRoute allowedRole={["Admin", "Super Admin", "Chancellor", "Vice Chancellor", "Registrar", "COE", "Controller of Examinations", "Exam Controller", "Placement Officer", "Placement", "Faculty", "HOD", "Dean", "Principal"]}><ProctorLiveConsole /></ProtectedRoute>} />
-          <Route path="/exam-portal/admin" element={<ProtectedRoute allowedRole={["Admin", "Super Admin", "Chancellor", "Vice Chancellor", "Registrar", "COE", "Controller of Examinations", "Exam Controller", "Placement Officer", "Placement", "Faculty", "HOD", "Dean", "Principal"]}><ExamStudioHub /></ProtectedRoute>} />
           
           {/* Protected Dashboards */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRole="Admin"><AdminDashboard onNav={handleNav} theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute>} />

@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import pool, { ensureBiometricTables } from './db.js';
-import { initOnlineExamSchema } from './schema/init_online_exam_schema.js';
 
 export async function initializeDatabase() {
   console.log('[DATABASE INIT] Checking and initializing database schema & default seed users...');
@@ -3199,9 +3198,11 @@ export async function initializeDatabase() {
     }
 
     try {
-      await initOnlineExamSchema(pool);
-    } catch (examInitErr) {
-      console.warn('[DATABASE INIT] Online Exam schema check warning:', examInitErr.message);
+      await pool.query(`
+        DROP TABLE IF EXISTS online_exam_violations, online_exam_answers, online_exam_sessions, online_exam_questions, online_exams, exam_questions, exam_question_banks;
+      `);
+    } catch (cleanupErr) {
+      console.warn('[DATABASE INIT] Online Exam cleanup notice:', cleanupErr.message);
     }
 
     console.log('[DATABASE INIT] Schema, roles, and permanent Admin verified successfully.');

@@ -445,15 +445,6 @@ export const AdminExamResultsManagement: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <a
-            href="/exam-portal/admin"
-            target="_blank"
-            rel="noreferrer"
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Online CBT Studio</span>
-          </a>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-500/20 cursor-pointer"

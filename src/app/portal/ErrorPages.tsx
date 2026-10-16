@@ -32,13 +32,6 @@ export const AccessDenied: React.FC = () => {
         )}
 
         <div className="space-y-2.5">
-          <a 
-            href="/exam-portal" 
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md shadow-indigo-500/20 transition-all flex justify-center items-center gap-2 text-sm"
-          >
-            <ShieldCheck size={16} /> Open Candidate Exam Portal
-          </a>
-
           <button 
             onClick={() => navigate(-1)} 
             className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-xl font-semibold transition-all flex justify-center items-center gap-2 text-sm"
