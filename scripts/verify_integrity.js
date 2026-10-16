@@ -56,40 +56,34 @@ async function verifyDatabaseIntegrity() {
   });
 
   try {
-    // 1. Orphan Faculty Check
-    const [facultyOrphans] = await pool.query(
-      `SELECT COUNT(*) as count FROM faculty WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM users)`
+    // 1. Roles and Users Integrity Check
+    const [userRoleOrphans] = await pool.query(
+      `SELECT COUNT(*) as count FROM users WHERE role_id IS NOT NULL AND role_id NOT IN (SELECT id FROM roles)`
     );
-    const facultyOrphanCount = facultyOrphans[0].count;
-    if (facultyOrphanCount > 0) {
-      throw new Error(`Found ${facultyOrphanCount} orphan records in 'faculty' table referencing non-existent 'users'`);
+    const userRoleOrphanCount = userRoleOrphans[0]?.count || 0;
+    if (userRoleOrphanCount > 0) {
+      throw new Error(`Found ${userRoleOrphanCount} orphan records in 'users' table referencing non-existent 'roles'`);
     }
 
-    // 2. Orphan Student Check
-    const [studentOrphans] = await pool.query(
-      `SELECT COUNT(*) as count FROM students WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT id FROM users)`
+    // 2. Face Biometrics Integrity Check
+    const [faceOrphans] = await pool.query(
+      `SELECT COUNT(*) as count FROM face_biometrics WHERE user_id NOT IN (SELECT id FROM users)`
     );
-    const studentOrphanCount = studentOrphans[0].count;
-    if (studentOrphanCount > 0) {
-      throw new Error(`Found ${studentOrphanCount} orphan records in 'students' table referencing non-existent 'users'`);
+    const faceOrphanCount = faceOrphans[0]?.count || 0;
+    if (faceOrphanCount > 0) {
+      throw new Error(`Found ${faceOrphanCount} orphan records in 'face_biometrics' table referencing non-existent 'users'`);
     }
 
-    // 3. Foreign Key Constraints Check
-    const [fkRows] = await pool.query(`
-      SELECT CONSTRAINT_NAME, TABLE_NAME 
-      FROM information_schema.TABLE_CONSTRAINTS 
-      WHERE TABLE_SCHEMA = ? 
-        AND CONSTRAINT_TYPE = 'FOREIGN KEY' 
-        AND CONSTRAINT_NAME IN ('fk_faculty_user', 'fk_students_user')
-    `, [dbName]);
-
-    const fkNames = fkRows.map(r => r.CONSTRAINT_NAME);
-    const missingFks = ['fk_faculty_user', 'fk_students_user'].filter(k => !fkNames.includes(k));
-    if (missingFks.length > 0) {
-      console.warn(`  ⚠️ Missing key foreign constraints: ${missingFks.join(', ')}`);
+    // 3. WebAuthn Passkey Credentials Integrity Check
+    const [webauthnOrphans] = await pool.query(
+      `SELECT COUNT(*) as count FROM webauthn_credentials WHERE user_id NOT IN (SELECT id FROM users)`
+    );
+    const webauthnOrphanCount = webauthnOrphans[0]?.count || 0;
+    if (webauthnOrphanCount > 0) {
+      throw new Error(`Found ${webauthnOrphanCount} orphan records in 'webauthn_credentials' table referencing non-existent 'users'`);
     }
 
-    console.log('  ✅ Database relational integrity verified: 0 orphan records in faculty/students.');
+    console.log('  ✅ Database relational integrity verified: 0 orphan records in users, roles, face biometrics & passkeys.');
     await pool.end();
     return { passed: true, skipped: false };
   } catch (err) {
