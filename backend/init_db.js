@@ -1838,71 +1838,7 @@ export async function initializeDatabase() {
       )
     `);
 
-    // 20.a Library Branches Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_branches (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(150) NOT NULL UNIQUE,
-        location VARCHAR(200) NULL,
-        building VARCHAR(100) NULL,
-        floor VARCHAR(50) NULL,
-        contact VARCHAR(50) NULL,
-        opening_time TIME DEFAULT '08:00:00',
-        closing_time TIME DEFAULT '20:00:00',
-        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'
-      )
-    `);
-
-    const [lBranches] = await pool.query('SELECT id FROM library_branches LIMIT 1');
-    if (lBranches.length === 0) {
-      await pool.query(`
-        INSERT INTO library_branches (name, location, building, floor, contact) VALUES
-        ('Central Library', 'Main Campus Ground Floor', 'Main Academic Building', 'Ground Floor', '+91-9876543210'),
-        ('Central Digital Library', 'Tech Block 2nd Floor', 'Science & Tech Block', '2nd Floor', '+91-9876543211'),
-        ('CSE Department Library', 'CSE Wing 3rd Floor', 'Engineering Block A', '3rd Floor', '+91-9876543212')
-      `);
-    }
-
-    // 20.b Library Sections Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_sections (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        branch_id INT NOT NULL,
-        name VARCHAR(100) NOT NULL,
-        code VARCHAR(50) NOT NULL,
-        FOREIGN KEY (branch_id) REFERENCES library_branches(id) ON DELETE CASCADE
-      )
-    `);
-
-    const [lSecs] = await pool.query('SELECT id FROM library_sections LIMIT 1');
-    if (lSecs.length === 0) {
-      const [b1] = await pool.query('SELECT id FROM library_branches ORDER BY id ASC LIMIT 1');
-      const branchId = b1[0]?.id || 1;
-      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (1, ?, "Computer Science", "SEC-CSE")', [branchId]);
-      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (2, ?, "Electronics & Tech", "SEC-ECE")', [branchId]);
-      await pool.query('INSERT IGNORE INTO library_sections (id, branch_id, name, code) VALUES (3, ?, "General Reference", "SEC-REF")', [branchId]);
-    }
-
-    // 20.c Library Shelves Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_shelves (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        section_id INT NOT NULL,
-        shelf_code VARCHAR(50) NOT NULL UNIQUE,
-        shelf_name VARCHAR(100) NOT NULL,
-        capacity INT DEFAULT 150,
-        FOREIGN KEY (section_id) REFERENCES library_sections(id) ON DELETE CASCADE
-      )
-    `);
-
-    const [lShelves] = await pool.query('SELECT id FROM library_shelves LIMIT 1');
-    if (lShelves.length === 0) {
-      const [s1] = await pool.query('SELECT id FROM library_sections ORDER BY id ASC LIMIT 1');
-      const secId = s1[0]?.id || 1;
-      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (1, ?, "CSE-A-12", "Database & OS Shelf", 150)', [secId]);
-      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (2, ?, "CSE-B-04", "Programming & Algorithms Shelf", 150)', [secId]);
-      await pool.query('INSERT IGNORE INTO library_shelves (id, section_id, shelf_code, shelf_name, capacity) VALUES (3, ?, "ECE-A-01", "Digital Electronics Shelf", 150)', [secId]);
-    }
+    // 20. Library Catalog Tables
 
     // 20.d Book Categories Table
     await pool.query(`
@@ -1997,9 +1933,7 @@ export async function initializeDatabase() {
         status ENUM('ACTIVE', 'INACTIVE', 'ARCHIVED') DEFAULT 'ACTIVE',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (category_id) REFERENCES book_categories(id),
-        FOREIGN KEY (publisher_id) REFERENCES publishers(id),
-        FOREIGN KEY (shelf_id) REFERENCES library_shelves(id),
-        FOREIGN KEY (branch_id) REFERENCES library_branches(id)
+        FOREIGN KEY (publisher_id) REFERENCES publishers(id)
       )
     `);
 
@@ -2068,9 +2002,7 @@ export async function initializeDatabase() {
         item_condition ENUM('NEW', 'GOOD', 'FAIR', 'DAMAGED', 'LOST') DEFAULT 'GOOD',
         status ENUM('AVAILABLE', 'ISSUED', 'RESERVED', 'LOST', 'DAMAGED', 'MAINTENANCE', 'WITHDRAWN') DEFAULT 'AVAILABLE',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
-        FOREIGN KEY (branch_id) REFERENCES library_branches(id),
-        FOREIGN KEY (shelf_id) REFERENCES library_shelves(id)
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
       )
     `);
 
@@ -2104,56 +2036,7 @@ export async function initializeDatabase() {
       `, [book2Id, book2Id]);
     }
 
-    // 20.j Library Members Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_members (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE,
-        member_type ENUM('STUDENT', 'FACULTY', 'STAFF') DEFAULT 'STUDENT',
-        issue_limit INT DEFAULT 5,
-        loan_period_days INT DEFAULT 14,
-        status ENUM('ACTIVE', 'SUSPENDED', 'EXPIRED') DEFAULT 'ACTIVE',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
 
-    // 20.k Library Issues Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_issues (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        copy_id INT NOT NULL,
-        book_id INT NOT NULL,
-        member_id INT NOT NULL,
-        user_id INT NOT NULL,
-        issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        due_date DATETIME NOT NULL,
-        return_date DATETIME NULL,
-        issued_by INT NULL,
-        returned_by INT NULL,
-        renew_count INT DEFAULT 0,
-        fine_amount DECIMAL(10,2) DEFAULT 0.00,
-        status ENUM('ISSUED', 'RETURNED', 'OVERDUE', 'LOST') DEFAULT 'ISSUED',
-        FOREIGN KEY (copy_id) REFERENCES book_copies(id),
-        FOREIGN KEY (book_id) REFERENCES books(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
-    `);
-
-    // 20.l Library Reservations Table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS library_reservations (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        book_id INT NOT NULL,
-        user_id INT NOT NULL,
-        request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        expiry_date DATETIME NULL,
-        queue_position INT DEFAULT 1,
-        status ENUM('WAITING', 'READY', 'FULFILLED', 'CANCELLED', 'EXPIRED') DEFAULT 'WAITING',
-        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
 
     // 20.m Digital Resources Table
     await pool.query(`
@@ -2361,50 +2244,7 @@ export async function initializeDatabase() {
       )
     `);
 
-    // 25. Hostel & Accommodation Governance Tables
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS hostel_blocks (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(150) NOT NULL UNIQUE,
-        type ENUM('Boys', 'Girls') NOT NULL,
-        warden_name VARCHAR(150) NOT NULL,
-        warden_phone VARCHAR(50) NULL,
-        total_rooms INT DEFAULT 50,
-        occupied_beds INT DEFAULT 0,
-        total_beds INT DEFAULT 150,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS hostel_rooms (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        block_id INT NOT NULL,
-        room_number VARCHAR(50) NOT NULL,
-        floor_number INT DEFAULT 1,
-        capacity INT DEFAULT 3,
-        occupied_beds INT DEFAULT 0,
-        status ENUM('Available', 'Full', 'Maintenance') DEFAULT 'Available',
-        FOREIGN KEY (block_id) REFERENCES hostel_blocks(id) ON DELETE CASCADE
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS hostel_allocations (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id INT NOT NULL,
-        block_id INT NOT NULL,
-        room_id INT NULL,
-        bed_number INT DEFAULT 1,
-        status ENUM('Active', 'Vacated') DEFAULT 'Active',
-        allocated_date DATE NOT NULL,
-        vacated_date DATE NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (block_id) REFERENCES hostel_blocks(id) ON DELETE CASCADE,
-        FOREIGN KEY (room_id) REFERENCES hostel_rooms(id) ON DELETE SET NULL
-      )
-    `);
 
     // 26. Official Certificates & Documents Table
     await pool.query(`
@@ -2421,17 +2261,7 @@ export async function initializeDatabase() {
       )
     `);
 
-    // Seed Initial Hostel Blocks if empty
-    const [hBlocks] = await pool.query('SELECT id FROM hostel_blocks LIMIT 1');
-    if (hBlocks.length === 0) {
-      await pool.query(`
-        INSERT INTO hostel_blocks (name, type, warden_name, warden_phone, total_rooms, occupied_beds, total_beds) VALUES
-        ('Block A - Ramanujan Hall', 'Boys', 'Dr. K. V. Sharma', '+91 98765 43210', 80, 210, 240),
-        ('Block B - Visvesvaraya Hall', 'Boys', 'Prof. Rajesh Kumar', '+91 98765 43211', 100, 285, 300),
-        ('Block C - Kalpana Chawla Hall', 'Girls', 'Dr. Ananya Roy', '+91 98765 43212', 90, 250, 270),
-        ('Block D - Sarojini Naidu Hall', 'Girls', 'Mrs. Meenakshi S.', '+91 98765 43213', 75, 200, 225)
-      `);
-    }
+
 
     // Ensure face authentication and webauthn biometric tables exist
     try {
