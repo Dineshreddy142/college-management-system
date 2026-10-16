@@ -18,7 +18,11 @@ import {
 import { authenticateToken, authorizeRole } from '../middleware.js';
 
 const router = express.Router();
-const facultyAndAdmin = ['Admin', 'Faculty', 'HOD', 'Controller of Examinations', 'COE', 'Dean', 'Principal'];
+const facultyAndAdmin = [
+  'Admin', 'Super Admin', 'Faculty', 'HOD', 'Controller of Examinations', 
+  'COE', 'Dean', 'Principal', 'Placement Officer', 'Placement', 
+  'Chancellor', 'Vice Chancellor', 'Registrar'
+];
 
 // --- 3-FACTOR CANDIDATE AUTHENTICATION & GATEKEEPER ---
 // Factor 1: Email + Password Candidate Verification

@@ -3,12 +3,24 @@ import { useNavigate } from 'react-router';
 import {
   BookOpen, Plus, Key, Camera, ShieldCheck, Clock,
   CheckCircle2, AlertTriangle, ArrowRight, Radio, ExternalLink,
-  Layers, Search, FileText, Settings, Award
+  Layers, Search, FileText, Settings, Award, Lock, Unlock, Eye, EyeOff
 } from 'lucide-react';
 import client from '../../api/client';
+import { useAuth } from '../portal/AuthContext';
 
 export const ExamStudioHub: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Dedicated Exam Studio Security Clearance Gate
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('cbt_studio_unlocked') === 'true';
+  });
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [showVerifyPassword, setShowVerifyPassword] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const [activeTab, setActiveTab] = useState<'EXAMS' | 'BANKS' | 'NEW_EXAM' | 'NEW_QUESTION'>('EXAMS');
 
   const [exams, setExams] = useState<any[]>([]);
@@ -50,8 +62,8 @@ export const ExamStudioHub: React.FC = () => {
     setIsLoading(true);
     try {
       const [banksRes, examsRes] = await Promise.all([
-        client.get('/online-exams/banks'),
-        client.get('/exams')
+        client.get('/online-exams/banks').catch(() => ({ data: { data: [] } })),
+        client.get('/exams').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (banksRes.data?.data) {
@@ -61,14 +73,8 @@ export const ExamStudioHub: React.FC = () => {
         }
       }
 
-      // Fetch online exams
-      const onlineExamsRes = await client.post('/online-exams/verify-login', {
-        identifier: 'dineshreddy',
-        password: 'Admin@123'
-      }).catch(() => null);
-
-      if (onlineExamsRes?.data?.eligibleExams) {
-        setExams(onlineExamsRes.data.eligibleExams);
+      if (examsRes.data?.data) {
+        setExams(examsRes.data.data);
       }
     } catch (e) {
       console.warn('Error fetching studio data:', e);
@@ -78,8 +84,38 @@ export const ExamStudioHub: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isUnlocked) {
+      fetchData();
+    }
+  }, [isUnlocked, fetchData]);
+
+  // Handle Dedicated Unlock via Account Password
+  const handleUnlockStudio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyPassword.trim()) {
+      setVerifyError('Please enter your account password to verify authorization.');
+      return;
+    }
+    setVerifyError('');
+    setIsVerifying(true);
+    try {
+      const identifier = user?.email || user?.username || '';
+      const res = await client.post('/login', {
+        identifier,
+        password: verifyPassword
+      });
+      if (res.data?.success) {
+        sessionStorage.setItem('cbt_studio_unlocked', 'true');
+        setIsUnlocked(true);
+      } else {
+        setVerifyError(res.data?.message || 'Invalid password. Security clearance denied.');
+      }
+    } catch (err: any) {
+      setVerifyError(err.response?.data?.message || 'Verification failed. Please verify your password.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   // Create Online Exam Handler
   const handleCreateExam = async (e: React.FormEvent) => {
@@ -144,6 +180,109 @@ export const ExamStudioHub: React.FC = () => {
     }
   };
 
+  // If not unlocked, render the High-Security Clearance Gate
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
+        {/* Ambient background glows */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 backdrop-blur-xl">
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30 mb-4">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <span className="text-[10px] font-mono tracking-widest uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full mb-2">
+              Restricted Assessment Zone
+            </span>
+            <h2 className="text-xl font-bold text-white">CBT Exam Studio Clearance</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Please enter your password to unlock the Examination Control Center & Question Studio.
+            </p>
+          </div>
+
+          {/* User identity card */}
+          {user && (
+            <div className="mb-6 p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Active Operator</div>
+                <div className="text-sm font-semibold text-white">{user.name || user.full_name || user.username}</div>
+                <div className="text-xs text-slate-400 truncate mt-0.5">{user.email}</div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                {user.role}
+              </span>
+            </div>
+          )}
+
+          {verifyError && (
+            <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-red-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{verifyError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleUnlockStudio} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                Confirm Account Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showVerifyPassword ? 'text' : 'password'}
+                  value={verifyPassword}
+                  onChange={(e) => setVerifyPassword(e.target.value)}
+                  placeholder="Enter your login password"
+                  autoFocus
+                  required
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-950/80 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowVerifyPassword(!showVerifyPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  {showVerifyPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isVerifying ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Unlock size={16} />
+                  <span>Verify & Unlock Studio</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+            <button
+              onClick={() => navigate(-1)}
+              className="hover:text-slate-300 transition-colors cursor-pointer"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={() => navigate('/admin/dashboard')}
+              className="hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              Return to ERP Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
@@ -156,7 +295,7 @@ export const ExamStudioHub: React.FC = () => {
             <h1 className="font-bold text-base text-white flex items-center gap-2">
               ONLINE EXAM & QUESTION STUDIO
               <span className="text-[10px] font-mono tracking-wider uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                COE / Faculty Suite
+                COE / Placement / Admin Suite
               </span>
             </h1>
             <p className="text-xs text-slate-400">Computer-Based Assessment Architect & Question Taxonomy Manager</p>
@@ -171,6 +310,18 @@ export const ExamStudioHub: React.FC = () => {
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Candidate Portal Gateway</span>
+          </button>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('cbt_studio_unlocked');
+              setIsUnlocked(false);
+              setVerifyPassword('');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+            title="Lock CBT Studio"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Lock Studio</span>
           </button>
           <button
             onClick={() => navigate('/admin/dashboard')}
